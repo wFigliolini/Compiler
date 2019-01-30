@@ -18,14 +18,9 @@ int RTest()
 {
 	int status = 0;
 	//init stack for reads
-	std::stack<int> numgen;
-	for (int i = 0; i < 43; ++i) {
-		numgen.push(i);
-	}
-
 	//testing
 	Program* R0Test1 = new Program();
-	R0Test1->setExpr(new Neg(new Add(new Num(17), new Add(new Read(numgen.top()), new Num(42)))));
+	R0Test1->setExpr(new Neg(new Add(new Num(17), new Add(new Read(1), new Num(42)))));
 	numgen.pop();
 	std::string temp1, result1("(-(+17 (+(Read) 42)))");
 	int  int1, final1(-101);
@@ -44,11 +39,12 @@ int RTest()
 		BOOST_REQUIRE(temp1.compare(result1) == 0);
 	};
 
-	test2 = R0Test2->print();
-	int2 = R0Test2->run();
+
 	BOOST_AUTO_TEST_CASE(Inter_Test1) {
 		BOOST_REQUIRE(int1 == final1);
 	};
+	test2 = R0Test2->print();
+	int2 = R0Test2->run();
 	BOOST_AUTO_TEST_CASE(AST_Test2) {
 		BOOST_REQUIRE(temp2.compare(result2) == 0);
 	};

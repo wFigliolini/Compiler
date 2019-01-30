@@ -78,12 +78,13 @@ private:
 // Read class
 class Read : public Expr {
 public:
-	explicit Read() { num = -1 };
-	Read(int in) { num = in; }
+	explicit Read() { mode_ = 0; };
+	Read(bool mode) { mode_ = mode; }
 	int inter() {
 		int i;
-		if (num != -1) {
+		if (mode_) {
 			i = num;
+			--num_;
 		}
 		else {
 			std::cin >> i;
@@ -94,9 +95,11 @@ public:
 		os << "(Read)";
 	}
 private:
-	int num
+	bool mode_;
+	static int num_;
 };
 
+int Read::num_ = 42;
 //temp Info class
 class Info {};
 
