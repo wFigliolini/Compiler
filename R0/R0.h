@@ -4,17 +4,14 @@
 
 #include <iostream>
 #include <string>
-#include <sstream>
 
 //virtual Expression class
 class Expr {
 public:
 	virtual int inter() = 0;
-	virtual void AST(std::ostream& os) const = 0;
-	friend std::ostream& operator<<(std::ostream& os, Expr* e) {
-		e->AST(os);
-		return os;
-	}
+	virtual std::string AST() = 0;
+private:
+
 };
 
 //int class
@@ -22,9 +19,9 @@ class Num : public Expr {
 public:
 	explicit Num(int n) { i = n; };
 	int inter() { return i; };
-	void AST(std::ostream& os)  const {
-		os << e->i;
-		return os;
+	std::string AST()  {
+		std::string str = std::to_string(i);
+		return str;
 	}
 private:
 	int i;
@@ -44,12 +41,13 @@ public:
 		j = e2->inter();
 		return i + j;
 	}
-	void AST(std::ostream& os)  const{
-		os << "(+";
-		e1->AST(os);
-		os << " ";
-		e2->AST(os);
-		os << ")";
+	std::string AST()  {
+		std::string str("(+");
+		str += e1->AST();
+		str += " ";
+		str += e2->AST();
+		str += ")";
+		return str;
 	}
 private:
 	Expr* e1, *e2;
@@ -66,10 +64,11 @@ public:
 		i = e->inter();
 		return -i;
 	}
-	void AST(std::ostream& os)  const {
-		os << "(-";
-		e->AST(os);
-		os << ")";
+	std::string AST() {
+		std::string str("(-");
+		str += e->AST();
+		str += ")";
+		return str;
 	}
 private:
 	Expr* e;
@@ -83,7 +82,7 @@ public:
 	int inter() {
 		int i;
 		if (mode_) {
-			i = num;
+			i = num_;
 			--num_;
 		}
 		else {
@@ -91,8 +90,10 @@ public:
 		}
 		return i;
 	}
-	void AST(std::ostream& os)  const {
-		os << "(Read)";
+	std::string AST() {
+		std::string str("(Read)");
+	//	std::cout << str << std::endl;
+		return str;
 	}
 private:
 	bool mode_;
@@ -112,18 +113,12 @@ public:
 		return e->inter();
 	}
 	std::string print() {
-		std::ostringstream os;
-		os << e;
-		std::string out(os.str());
+		std::string out;
+	        out = e->AST();	
 		return out;
 	}
-	friend std::ostream& operator<<(std::ostream& os, Program* p) {
-		os << p.e;
-		os << std::endl;
-		return os;
-	}
-	inline Expr* getExpr() { return e };
-	inline Info* getInfo() { return i };
+	inline Expr* getExpr() { return e; };
+	inline Info* getInfo() { return i; };
 	inline void setExpr(Expr* n) { e = n; };
 	inline void setInfo(Info* n) { i = n; };
 private:
