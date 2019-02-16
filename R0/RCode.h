@@ -1,4 +1,5 @@
-//R0.h
+//RCode.h
+//Header file containing function prototypes and definitions of Expressions
 #ifndef R0_DEF_H_
 #define R0_DEF_H_
 
@@ -125,4 +126,6 @@ private:
 	Expr* e;
 	Info* i;
 };
+
+Program* pow(int x, int b = 2); 
 #endif
