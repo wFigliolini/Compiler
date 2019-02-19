@@ -1,6 +1,7 @@
 //RCode.cpp
 //Contains function definition of Tests
 
+#include <random>
 #include "RCode.cpp"
 
 Expr* powE(int x, int b){
@@ -12,7 +13,17 @@ Expr* powE(int x, int b){
 	}
 }
 Program* pow(int x, int b = 2){
-	Expr* val = new Expr(powE(x , b));
+	Expr* val = powE(x , b);
+	Program* ret = new Program(NULL, val);
+	return ret;
+}
+
+Expr* randExpr(int depth){
+
+}
+
+Program* randProg(int depth){
+	Expr* val = randExpr(depth);
 	Program* ret = new Program(NULL, val);
 	return ret;
 }

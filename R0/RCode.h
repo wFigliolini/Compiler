@@ -127,5 +127,6 @@ private:
 	Info* i;
 };
 
-Program* pow(int x, int b = 2); 
+Program* pow(int x, int b = 2);
+Program* randProg(int depth);
 #endif
