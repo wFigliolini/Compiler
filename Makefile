@@ -1,13 +1,13 @@
-PROG := R0Test
+PROG := RTest
 CXX := g++
 CXXFLAGS := -std=c++11 -pedantic -Wall -Werror
 
 all: $(PROG)
 
-R0Test: R0Test.o
-	$(CXX) $(CXXFLAGS)  R0Test.o -o R0Test -lboost_unit_test_framework
+RTest: RTest.o
+	$(CXX) $(CXXFLAGS)  RTest.o -o RTest -lboost_unit_test_framework
 	
-R0Test.o: ./R0/R0Test.cpp ./R0/R0.h
-	$(CXX) $(CXXFLAGS) -c ./R0/R0.h  ./R0/R0Test.cpp
+RTest.o: ./R0/RTest.cpp ./R0/RCode.h
+	$(CXX) $(CXXFLAGS) -c ./R0/RCode.h  ./R0/RTest.cpp
 clean:
 	rm *.o $(PROG)

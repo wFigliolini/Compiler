@@ -18,8 +18,36 @@ Program* pow(int x, int b = 2){
 	return ret;
 }
 
-Expr* randExpr(int depth){
+//Global generators for rand Expr
+//choiceGen to determine path
+//numGen to determine num values
 
+std::mt19937 choiceGen, numGen;
+
+//associated distributions
+
+std::uniform_int_distribution<int> choiceDis(0,1), numDis(0,1024);
+
+Expr* randExpr(int depth){
+	int choice( choiceDis(choiceGen) );
+	if(depth == 0){
+		if( choice == 1 ){
+			return new Read();
+		}
+		else{
+			int num( numDis(numGen));
+			return new Num(num);
+		}
+	}
+	else{
+		int nextDepth( depth-1 );
+		if( choice == 1 ){
+			return new Neg( randExpr(nextDepth) );
+		}
+		else{
+			return new Add( randExpr(nextDepth), randExpr(nextDepth) );
+		}
+	}
 }
 
 Program* randProg(int depth){

@@ -1,7 +1,7 @@
 //R0 Testing Suite
 #define BOOST_TEST_MODULE RO
 #include <boost/test/included/unit_test.hpp>
-#include "R0.h"
+#include "RCode.h"
 
 #define BOOST_TEST_STATIC_LINK	
 	//init stack for reads
