@@ -5,7 +5,7 @@
 
 #include <iostream>
 #include <string>
-
+#include <random>
 //virtual Expression class
 class Expr {
 public:
@@ -76,6 +76,7 @@ private:
 };
 
 // Read class
+namespace{
 class Read : public Expr {
 public:
 	explicit Read() { mode_ = 0; };
@@ -102,6 +103,7 @@ private:
 };
 
 int Read::num_ = 42;
+}
 //temp Info class
 class Info {};
 
@@ -126,6 +128,8 @@ private:
 	Expr* e;
 	Info* i;
 };
+
+//function declarations
 
 Program* pow(int x, int b = 2);
 Program* randProg(int depth);
