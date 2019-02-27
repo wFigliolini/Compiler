@@ -12,12 +12,16 @@
 enum opCode { num, add, neg, rRead, ERROR = -1};
 class Expr {
 public:
+	//standard constructors
 	explicit Expr(){}
 	explicit Expr(Expr* n):e1_(n){}
 	explicit Expr(Expr* n1, Expr* n2):e1_(n1), e2_(n2){}
+	//clone function to handle copies
+ 	auto clone() const { return std::unique_ptr<Expr>(cloneImpl()); };
 	virtual int inter() = 0;
 	virtual std::string AST() = 0;
 protected:
+	virtual Expr* cloneImpl() const = 0;
 	std::unique_ptr<Expr> e1_, e2_;
 	opCode op_;
 private:
@@ -27,23 +31,30 @@ private:
 //int class
 class Num : public Expr {
 public:
-	explicit Num(int n) { i_ = n; };
+	explicit Num(int n) {
+	       	i_ = n;
+		op_= num;
+       	};
 	int inter() { return i_; };
 	std::string AST()  {
 		std::string str = std::to_string(i_);
 		return str;
 	}
-	static const opCode op_;
+protected:
+	Num* cloneImpl() const override {
+		return new Num(i_);
+	}
 private:
 	int i_;
 };
-const opCode Num::op_ = num;
+
 
 //addition class
 //+ n1 n2 -> int
 class Add : public Expr {
 public:
 	explicit Add(Expr* n1, Expr* n2):Expr(n1, n2) {
+		op_ = add;
 	}
 	int inter() {
 		int i, j;
@@ -59,14 +70,18 @@ public:
 		str += ")";
 		return str;
 	}
-	static const opCode op_;
+protected:
+	Add* cloneImpl() const override {
+	       	return new Add((e1_->clone().release()), (e2_->clone().release()));
+	};
 private:
 };
-const opCode Add::op_ = add;
+
 //negation class
 class Neg : public Expr {
 public:
 	explicit Neg(Expr* n): Expr(n) {
+		op_ = neg;
 	}
 	int inter() {
 		int i;
@@ -79,17 +94,19 @@ public:
 		str += ")";
 		return str;
 	}
-	static const opCode op_;
+protected:
+	Neg* cloneImpl() const override {
+	       	return new Neg((e1_->clone().release()));
+	};
 private:
 };
-const opCode Neg::op_ = neg;
 
 // Read class
 namespace{
 class Read : public Expr {
 public:
-	explicit Read() { mode_ = 0; };
-	Read(bool mode) { mode_ = mode; }
+	explicit Read():mode_(0) {op_ = rRead; };
+	explicit Read(bool mode):mode_(mode) {op_ = rRead; };
 	int inter() {
 		int i;
 		if (mode_) {
@@ -106,16 +123,15 @@ public:
 	//	std::cout << str << std::endl;
 		return str;
 	}
-	static const opCode op_;
-	inline int getMode(){ return mode_;}
+protected:
+	Read* cloneImpl() const override { return new Read(mode_);};
 private:
 	bool mode_;
 	static int num_;
 };
-const opCode Read::op_ = rRead;
-
 int Read::num_ = 42;
 }
+
 //temp Info class
 class Info {
 public:
@@ -125,8 +141,17 @@ public:
 //program
 class Program {
 public:
+	//constructors and = operators
 	explicit Program() {   };
 	explicit Program(Info* i, Expr* e):e_(e), i_(i) { };
+	~Program() = default;
+	explicit Program(const Program& orig):e_(orig.e_->clone()), i_(orig.i_){}
+	Program( Program&& orig) = default;
+	Program& operator= (const Program& orig){
+		e_ = orig.e_->clone();
+		return *this;
+	}
+	Program& operator= (Program&& orig) = default;
 	int run() {
 		return e_->inter();
 	}
@@ -135,9 +160,8 @@ public:
 	        out = e_->AST();	
 		return out;
 	}
-	inline std::unique_ptr<Expr> getExpr() {
-		if(e_ == NULL) return NULL;
-		std::unique_ptr<Expr> e( new Expr(*e_));
+	inline Expr* getExpr() {
+		Expr* e = (e_->clone()).release();
 	       	return e;
        	}
 	inline Info* getInfo() { return i_; };

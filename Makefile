@@ -1,6 +1,6 @@
 PROG := RTest
 CXX := g++
-CXXFLAGS := -std=c++11 -pedantic -Wall -Werror
+CXXFLAGS := -std=c++14 -pedantic -Wall -Werror
 
 all: $(PROG)
 
