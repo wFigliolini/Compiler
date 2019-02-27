@@ -6,6 +6,7 @@
 #include <iostream>
 #include <string>
 #include <random>
+enum opCode {num, add, neg, rRead, ERROR = -1};
 //virtual Expression class
 class Expr {
 public:
@@ -14,6 +15,8 @@ public:
 	explicit Expr(Expr* n1, Expr* n2):e1_(n1), e2_(n2){}
 	virtual int inter() = 0;
 	virtual std::string AST() = 0;
+protected:
+	std::unique_ptr<Expr> e1_, e2_;
 private:
 
 };
@@ -40,20 +43,19 @@ public:
 	}
 	int inter() {
 		int i, j;
-		i = e1->inter();
-		j = e2->inter();
+		i = e1_->inter();
+		j = e2_->inter();
 		return i + j;
 	}
 	std::string AST()  {
 		std::string str("(+");
-		str += e1->AST();
+		str += e1_->AST();
 		str += " ";
-		str += e2->AST();
+		str += e2_->AST();
 		str += ")";
 		return str;
 	}
 private:
-	Expr* e1, *e2;
 };
 
 //negation class
@@ -73,7 +75,6 @@ public:
 		return str;
 	}
 private:
-	Expr* e;
 };
 
 // Read class
@@ -116,11 +117,11 @@ public:
 	explicit Program() {   };
 	explicit Program(Info* i, Expr* e):e_(e), i_(i) { };
 	int run() {
-		return e->inter();
+		return e_->inter();
 	}
 	std::string print() {
 		std::string out;
-	        out = e->AST();	
+	        out = e_->AST();	
 		return out;
 	}
 	inline std::unique_ptr<Expr> getExpr() {
@@ -132,8 +133,8 @@ public:
 	inline void setExpr(Expr* n) { e_.reset(n); };
 	inline void setInfo(Info* n) { i_ = n; };
 private:
-	Expr* e;
-	Info* i;
+	std::unique_ptr<Expr> e_;
+	Info* i_;
 };
 
 //function declarations
