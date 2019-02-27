@@ -6,8 +6,10 @@
 #include <iostream>
 #include <string>
 #include <random>
-enum opCode {num, add, neg, rRead, ERROR = -1};
+#include <memory>
+
 //virtual Expression class
+enum opCode { num, add, neg, rRead, ERROR = -1};
 class Expr {
 public:
 	explicit Expr(){}
@@ -17,6 +19,7 @@ public:
 	virtual std::string AST() = 0;
 protected:
 	std::unique_ptr<Expr> e1_, e2_;
+	opCode op_;
 private:
 
 };
@@ -34,6 +37,7 @@ public:
 private:
 	int i_;
 };
+const opCode Num::op_ = num;
 
 //addition class
 //+ n1 n2 -> int
@@ -55,9 +59,10 @@ public:
 		str += ")";
 		return str;
 	}
+	static const opCode op_;
 private:
 };
-
+const opCode Add::op_ = add;
 //negation class
 class Neg : public Expr {
 public:
@@ -74,8 +79,10 @@ public:
 		str += ")";
 		return str;
 	}
+	static const opCode op_;
 private:
 };
+const opCode Neg::op_ = neg;
 
 // Read class
 namespace{
@@ -105,11 +112,15 @@ private:
 	bool mode_;
 	static int num_;
 };
+const opCode Read::op_ = rRead;
 
 int Read::num_ = 42;
 }
 //temp Info class
-class Info {};
+class Info {
+public:
+	explicit Info(){};
+};
 
 //program
 class Program {
@@ -142,3 +153,4 @@ private:
 Program* pow(int x, int b = 2);
 Program* randProg(int depth);
 #endif
+
