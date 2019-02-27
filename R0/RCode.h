@@ -9,6 +9,9 @@
 //virtual Expression class
 class Expr {
 public:
+	explicit Expr(){}
+	explicit Expr(Expr* n):e1_(n){}
+	explicit Expr(Expr* n1, Expr* n2):e1_(n1), e2_(n2){}
 	virtual int inter() = 0;
 	virtual std::string AST() = 0;
 private:
@@ -18,23 +21,22 @@ private:
 //int class
 class Num : public Expr {
 public:
-	explicit Num(int n) { i = n; };
-	int inter() { return i; };
+	explicit Num(int n) { i_ = n; };
+	int inter() { return i_; };
 	std::string AST()  {
-		std::string str = std::to_string(i);
+		std::string str = std::to_string(i_);
 		return str;
 	}
+	static const opCode op_;
 private:
-	int i;
+	int i_;
 };
 
 //addition class
 //+ n1 n2 -> int
 class Add : public Expr {
 public:
-	explicit Add(Expr* n1, Expr* n2) {
-		e1 = n1;
-		e2 = n2;
+	explicit Add(Expr* n1, Expr* n2):Expr(n1, n2) {
 	}
 	int inter() {
 		int i, j;
@@ -57,17 +59,16 @@ private:
 //negation class
 class Neg : public Expr {
 public:
-	explicit Neg(Expr* n) {
-		e = n;
+	explicit Neg(Expr* n): Expr(n) {
 	}
 	int inter() {
 		int i;
-		i = e->inter();
+		i = e1_->inter();
 		return -i;
 	}
 	std::string AST() {
 		std::string str("(-");
-		str += e->AST();
+		str += e1_->AST();
 		str += ")";
 		return str;
 	}
@@ -97,6 +98,8 @@ public:
 	//	std::cout << str << std::endl;
 		return str;
 	}
+	static const opCode op_;
+	inline int getMode(){ return mode_;}
 private:
 	bool mode_;
 	static int num_;
@@ -110,8 +113,8 @@ class Info {};
 //program
 class Program {
 public:
-	explicit Program() { i = NULL; e = NULL; };
-	explicit Program(Info* in, Expr* n) { i = in; e = n; };
+	explicit Program() {   };
+	explicit Program(Info* i, Expr* e):e_(e), i_(i) { };
 	int run() {
 		return e->inter();
 	}
@@ -120,10 +123,14 @@ public:
 	        out = e->AST();	
 		return out;
 	}
-	inline Expr* getExpr() { return e; };
-	inline Info* getInfo() { return i; };
-	inline void setExpr(Expr* n) { e = n; };
-	inline void setInfo(Info* n) { i = n; };
+	inline std::unique_ptr<Expr> getExpr() {
+		if(e_ == NULL) return NULL;
+		std::unique_ptr<Expr> e( new Expr(*e_));
+	       	return e;
+       	}
+	inline Info* getInfo() { return i_; };
+	inline void setExpr(Expr* n) { e_.reset(n); };
+	inline void setInfo(Info* n) { i_ = n; };
 private:
 	Expr* e;
 	Info* i;
