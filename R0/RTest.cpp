@@ -94,29 +94,26 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
 	// Addition Case
 	BOOST_AUTO_TEST_CASE(OPT1){
 		Program* pTest = new Program(NULL, new Add(new Num(2), new Num(3)));
-		int result(5), tempInt;
-		std::string AST("5"), tempStr;
-		tempStr = pTest->print();
-		tempInt = pTest->run();
-		BOOST_REQUIRE( result == tempInt);
-		BOOST_REQUIRE( AST == tempStr);
+        Program* pOpt = opt(pTest);
+		BOOST_REQUIRE( pTest->run() == pOpt->run());
+        //std::cout <<" input: "<< pTest->print() << " output: "<< pOpt->print() << std::endl;
+		//BOOST_REQUIRE( pTest->print() == pOpt->print());
 	}
 	//negative case
 	BOOST_AUTO_TEST_CASE(OPT2){
 		Program* pTest = new Program(NULL, new Neg(new Neg(new Num(7))));
-		int result(7), tempInt;
-		std::string AST("7"), tempStr;
-		tempStr = pTest->print();
-		tempInt = pTest->run();
-		BOOST_REQUIRE( result == tempInt);
-		BOOST_REQUIRE( AST == tempStr);
+        Program* pOpt = opt(pTest);
+		BOOST_REQUIRE( pTest->run() == pOpt->run());
+        //std::cout <<"input: "<< pTest->print() << " output: "<< pOpt->print() << std::endl;
+		//BOOST_REQUIRE( pTest->print() == pOpt->print());
 	}
 	//Addition with read
 	BOOST_AUTO_TEST_CASE(OPT3){
 		Program* pTest = new Program(NULL, new Add(new Num(7), new Add( new Read(1), new Num(3))));
-		std::string AST("(+ 10 Read)"), tempStr;
-		tempStr = pTest->print();
-		BOOST_REQUIRE(AST  == tempStr);
+        Program* pOpt = opt(pTest);
+        std::cout <<"input: "<< pTest->print() << " output: "<< pOpt->print() << std::endl;
+		BOOST_REQUIRE( pTest->print() == pOpt->print());
+
 	}
 
 BOOST_AUTO_TEST_SUITE_END()

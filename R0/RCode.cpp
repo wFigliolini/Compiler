@@ -57,3 +57,23 @@ Program* randProg(int depth){
 	//std::cout << "returning prog" << std::endl;
 	return ret;
 }
+
+Expr* optE( Expr* orig){
+    if(orig->e1_){
+        orig->e1_.reset(optE(orig->e1_.release()));
+        if(orig->e2_){
+            orig->e2_.reset(optE(orig->e2_.release()));
+        }
+    }
+    if(orig->isPure()){
+        Num* retN = new Num(orig->inter());
+        return retN;
+    }
+    return orig;
+}
+
+Program* opt( Program* orig){
+    Expr* e = orig->getExpr();
+    e = optE(e);
+    return new Program(orig->getInfo(), e);
+}

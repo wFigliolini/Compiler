@@ -20,6 +20,8 @@ public:
  	auto clone() const { return std::unique_ptr<Expr>(cloneImpl()); };
 	virtual int inter() = 0;
 	virtual std::string AST() = 0;
+    friend Expr* optE( Expr* orig);
+    virtual bool isPure() = 0;
 protected:
 	virtual Expr* cloneImpl() const = 0;
 	std::unique_ptr<Expr> e1_, e2_;
@@ -33,13 +35,14 @@ class Num : public Expr {
 public:
 	explicit Num(int n) {
 	       	i_ = n;
-		op_= num;
-       	};
+            op_= num;
+    };
 	int inter() { return i_; };
 	std::string AST()  {
 		std::string str = std::to_string(i_);
 		return str;
 	}
+	bool isPure() { return true; }
 protected:
 	Num* cloneImpl() const override {
 		return new Num(i_);
@@ -70,6 +73,7 @@ public:
 		str += ")";
 		return str;
 	}
+	bool isPure() { return e1_->isPure() && e2_->isPure(); }
 protected:
 	Add* cloneImpl() const override {
 	       	return new Add((e1_->clone().release()), (e2_->clone().release()));
@@ -94,6 +98,7 @@ public:
 		str += ")";
 		return str;
 	}
+	bool isPure() { return e1_->isPure();}
 protected:
 	Neg* cloneImpl() const override {
 	       	return new Neg((e1_->clone().release()));
@@ -105,8 +110,7 @@ private:
 namespace{
 class Read : public Expr {
 public:
-	explicit Read():mode_(0) {op_ = rRead; };
-	explicit Read(bool mode):mode_(mode) {op_ = rRead; };
+	explicit Read(bool mode = 0):mode_(mode) {op_ = rRead;};
 	int inter() {
 		int i;
 		if (mode_) {
@@ -123,6 +127,7 @@ public:
 	//	std::cout << str << std::endl;
 		return str;
 	}
+	bool isPure() { return false; }
 protected:
 	Read* cloneImpl() const override { return new Read(mode_);};
 private:
@@ -162,11 +167,12 @@ public:
 	}
 	inline Expr* getExpr() {
 		Expr* e = (e_->clone()).release();
-	       	return e;
-       	}
+        return e;
+    }
 	inline Info* getInfo() { return i_; };
 	inline void setExpr(Expr* n) { e_.reset(n); };
 	inline void setInfo(Info* n) { i_ = n; };
+    friend Program* opt( Program* orig);
 private:
 	std::unique_ptr<Expr> e_;
 	Info* i_;
