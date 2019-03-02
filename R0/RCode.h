@@ -147,7 +147,7 @@ public:
 class Program {
 public:
 	//constructors and = operators
-	explicit Program() {   };
+	explicit Program():i_(NULL) {   };
 	explicit Program(Info* i, Expr* e):e_(e), i_(i) { };
 	~Program() = default;
 	explicit Program(const Program& orig):e_(orig.e_->clone()), i_(orig.i_){}
