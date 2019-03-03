@@ -13,8 +13,6 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
 	BOOST_AUTO_TEST_CASE(Test1){ 
         Program* pTest = new Program();
         pTest->setExpr(new Neg(new Add(new Num(17), new Add(new Read(1), new Num(42)))));
-        //optimizer now causes memory access violation
-        //TODO: fix optimizer
         //Program* pOpt = opt(pTest);
         int int1, final1(-101);		
         int1 = pTest->run();
@@ -76,7 +74,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         Program* pTest = new Program(NULL, new Let("x", new Num(32), new Add( new Let("x", new Num(8), new Var("x")), new Var("x"))));
         int result(40);
         std::string AST("(Let x = 32){\n(+(Let x = 8){\nx}\n x)}\n");
-        //std::cout << pTest ->print() << std::endl;
+        //std::cout << pTest ->run() << std::endl;
         BOOST_REQUIRE(pTest->run() == result);
         BOOST_REQUIRE(pTest->print() == AST);
     }
@@ -123,7 +121,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
 
 	//expand by power of 10
 	
-	BOOST_AUTO_TEST_CASE(Depth10){
+	/*BOOST_AUTO_TEST_CASE(Depth10){
 		//int result;
 		//std::cout << "generating program of depth 10 ";
 		Program* pTest = randProg(10);
@@ -147,12 +145,13 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                 	//std::cout << "program generated, result: " << result << std::endl;
 		}
         BOOST_TEST(true);
-    }
+    }*/
 	// Optimizer cases
 	// Addition Case
 	BOOST_AUTO_TEST_CASE(OPT1){
 		Program* pTest = new Program(NULL, new Add(new Num(2), new Num(3)));
         Program* pOpt = opt(pTest);
+        
 		BOOST_REQUIRE( pTest->run() == pOpt->run());
         //std::cout <<" input: "<< pTest->print() << " output: "<< pOpt->print() << std::endl;
 		//BOOST_REQUIRE( pTest->print() == pOpt->print());
@@ -174,35 +173,39 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
 	}
     //let base case
     BOOST_AUTO_TEST_CASE(OPTLET1){
-        Program* pTest = new Program(NULL, new Let("x", new Num(2), new Add(new Var("x"), new Num(3))));
-        std::string AST("(+2 3)");
+        Program* pTest = new Program(NULL, new Let("x", new Num(2), new Add(new Var("x"), new Read(1))));
+        std::string AST("(+2 (Read))");
         Program* pOpt = opt(pTest);
+        std::cout << pOpt->print() << std::endl;
+        BOOST_REQUIRE( pOpt->run()-1 == pTest->run());
         BOOST_REQUIRE( pOpt->print() == AST);
-        BOOST_REQUIRE( pOpt->run() == pTest->run());
     }
     //Expr in assignment
     BOOST_AUTO_TEST_CASE(OPTLET2){
-        Program* pTest = new Program(NULL, new Let("x", new Add(new Num(1), new Num(1)), new Add(new Var("x"), new Num(3))));
-        std::string AST("(+2 3)");
+        Program* pTest = new Program(NULL, new Let("x", new Add(new Num(1), new Num(1)), new Add(new Var("x"), new Read(1))));
+        std::string AST("(+2 (Read))");
         Program* pOpt = opt(pTest);
+        std::cout << pOpt->print() << std::endl;
+        BOOST_REQUIRE( pOpt->run()-1 == pTest->run());
         BOOST_REQUIRE( pOpt->print() == AST);
-        BOOST_REQUIRE( pOpt->run() == pTest->run());
     }
     // inlining of variables
 	BOOST_AUTO_TEST_CASE(OPTLET3){
-        Program* pTest = new Program(NULL,new Let("y", new Num(2), new Let("x", new Var("y"), new Add(new Var("x"), new Num(3)))));
-        std::string AST("(+2 3)");
+        Program* pTest = new Program(NULL,new Let("y", new Num(2), new Let("x", new Var("y"), new Add(new Var("x"), new Read(1)))));
+        std::string AST("(+2 (Read))");
         Program* pOpt = opt(pTest);
+        std::cout << pOpt->print() << std::endl;
+        BOOST_REQUIRE( pOpt->run()-1 == pTest->run());
         BOOST_REQUIRE( pOpt->print() == AST);
-        BOOST_REQUIRE( pOpt->run() == pTest->run());
     }
     //Read Case
     BOOST_AUTO_TEST_CASE(OPTLET4){
         Program* pTest = new Program(NULL, new Let("x", new Read(1), new Add(new Var("x"), new Num(3))));
         std::string AST("(Let x = (Read)){\n(+x 3)}\n");
         Program* pOpt = opt(pTest);
+        std::cout << pOpt->print() << std::endl;
+        BOOST_REQUIRE( pOpt->run()-1 == pTest->run());
         BOOST_REQUIRE( pOpt->print() == AST);
-        //BOOST_REQUIRE( pOpt->run() == pTest->run());
     }
     
 	

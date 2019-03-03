@@ -27,8 +27,9 @@ public:
  	auto clone() const { return std::unique_ptr<Expr>(cloneImpl()); };
 	virtual Num* inter(Environ env) = 0;
 	virtual std::string AST() = 0;
-    friend Expr* optE( Expr* orig, Environ env);
+    virtual Expr* optE(Environ env) = 0;
     virtual bool isPure(Environ env) = 0;
+    virtual bool containVar(std::string name) = 0;
 protected:
 	virtual Expr* cloneImpl() const = 0;
 	std::unique_ptr<Expr> e1_, e2_;
@@ -45,6 +46,10 @@ public:
 	explicit Num(int n) {
 	       	i_ = n;
             op_= num;
+    };
+    explicit Num(Num* n) {
+	       	i_ = n->i_;
+            op_= n->op_;
     };
     friend Num* numAdd(Num* const l, Num* const r){
         Num* out = new Num(0);
@@ -63,7 +68,9 @@ public:
 		std::string str = std::to_string(i_);
 		return str;
 	}
-	bool isPure(Environ env) { return true; }
+	bool isPure(Environ env) { return true;}
+	bool containVar(std::string name){return false;}
+	Expr* optE(Environ env) { return this;}
 protected:
 	Num* cloneImpl() const override {
 		return new Num(i_);
@@ -97,6 +104,18 @@ public:
 		return str;
 	}
 	bool isPure(Environ env) { return e1_->isPure(env) && e2_->isPure(env); }
+	Expr* optE(Environ env){
+        Expr *e1 =e1_.release(), *e2 = e2_.release();
+        e1_.reset(e1->optE(env));
+        e2_.reset(e2->optE(env));
+        if(isPure(env)){
+            return new Num(inter(env));
+        }
+        else{
+            return this;
+        }
+    }
+    bool containVar(std::string name){ return e1_->containVar(name) || e2_->containVar(name);}
 protected:
 	Add* cloneImpl() const override {
 	       	return new Add((e1_->clone().release()), (e2_->clone().release()));
@@ -122,7 +141,20 @@ public:
 		str += ")";
 		return str;
 	}
-	bool isPure(Environ env) { return e1_->isPure(env);}
+	bool isPure(Environ env) {
+        return e1_->isPure(env);
+    }
+    bool containVar(std::string name){ return e1_->containVar(name);}
+	Expr* optE(Environ env){
+        Expr* e = e1_.release();
+        e1_.reset(e->optE(env));
+        if(isPure(env)){
+            return new Num(inter(env));
+        }
+        else{
+            return this;
+        }
+    };
 protected:
 	Neg* cloneImpl() const override {
 	       	return new Neg((e1_->clone().release()));
@@ -152,6 +184,8 @@ public:
 		return str;
 	}
 	bool isPure(Environ env) { return false; }
+	Expr* optE(Environ env) { return this; }
+	bool containVar(std::string name){return false;}
 protected:
 	Read* cloneImpl() const override { return new Read(mode_);};
 private:
@@ -163,28 +197,47 @@ int Read::num_ = 42;
 
 class Let: public Expr{
 public:
-    Let(std::string var, Expr* exp, Expr* body): Expr(body, exp), var_(var){}
+    Let(std::string var, Expr* exp, Expr* body): Expr(exp, body), var_(var){}
     Num* inter(Environ env){
-        env[var_] = e2_->clone().release();
+        env[var_] = e1_->clone().release();
         Num* out;
-        out = e1_->inter(env);
+        out = e2_->inter(env);
         return out;
     }
 	std::string AST()  {
 		std::string str("(Let ");
         str += var_;
         str += " = ";
-		str += e2_->AST();
-		str += "){\n";
 		str += e1_->AST();
+		str += "){\n";
+		str += e2_->AST();
         str += "}\n";
 		return str;
 	}
 	bool isPure(Environ env){
-        env[var_] = e2_->clone().release();
-        //e2 does not need to be evaluated here, as it may not be referenced
+        env[var_] = e1_->clone().release();
+        //e1 does not need to be evaluated here, as it may not be referenced
         //its evaluation will occur at first var instance
-        return e1_->isPure(env);
+        return e2_->isPure(env);
+    }
+    bool containVar(std::string name){ return e1_->containVar(name) || e2_->containVar(name);}
+    Expr* optE(Environ env){
+        Expr* e1 = e1_->clone().release();
+        Expr* e2 = e2_->clone().release();
+        e1 = e1->optE(env);
+        e1_.reset(e1);
+        env[var_] = e1;
+        e2 = e2->optE(env);
+        e2_.reset(e2);
+        if(isPure(env)){
+            return new Num(inter(env));
+        }
+        if(containVar(var_)){
+            return this;
+        }
+        else{
+            return e2;
+        }
     }
 protected:
     Let* cloneImpl() const override {
@@ -207,6 +260,14 @@ public:
     }
     bool isPure(Environ env){
         return env[name_]->isPure(env);
+    }
+    bool containVar(std::string name){return name == name_;}
+    Expr* optE(Environ env) {
+        Expr* temp= env[name_];
+        if( temp->isPure(env)){
+            return temp;
+        }
+        return this;
     }
 protected:
     Var* cloneImpl() const override {

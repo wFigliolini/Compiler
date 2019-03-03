@@ -95,7 +95,8 @@ Program* randProg(int depth){
 	return ret;
 }
 
-Expr* optE( Expr* orig, Environ env){
+//depricated optimizer, saved for refrence
+/*Expr* optE( Expr* orig, Environ env){
     if(orig->e1_){
         orig->e1_.reset(optE(orig->e1_.release(), env));
         if(orig->e2_){
@@ -107,11 +108,11 @@ Expr* optE( Expr* orig, Environ env){
         return retN;
     }
     return orig;
-}
+}*/
 
 Program* opt( Program* orig){
-    Expr* e = orig->getExpr();
+    Expr *e = orig->getExpr();
     Environ env;
-    e = optE(e,  env);
+    e->optE(env);
     return new Program(orig->getInfo(), e);
 }
