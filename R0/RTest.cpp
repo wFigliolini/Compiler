@@ -172,7 +172,38 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         //std::cout <<"input: "<< pTest->print() << " output: "<< pOpt->print() << std::endl;
 		BOOST_REQUIRE( pTest->print() == pOpt->print());
 	}
-
-	
+    //let base case
+    BOOST_AUTO_TEST_CASE(OPTLET1){
+        Program* pTest = new Program(NULL, new Let("x", new Num(2), new Add(new Var("x"), new Num(3))));
+        std::string AST("(+2 3)");
+        Program* pOpt = opt(pTest);
+        BOOST_REQUIRE( pOpt->print() == AST);
+        BOOST_REQUIRE( pOpt->run() == pTest->run());
+    }
+    //Expr in assignment
+    BOOST_AUTO_TEST_CASE(OPTLET2){
+        Program* pTest = new Program(NULL, new Let("x", new Add(new Num(1), new Num(1)), new Add(new Var("x"), new Num(3))));
+        std::string AST("(+2 3)");
+        Program* pOpt = opt(pTest);
+        BOOST_REQUIRE( pOpt->print() == AST);
+        BOOST_REQUIRE( pOpt->run() == pTest->run());
+    }
+    // inlining of variables
+	BOOST_AUTO_TEST_CASE(OPTLET3){
+        Program* pTest = new Program(NULL,new Let("y", new Num(2), new Let("x", new Var("y"), new Add(new Var("x"), new Num(3)))));
+        std::string AST("(+2 3)");
+        Program* pOpt = opt(pTest);
+        BOOST_REQUIRE( pOpt->print() == AST);
+        BOOST_REQUIRE( pOpt->run() == pTest->run());
+    }
+    //Read Case
+    BOOST_AUTO_TEST_CASE(OPTLET4){
+        Program* pTest = new Program(NULL, new Let("x", new Read(1), new Add(new Var("x"), new Num(3))));
+        std::string AST("(Let x = (Read)){\n(+x 3)}\n");
+        Program* pOpt = opt(pTest);
+        BOOST_REQUIRE( pOpt->print() == AST);
+        //BOOST_REQUIRE( pOpt->run() == pTest->run());
+    }
+    
 	
 BOOST_AUTO_TEST_SUITE_END()
