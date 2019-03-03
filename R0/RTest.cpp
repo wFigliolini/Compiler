@@ -62,6 +62,50 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
 		//results in access violation after adding smartpointers
 		//BOOST_REQUIRE(R0TestNulls->getExpr() == NULL);
 	}
+	//let test cases
+	//Must be done befor randoms for read prediction
+	//Base Operation Test Case
+	BOOST_AUTO_TEST_CASE(BASELET){
+        Program* pTest = new Program(NULL, new Let("x",new Num(8), new Add( new Var("x"), new Var("x"))));
+        int result(16);
+        std::string AST("(Let x = 8){\n(+x x)\n}\n");
+        BOOST_REQUIRE(pTest->run() == result);
+        BOOST_REQUIRE(pTest->AST() == AST);
+    }
+    //Overwrite Test Case
+    BOOST_AUTO_TEST_CASE(OWCASE){
+        Program* pTest = new Program(NULL, new Let("x", new Num(32), new Add( new Let("x", new Num(8), new Var("x")), new Var("x"))));
+        int result(40);
+        std::string AST("(Let x = 32){\n(+(Let x = 8){\nx\n}\nx)}");
+        BOOST_REQUIRE(pTest->run() == result);
+        BOOST_REQUIRE(pTest->AST() == AST);
+    }
+	//Multiple Vars
+	BOOST_AUTO_TEST_CASE(MVCASE){
+        Program* pTest = new Program(NULL, new Let("x", new Num(32), new Let("y", new Num(8), new Add( new Var("x"), new Var("y")))));
+        int result(40);
+        std::string AST("(Let x = 32){\n(Let y = 8){\n(+x y)\n}\n}\n");
+        BOOST_REQUIRE(pTest->run() == result);
+        BOOST_REQUIRE(pTest->AST() == AST);
+    }
+    //Expression Handling
+    BOOST_AUTO_TEST_CASE(EXPHAND){
+        Program* pTest = new Program(NULL, new Let("x", new Add(new Num(32),new Num(64)), new Var("x")));
+        int result(98);
+        std::string AST("(Let x = (+32 64)){\nx\n}\n");
+        BOOST_REQUIRE(pTest->run() == result);
+        BOOST_REQUIRE(pTest->AST() == AST);
+    }
+    //Order of Operations Test
+    //Reads Will be 39,38
+    BOOST_AUTO_TEST_CASE(ORDERTEST){
+        Program* pTest = new Program(NULL, new Let("x", new Read(1), new Let("y", new Read(1), new Add(new Var("x"), new Neg(new Var("y")))));
+        int result(1);
+        std::string AST("(Let x = (Read)){\n(Let y = (Read)){\n(+x (-y))\n}\n}\n");
+        BOOST_REQUIRE(pTest->run() == result);
+        BOOST_REQUIRE(pTest->AST() == AST);
+    }
+	
 	//Random Program Tests for stability
 	
 	//Base Case
@@ -129,4 +173,6 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
 		BOOST_REQUIRE( pTest->print() == pOpt->print());
 	}
 
+	
+	
 BOOST_AUTO_TEST_SUITE_END()
