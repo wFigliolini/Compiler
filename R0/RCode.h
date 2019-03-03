@@ -170,6 +170,17 @@ public:
         out = e1_->inter(env);
         return out;
     }
+	std::string AST()  {
+		std::string str("(Let ");
+        str += temp_;
+        str += " = ";
+		str += e2_->AST();
+		str += " ) {\n";
+		str += e1_->AST();
+        str += "\n";
+		str += "}";
+		return str;
+	}
 private:
     std::string temp_;
 };
@@ -181,6 +192,9 @@ public:
         Expr* result = env[name_];
         return result;
     }*/
+    std::string AST() {
+        return name_;
+    }
 private:
     std::string name_;
 };
