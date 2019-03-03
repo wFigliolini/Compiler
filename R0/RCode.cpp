@@ -66,7 +66,7 @@ Expr* optE( Expr* orig, Environ env){
             orig->e2_.reset(optE(orig->e2_.release(), env));
         }
     }
-    if(orig->isPure()){
+    if(orig->isPure(env)){
         Num* retN = orig->inter(env);
         return retN;
     }

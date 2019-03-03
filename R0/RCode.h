@@ -28,7 +28,7 @@ public:
 	virtual Num* inter(Environ env) = 0;
 	virtual std::string AST() = 0;
     friend Expr* optE( Expr* orig, Environ env);
-    virtual bool isPure() = 0;
+    virtual bool isPure(Environ env) = 0;
 protected:
 	virtual Expr* cloneImpl() const = 0;
 	std::unique_ptr<Expr> e1_, e2_;
@@ -63,7 +63,7 @@ public:
 		std::string str = std::to_string(i_);
 		return str;
 	}
-	bool isPure() { return true; }
+	bool isPure(Environ env) { return true; }
 protected:
 	Num* cloneImpl() const override {
 		return new Num(i_);
@@ -96,7 +96,7 @@ public:
 		str += ")";
 		return str;
 	}
-	bool isPure() { return e1_->isPure() && e2_->isPure(); }
+	bool isPure(Environ env) { return e1_->isPure(env) && e2_->isPure(env); }
 protected:
 	Add* cloneImpl() const override {
 	       	return new Add((e1_->clone().release()), (e2_->clone().release()));
@@ -122,7 +122,7 @@ public:
 		str += ")";
 		return str;
 	}
-	bool isPure() { return e1_->isPure();}
+	bool isPure(Environ env) { return e1_->isPure(env);}
 protected:
 	Neg* cloneImpl() const override {
 	       	return new Neg((e1_->clone().release()));
@@ -151,7 +151,7 @@ public:
 	//	std::cout << str << std::endl;
 		return str;
 	}
-	bool isPure() { return false; }
+	bool isPure(Environ env) { return false; }
 protected:
 	Read* cloneImpl() const override { return new Read(mode_);};
 private:
@@ -163,38 +163,55 @@ int Read::num_ = 42;
 
 class Let: public Expr{
 public:
-    Let(std::string var, Expr* exp, Expr* body): Expr(body, exp), temp_(var){}
+    Let(std::string var, Expr* exp, Expr* body): Expr(body, exp), var_(var){}
     Num* inter(Environ env){
-        env[temp_] = e2_.release();
+        env[var_] = e2_->clone().release();
         Num* out;
         out = e1_->inter(env);
         return out;
     }
 	std::string AST()  {
 		std::string str("(Let ");
-        str += temp_;
+        str += var_;
         str += " = ";
 		str += e2_->AST();
-		str += " ) {\n";
+		str += "){\n";
 		str += e1_->AST();
-        str += "\n";
-		str += "}";
+        str += "}\n";
 		return str;
 	}
+	bool isPure(Environ env){
+        env[var_] = e2_->clone().release();
+        //e2 does not need to be evaluated here, as it may not be referenced
+        //its evaluation will occur at first var instance
+        return e1_->isPure(env);
+    }
+protected:
+    Let* cloneImpl() const override {
+        return new Let(var_,(e1_->clone().release()), (e2_->clone().release()));
+	};
 private:
-    std::string temp_;
+    std::string var_;
 };
 
 class Var:public Expr{
 public:
     Var(std::string name):name_(name){};
-    /*Expr* inter(Environ env){
-        Expr* result = env[name_];
+    Num* inter(Environ env){
+        Expr* container = env[name_];
+        Num* result = container->inter(env);
         return result;
-    }*/
+    }
     std::string AST() {
         return name_;
     }
+    bool isPure(Environ env){
+        return env[name_]->isPure(env);
+    }
+protected:
+    Var* cloneImpl() const override {
+		return new Var(name_);
+	}
 private:
     std::string name_;
 };
@@ -231,8 +248,13 @@ public:
 		return out;
 	}
 	inline Expr* getExpr() {
+        if(e_){
 		Expr* e = (e_->clone()).release();
         return e;
+        }
+        else{
+            return NULL;
+        }
     }
 	inline Info* getInfo() { return i_; };
 	inline void setExpr(Expr* n) { e_.reset(n); };
