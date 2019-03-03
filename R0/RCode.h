@@ -7,9 +7,16 @@
 #include <string>
 #include <random>
 #include <memory>
+#include <unordered_map>
+
+
 
 //virtual Expression class
 enum opCode { num, add, neg, rRead, ERROR = -1};
+class Expr;
+class Num;
+typedef std::unordered_map<std::string, Expr*> Environ;
+
 class Expr {
 public:
 	//standard constructors
@@ -18,9 +25,9 @@ public:
 	explicit Expr(Expr* n1, Expr* n2):e1_(n1), e2_(n2){}
 	//clone function to handle copies
  	auto clone() const { return std::unique_ptr<Expr>(cloneImpl()); };
-	virtual int inter() = 0;
+	virtual Num* inter(Environ env) = 0;
 	virtual std::string AST() = 0;
-    friend Expr* optE( Expr* orig);
+    friend Expr* optE( Expr* orig, Environ env);
     virtual bool isPure() = 0;
 protected:
 	virtual Expr* cloneImpl() const = 0;
@@ -30,6 +37,8 @@ private:
 
 };
 
+
+
 //int class
 class Num : public Expr {
 public:
@@ -37,7 +46,19 @@ public:
 	       	i_ = n;
             op_= num;
     };
-	int inter() { return i_; };
+    friend Num* numAdd(Num* const l, Num* const r){
+        Num* out = new Num(0);
+        out->i_ = l->i_ + r->i_;
+        return out;
+    }
+    friend Num* numNeg(Num* const l){
+        Num* i = new Num(-l->i_);
+        return i;
+    }
+    int output(){
+        return i_;
+    }
+	Num* inter(Environ env) { return this; };
 	std::string AST()  {
 		std::string str = std::to_string(i_);
 		return str;
@@ -48,6 +69,7 @@ protected:
 		return new Num(i_);
 	}
 private:
+    void seti(int i){i_=i;};
 	int i_;
 };
 
@@ -59,11 +81,12 @@ public:
 	explicit Add(Expr* n1, Expr* n2):Expr(n1, n2) {
 		op_ = add;
 	}
-	int inter() {
-		int i, j;
-		i = e1_->inter();
-		j = e2_->inter();
-		return i + j;
+	Num* inter(Environ env) {
+		Num *i, *j;
+		i = e1_->inter(env);
+		j = e2_->inter(env);
+        i = numAdd(i,j);
+		return i;
 	}
 	std::string AST()  {
 		std::string str("(+");
@@ -87,10 +110,11 @@ public:
 	explicit Neg(Expr* n): Expr(n) {
 		op_ = neg;
 	}
-	int inter() {
-		int i;
-		i = e1_->inter();
-		return -i;
+	Num* inter(Environ env) {
+		Num* i;
+		i = e1_->inter(env);
+        i = numNeg(i);
+		return i;
 	}
 	std::string AST() {
 		std::string str("(-");
@@ -111,7 +135,7 @@ namespace{
 class Read : public Expr {
 public:
 	explicit Read(bool mode = 0):mode_(mode) {op_ = rRead;};
-	int inter() {
+	Num* inter(Environ env) {
 		int i;
 		if (mode_) {
 			i = num_;
@@ -120,7 +144,7 @@ public:
 		else {
 			std::cin >> i;
 		}
-		return i;
+		return new Num(i);
 	}
 	std::string AST() {
 		std::string str("(Read)");
@@ -136,6 +160,30 @@ private:
 };
 int Read::num_ = 42;
 }
+
+class Let: public Expr{
+public:
+    Let(std::string var, Expr* exp, Expr* body): Expr(body, exp), temp_(var){}
+    Num* inter(Environ env){
+        env[temp_] = e2_.release();
+        Num* out;
+        out = e1_->inter(env);
+        return out;
+    }
+private:
+    std::string temp_;
+};
+
+class Var:public Expr{
+public:
+    Var(std::string name):name_(name){};
+    /*Expr* inter(Environ env){
+        Expr* result = env[name_];
+        return result;
+    }*/
+private:
+    std::string name_;
+};
 
 //temp Info class
 class Info {
@@ -158,7 +206,10 @@ public:
 	}
 	Program& operator= (Program&& orig) = default;
 	int run() {
-		return e_->inter();
+        Num* out;
+        Environ env;
+		out = e_->inter(env);
+        return out->output();
 	}
 	std::string print() {
 		std::string out;

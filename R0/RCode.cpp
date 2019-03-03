@@ -36,8 +36,9 @@ Expr* randExpr(int depth){
 			return new Read(1);
 		}
 		else{
-			int num= numDis(numGen);
-			return new Num(num);
+            int i(numDis(numGen));
+			Num* num = new Num(i);
+			return num;
 		}
 	}
 	else{
@@ -58,15 +59,15 @@ Program* randProg(int depth){
 	return ret;
 }
 
-Expr* optE( Expr* orig){
+Expr* optE( Expr* orig, Environ env){
     if(orig->e1_){
-        orig->e1_.reset(optE(orig->e1_.release()));
+        orig->e1_.reset(optE(orig->e1_.release(), env));
         if(orig->e2_){
-            orig->e2_.reset(optE(orig->e2_.release()));
+            orig->e2_.reset(optE(orig->e2_.release(), env));
         }
     }
     if(orig->isPure()){
-        Num* retN = new Num(orig->inter());
+        Num* retN = orig->inter(env);
         return retN;
     }
     return orig;
@@ -74,6 +75,7 @@ Expr* optE( Expr* orig){
 
 Program* opt( Program* orig){
     Expr* e = orig->getExpr();
-    e = optE(e);
+    Environ env;
+    e = optE(e,  env);
     return new Program(orig->getInfo(), e);
 }
