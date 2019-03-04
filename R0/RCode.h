@@ -27,9 +27,9 @@ public:
  	auto clone() const { return std::unique_ptr<Expr>(cloneImpl()); };
 	virtual Num* inter(Environ env) = 0;
 	virtual std::string AST() = 0;
-    virtual Expr* optE(Environ env) = 0;
-    virtual bool isPure(Environ env) = 0;
-    virtual bool containVar(std::string name) = 0;
+   	 virtual Expr* optE(Environ env) = 0;
+   	 virtual bool isPure(Environ env) = 0;
+  	 virtual bool containVar(std::string name) = 0;
 protected:
 	virtual Expr* cloneImpl() const = 0;
 	std::unique_ptr<Expr> e1_, e2_;
@@ -43,13 +43,13 @@ private:
 //int class
 class Num : public Expr {
 public:
-	explicit Num(int n) {
-	       	i_ = n;
-            op_= num;
+    explicit Num(int n) {
+	i_ = n;
+        op_= num;
     };
     explicit Num(Num* n) {
-	       	i_ = n->i_;
-            op_= n->op_;
+	i_ = n->i_;
+        op_= n->op_;
     };
     friend Num* numAdd(Num* const l, Num* const r){
         Num* out = new Num(0);
@@ -63,21 +63,21 @@ public:
     int output(){
         return i_;
     }
-	Num* inter(Environ env) { return this; };
-	std::string AST()  {
-		std::string str = std::to_string(i_);
-		return str;
-	}
-	bool isPure(Environ env) { return true;}
-	bool containVar(std::string name){return false;}
-	Expr* optE(Environ env) { return this;}
+    Num* inter(Environ env) { return this; };
+    std::string AST()  {
+    std::string str = std::to_string(i_);
+	return str;
+    }
+   bool isPure(Environ env) { return true;}
+   bool containVar(std::string name){return false;}
+   Expr* optE(Environ env) { return this;}
 protected:
-	Num* cloneImpl() const override {
-		return new Num(i_);
-	}
+   Num* cloneImpl() const override {
+	return new Num(i_);
+   }
 private:
     void seti(int i){i_=i;};
-	int i_;
+    int i_;
 };
 
 
@@ -230,12 +230,15 @@ public:
         e2 = e2->optE(env);
         e2_.reset(e2);
         if(isPure(env)){
+            //std::cout << "ispure" << std::endl;
             return new Num(inter(env));
         }
-        if(containVar(var_)){
+        if(e2->containVar(var_)){
+            //std::cout << "cv true" << std::endl;
             return this;
         }
         else{
+            //std::cout<< "Cv False" << std::endl;
             return e2;
         }
     }

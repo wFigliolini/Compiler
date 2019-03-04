@@ -121,7 +121,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
 
 	//expand by power of 10
 	
-	/*BOOST_AUTO_TEST_CASE(Depth10){
+	BOOST_AUTO_TEST_CASE(Depth10){
 		//int result;
 		//std::cout << "generating program of depth 10 ";
 		Program* pTest = randProg(10);
@@ -145,7 +145,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                 	//std::cout << "program generated, result: " << result << std::endl;
 		}
         BOOST_TEST(true);
-    }*/
+    }
 	// Optimizer cases
 	// Addition Case
 	BOOST_AUTO_TEST_CASE(OPT1){
@@ -203,7 +203,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         Program* pTest = new Program(NULL, new Let("x", new Read(1), new Add(new Var("x"), new Num(3))));
         std::string AST("(Let x = (Read)){\n(+x 3)}\n");
         Program* pOpt = opt(pTest);
-        std::cout << pOpt->print() << std::endl;
+        //std::cout << pOpt->print() << std::endl;
         BOOST_REQUIRE( pOpt->run()-1 == pTest->run());
         BOOST_REQUIRE( pOpt->print() == AST);
     }
