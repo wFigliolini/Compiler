@@ -9,6 +9,9 @@
 #include <memory>
 #include <unordered_map>
 #include <vector>
+#include <iterator>
+#include <stdexcept>
+#include <algorithm>
 
 //virtual Expression class
 enum opCode { num, add, neg, rRead, ERROR = -1};
@@ -332,88 +335,246 @@ Program* randProg(int depth);
 
 class Label{
 public:
-    explicit Label (std::string label): label_(label){};
-
+    explicit Label (std::string label, int pc): label_(label), pc_(pc){};
+    std::string emitL(bool vars){
+        return label_;
+    }
 private:
    std::string label_;
+   int pc_;
 };
 class Arg{
 public:
-  explicit Arg(std::string arg):arg_(arg){}
+    virtual const std::string emitA(bool vars) = 0;
 private:
-   std::string arg_;
 };
+class Reg: public Arg{
+public:
+    explicit Reg(int reg){
+        if( reg > 15 || reg < 0 ){
+            throw std::invalid_argument("Register assignment attempted outside of range 0->15\n");
+        }
+        reg_ = reg;
+        return;
+    }
+    explicit Reg(std::string reg){
+        auto it = std::find(regNames.begin(), regNames.end(), reg);
+        if( it == regNames.end() ){
+            std::string errorstring("Register assignment attempted to invalid register ");
+            errorstring+=reg;
+            errorstring+="\n";
+            throw std::invalid_argument(errorstring);
+        }
+        reg_ = std::distance(regNames.begin(), it);
+        return;
+    }
+    const std::string emitA(bool vars){
+        return regNames[reg_];
+    }
+private:
+    int reg_;
+    static std::vector<std::string> regNames;
+};
+//set of register names
+std::vector<std::string> Reg::regNames = {"%rax", "%rbx", "%rcx", "%rdx", "%rsi", "%rdi", "%rbp", "%rsp", "%r8", "%r9", "%r10", "%r11", "%r12", "%r13", "%r14", "%r15"};
+
+class Const: public Arg{
+public:
+    explicit Const( int con ):con_(con){};
+    const std::string emitI(bool vars){
+        return std::to_string(con_);
+    }
+private:
+    int con_;
+};
+
+class DeRef: public Arg{
+public:
+    explicit DeRef(Reg reg):reg_(reg), offset_(0){};
+    explicit DeRef(Reg reg, int off):reg_(reg), offset_(off){};
+    const std::string emitA(bool vars){
+        std::string output;
+        if( offset_ != 0 ) output += std::to_string(offset_);
+        output += "(";
+        output += reg_.emitA(vars);
+        output += ")";
+        return output;
+    }
+private:
+    Reg reg_;
+    int offset_;
+};
+
+class Ref: public Arg{
+public:
+    explicit Ref(std::string n):name_(n){};
+    const std::string emitA(bool vars){
+        std::string output;
+        output += "&";
+        output += name_;
+        return output;
+    }
+private:
+    std::string name_;
+};
+
 //instructions
 class Instr{
 public:
-   explicit Instr():al_("NULL"), ar_("NULL"){}
-   explicit Instr(std::string a1): al_(a1), ar_("NULL"){}
-   explicit Instr(std::string a1, std::string a2): al_(a1), ar_(a2){}
-private:
-   Arg al_, ar_;
+   explicit Instr(){al_ = NULL; ar_ = NULL;}
+   explicit Instr(Arg* a1): al_(a1){ar_ = NULL;}
+   explicit Instr(Arg* a1, Arg* a2): al_(a1), ar_(a2){}
+   virtual std::string emitI(bool vars) = 0;
+protected:
+   Arg* al_, *ar_;
 };
 class Addq: public Instr{
 public:
-    Addq(std::string a1, std::string a2): Instr(a1, a2){};
+    Addq(Arg* a1, Arg* a2): Instr(a1, a2){};
+    virtual std::string emitI(bool vars){
+        std::string output;
+        output += "Addq ";
+        output += al_->emitA(vars);
+        output += " ";
+        output += ar_->emitA(vars);
+        output += "\n";
+        return output;
+    }
 };
 class Subq: public Instr{
 public:
-    Subq(std::string a1, std::string a2): Instr(a1, a2){};
+    Subq(Arg* a1, Arg* a2): Instr(a1, a2){};
+    virtual std::string emitI(bool vars){
+        std::string output;
+        output += "Subq ";
+        output += al_->emitA(vars);
+        output += " ";
+        output += ar_->emitA(vars);
+        output += "\n";
+        return output;
+    }
 };
 class Movq: public Instr{
 public:
-    Movq(std::string a1, std::string a2): Instr(a1, a2){};
+    Movq(Arg* a1, Arg* a2): Instr(a1, a2){};
+    virtual std::string emitI(bool vars){
+        std::string output;
+        output += "Movq ";
+        output += al_->emitA(vars);
+        output += " ";
+        output += ar_->emitA(vars);
+        output += "\n";
+        return output;
+    }
 }; 
 class Retq: public Instr{
 public:
     Retq();
+    virtual std::string emitI(bool vars){
+        std::string output;
+        output += "Retq";
+        output += "\n";
+        return output;
+    }
 };
 class Negq: public Instr{
 public:
-    Negq(std::string a1): Instr(a1){};
+    Negq(Arg* a1): Instr(a1){};
+    virtual std::string emitI(bool vars){
+        std::string output;
+        output += "Negq ";
+        output += al_->emitA(vars);
+        output += "\n";
+        return output;
+    }
 };
 class Callq: public Instr{
 public:
-    Callq(std::string lab): lab_(lab){};
+    Callq(Label lab): lab_(lab){};
+    virtual std::string emitI(bool vars){
+        std::string output;
+        output += "Callq ";
+        output += lab_.emitL(vars);
+        output += "\n";
+        return output;
+    }
 private:
     Label lab_;
 };
 class Jmp: public Instr{
 public:
-    Jmp(std::string lab): lab_(lab){};
+    Jmp(Label lab): lab_(lab){};
+    virtual std::string emitI(bool vars){
+        std::string output;
+        output += "Jmp ";
+        output += lab_.emitL(vars);
+        output += "\n";
+        return output;
+    }
+private:
 private:
 	Label lab_;
 };
 class Pushq: public Instr{
 public:
-    Pushq(std::string a1): Instr(a1){};
+    Pushq(Arg* a1): Instr(a1){};
+    virtual std::string emitI(bool vars){
+        std::string output;
+        output += "Pushq ";
+        output += al_->emitA(vars);
+        output += "\n";
+        return output;
+    }
 };
 class Popq: public Instr{
 public:
-    Popq(std::string a1): Instr(a1){};
+    Popq(Arg* a1): Instr(a1){};
+    virtual std::string emitI(bool vars){
+        std::string output;
+        output += "Popq ";
+        output += al_->emitA(vars);
+        output += "\n";
+        return output;
+    }
 };
 //placeholder info class
 class xInfo{
     xInfo(){};
 };
 //block definition
-typedef std::vector<Instr> blk;
+typedef std::vector<Instr*> blk;
 class Block{
 public:
     Block(Info* i, blk b ): i_(i),blk_(b){}
+    std::vector<std::string> emitB(bool vars){
+        std::vector<std::string> output;
+        for( auto it : blk_){
+            output.push_back(it->emitI(vars));
+        }
+        return output;
+    }
 private:
     Info* i_;
     blk blk_;
 };
-typedef std::unordered_map<std::string, blk> blkList; 
+typedef std::unordered_map<std::string, Block> blkList; 
 //Program definition
 class xProgram{
 public:
     xProgram(Info* i, blkList blks): i_(i), blks_(blks){}
+    std::vector<std::string> emit(bool vars){
+        std::vector<std::string> output;
+        for(auto [ name, block] : blks_){
+            std::vector<std::string> blockOut;
+            output.push_back(name);
+            blockOut = block.emitB(vars);
+            output.insert(output.end(), blockOut.begin(), blockOut.end());
+        }
+        return output;
+    }
 private:
     Info* i_;
     blkList blks_;
 };
 
 #endif
-
