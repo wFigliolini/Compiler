@@ -46,8 +46,8 @@ private:
 class Num : public Expr {
 public:
     explicit Num(int n) {
-    	i_ = n;
-    	op_= num;
+        i_ = n;
+        op_= num;
     };
     explicit Num(Num* n) {
         i_ = n->i_;
@@ -56,7 +56,7 @@ public:
     friend Num* numAdd(Num* const l, Num* const r){
         Num* out = new Num(0);
         out->i_ = l->i_ + r->i_;
-    	return out;
+        return out;
     }
     friend Num* numNeg(Num* const l){
         Num* i = new Num(-l->i_);
@@ -67,19 +67,19 @@ public:
     }
     Num* inter(Environ env) { return this; };
     std::string AST()  {
-    	std::string str = std::to_string(i_);
-    	return str;
+        std::string str = std::to_string(i_);
+        return str;
     }
     bool isPure(Environ env) { return true;}
     bool containVar(std::string name){return false;}
     Expr* optE(Environ env) { return this;}
 protected:
-	Num* cloneImpl() const override {
-		return new Num(i_);
-	}
+    Num* cloneImpl() const override {
+        return new Num(i_);
+    }
 private:
     void seti(int i){i_=i;};
-	int i_;
+    int i_;
 };
 
 
@@ -88,22 +88,22 @@ private:
 class Add : public Expr {
 public:
     explicit Add(Expr* n1, Expr* n2):Expr(n1, n2) {
-    	op_ = add;
+        op_ = add;
     }
     Num* inter(Environ env) {
-    	Num *i, *j;
-    	i = e1_->inter(env);
-    	j = e2_->inter(env);
+        Num *i, *j;
+        i = e1_->inter(env);
+        j = e2_->inter(env);
         i = numAdd(i,j);
-    	return i;
+        return i;
     }
     std::string AST()  {
-    	std::string str("(+");
-    	str += e1_->AST();
-    	str += " ";
-    	str += e2_->AST();
-    	str += ")";
-    	return str;
+        std::string str("(+");
+        str += e1_->AST();
+        str += " ";
+        str += e2_->AST();
+        str += ")";
+        return str;
     }
     bool isPure(Environ env) { return e1_->isPure(env) && e2_->isPure(env); }
     Expr* optE(Environ env){
@@ -129,19 +129,19 @@ private:
 class Neg : public Expr {
 public:
     explicit Neg(Expr* n): Expr(n) {
-    	op_ = neg;
+        op_ = neg;
     }
     Num* inter(Environ env) {
-    	Num* i;
-    	i = e1_->inter(env);
+        Num* i;
+        i = e1_->inter(env);
         i = numNeg(i);
-    	return i;
+        return i;
     }
     std::string AST() {
-    	std::string str("(-");
-    	str += e1_->AST();
-    	str += ")";
-    	return str;
+        std::string str("(-");
+        str += e1_->AST();
+        str += ")";
+        return str;
     }
     bool isPure(Environ env) {
         return e1_->isPure(env);
@@ -158,9 +158,9 @@ public:
         }
     };
 protected:
-	Neg* cloneImpl() const override {
-	       	return new Neg((e1_->clone().release()));
-	};
+    Neg* cloneImpl() const override {
+            return new Neg((e1_->clone().release()));
+    };
 private:
 };
 
@@ -170,29 +170,29 @@ class Read : public Expr {
 public:
     explicit Read(bool mode = 0):mode_(mode) {op_ = rRead;};
     Num* inter(Environ env) {
-    	int i;
-    	if (mode_) {
-    		i = num_;
-    		--num_;
-    	}
-    	else {
-    		std::cin >> i;
-    	}
-    	return new Num(i);
+        int i;
+        if (mode_) {
+            i = num_;
+            --num_;
+        }
+        else {
+            std::cin >> i;
+        }
+        return new Num(i);
     }
     std::string AST() {
-    	std::string str("(Read)");
+        std::string str("(Read)");
     //	std::cout << str << std::endl;
-    	return str;
+        return str;
     }
     bool isPure(Environ env) { return false; }
     Expr* optE(Environ env) { return this; }
     bool containVar(std::string name){return false;}
 protected:
-	Read* cloneImpl() const override { return new Read(mode_);};
+    Read* cloneImpl() const override { return new Read(mode_);};
 private:
-	bool mode_;
-	static int num_;
+    bool mode_;
+    static int num_;
 };
 int Read::num_ = 42;
 }
@@ -207,14 +207,14 @@ public:
         return out;
     }
     std::string AST()  {
-    	std::string str("(Let ");
+        std::string str("(Let ");
         str += var_;
         str += " = ";
-    	str += e1_->AST();
-    	str += "){\n";
-    	str += e2_->AST();
+        str += e1_->AST();
+        str += "){\n";
+        str += e2_->AST();
         str += "}\n";
-    	return str;
+        return str;
     }
     bool isPure(Environ env){
         env[var_] = e1_->clone().release();
@@ -244,7 +244,7 @@ public:
 protected:
     Let* cloneImpl() const override {
         return new Let(var_,(e1_->clone().release()), (e2_->clone().release()));
-	};
+    };
 private:
     std::string var_;
 };
@@ -273,7 +273,7 @@ public:
     }
 protected:
     Var* cloneImpl() const override {
-    	return new Var(name_);
+        return new Var(name_);
     }
 private:
     std::string name_;
@@ -282,7 +282,7 @@ private:
 //temp Info class
 class Info {
 public:
-	explicit Info(){};
+    explicit Info(){};
 };
 
 //program
@@ -295,24 +295,24 @@ public:
     explicit Program(const Program& orig):e_(orig.e_->clone()), i_(orig.i_){}
     Program( Program&& orig) = default;
     Program& operator= (const Program& orig){
-    	e_ = orig.e_->clone();
-    	return *this;
+        e_ = orig.e_->clone();
+        return *this;
     }
     Program& operator= (Program&& orig) = default;
     int run() {
         Num* out;
         Environ env;
-    	out = e_->inter(env);
+        out = e_->inter(env);
         return out->output();
     }
     std::string print() {
-    	std::string out;
+        std::string out;
             out = e_->AST();	
-    	return out;
+        return out;
     }
     inline Expr* getExpr() {
         if(e_){
-    	Expr* e = (e_->clone()).release();
+        Expr* e = (e_->clone()).release();
         return e;
         }
         else{
@@ -335,13 +335,12 @@ Program* randProg(int depth);
 
 class Label{
 public:
-    explicit Label (std::string label, int pc): label_(label), pc_(pc){};
+    explicit Label (std::string label): label_(label){};
     std::string emitL(bool vars){
         return label_;
     }
 private:
    std::string label_;
-   int pc_;
 };
 class Arg{
 public:
@@ -381,7 +380,7 @@ std::vector<std::string> Reg::regNames = {"%rax", "%rbx", "%rcx", "%rdx", "%rsi"
 class Const: public Arg{
 public:
     explicit Const( int con ):con_(con){};
-    const std::string emitI(bool vars){
+    const std::string emitA(bool vars){
         return std::to_string(con_);
     }
 private:
@@ -390,18 +389,18 @@ private:
 
 class DeRef: public Arg{
 public:
-    explicit DeRef(Reg reg):reg_(reg), offset_(0){};
-    explicit DeRef(Reg reg, int off):reg_(reg), offset_(off){};
+    explicit DeRef(Reg* reg):reg_(reg), offset_(0){};
+    explicit DeRef(Reg* reg, int off):reg_(reg), offset_(off){};
     const std::string emitA(bool vars){
         std::string output;
         if( offset_ != 0 ) output += std::to_string(offset_);
         output += "(";
-        output += reg_.emitA(vars);
+        output += reg_->emitA(vars);
         output += ")";
         return output;
     }
 private:
-    Reg reg_;
+    Reg* reg_;
     int offset_;
 };
 
@@ -433,7 +432,7 @@ public:
     Addq(Arg* a1, Arg* a2): Instr(a1, a2){};
     virtual std::string emitI(bool vars){
         std::string output;
-        output += "Addq ";
+        output += "addq ";
         output += al_->emitA(vars);
         output += " ";
         output += ar_->emitA(vars);
@@ -446,7 +445,7 @@ public:
     Subq(Arg* a1, Arg* a2): Instr(a1, a2){};
     virtual std::string emitI(bool vars){
         std::string output;
-        output += "Subq ";
+        output += "subq ";
         output += al_->emitA(vars);
         output += " ";
         output += ar_->emitA(vars);
@@ -459,7 +458,7 @@ public:
     Movq(Arg* a1, Arg* a2): Instr(a1, a2){};
     virtual std::string emitI(bool vars){
         std::string output;
-        output += "Movq ";
+        output += "movq ";
         output += al_->emitA(vars);
         output += " ";
         output += ar_->emitA(vars);
@@ -472,7 +471,7 @@ public:
     Retq();
     virtual std::string emitI(bool vars){
         std::string output;
-        output += "Retq";
+        output += "retq";
         output += "\n";
         return output;
     }
@@ -482,7 +481,7 @@ public:
     Negq(Arg* a1): Instr(a1){};
     virtual std::string emitI(bool vars){
         std::string output;
-        output += "Negq ";
+        output += "negq ";
         output += al_->emitA(vars);
         output += "\n";
         return output;
@@ -493,7 +492,7 @@ public:
     Callq(Label lab): lab_(lab){};
     virtual std::string emitI(bool vars){
         std::string output;
-        output += "Callq ";
+        output += "callq ";
         output += lab_.emitL(vars);
         output += "\n";
         return output;
@@ -503,24 +502,24 @@ private:
 };
 class Jmp: public Instr{
 public:
-    Jmp(Label lab): lab_(lab){};
+    Jmp(Label* lab): lab_(lab){};
     virtual std::string emitI(bool vars){
         std::string output;
-        output += "Jmp ";
-        output += lab_.emitL(vars);
+        output += "jmp ";
+        output += lab_->emitL(vars);
         output += "\n";
         return output;
     }
 private:
 private:
-	Label lab_;
+    Label* lab_;
 };
 class Pushq: public Instr{
 public:
     Pushq(Arg* a1): Instr(a1){};
     virtual std::string emitI(bool vars){
         std::string output;
-        output += "Pushq ";
+        output += "pushq ";
         output += al_->emitA(vars);
         output += "\n";
         return output;
@@ -531,7 +530,7 @@ public:
     Popq(Arg* a1): Instr(a1){};
     virtual std::string emitI(bool vars){
         std::string output;
-        output += "Popq ";
+        output += "popq ";
         output += al_->emitA(vars);
         output += "\n";
         return output;
@@ -539,13 +538,15 @@ public:
 };
 //placeholder info class
 class xInfo{
+public:
     xInfo(){};
+private:
 };
 //block definition
 typedef std::vector<Instr*> blk;
 class Block{
 public:
-    Block(Info* i, blk b ): i_(i),blk_(b){}
+    Block(blk b ): i_(NULL),blk_(b){}
     std::vector<std::string> emitB(bool vars){
         std::vector<std::string> output;
         for( auto it : blk_){
@@ -553,27 +554,40 @@ public:
         }
         return output;
     }
+    void setInfo(xInfo* i){
+        i_ = i;
+    }
 private:
-    Info* i_;
+    xInfo* i_;
     blk blk_;
 };
-typedef std::unordered_map<std::string, Block> blkList; 
+typedef std::unordered_map<std::string, Block*> blkList; 
 //Program definition
 class xProgram{
 public:
-    xProgram(Info* i, blkList blks): i_(i), blks_(blks){}
+    xProgram(Block* blk){
+        i_ = new xInfo();
+        blk->setInfo(i_);
+        blks_["main"] = blk;
+    }
     std::vector<std::string> emit(bool vars){
         std::vector<std::string> output;
+        output.push_back(".globl main");
         for(auto [ name, block] : blks_){
             std::vector<std::string> blockOut;
-            output.push_back(name);
-            blockOut = block.emitB(vars);
+            std::string outName(name);
+            outName+=":\n";
+            output.push_back(outName);
+            blockOut = block->emitB(vars);
             output.insert(output.end(), blockOut.begin(), blockOut.end());
         }
         return output;
     }
+    void addBlock(std::string name, Block* blk){
+        blks_[name] = blk;
+    }
 private:
-    Info* i_;
+    xInfo* i_;
     blkList blks_;
 };
 
