@@ -330,8 +330,75 @@ public:
 //functions
 Program* pow(int x, int b = 2);
 Program* randProg(int depth);
-
+namespace{
 //X definitions
+typedef std::unordered_map<std::string, int> varList;
+//Info class
+//Handles the Stack and Registers
+class xInfo{
+public:
+    xInfo(){
+        regs_.reserve(16);
+    };
+    void setLabel(std::string s){
+        currLabel_ = s;
+    }
+    void setReg(int reg, int val){
+        if( reg < 0 || reg > 15) throw std::invalid_argument("Register must be in range 0->15");
+        regs_[reg] = val;
+    }
+    void setStack(int ad, int val){
+        if( ad < 0 ) throw std::invalid_argument("Stack reference must be above 0");
+        stack_[ad] = val;
+    }
+    void setVar(std::string s, int val){
+        v_[s] = val;
+    }
+    int getReg(int reg){
+        if( reg < 0 || reg > 15) throw std::invalid_argument("Register must be in range 0->15");
+        return regs_[reg];
+    }
+    int getStack(int ad){
+        if( ad < 0 ) throw std::invalid_argument("Stack reference must be above 0");
+        return stack_[ad];
+    }
+    std::string getLabel(){
+        return currLabel_;
+    }
+    int getVar(std::string name){
+        return v_[name];
+    }
+    void resetPC(){
+        pc_=0;
+    }
+    int getPC(){
+        return pc_;
+    }
+    void updatePC(){
+        ++pc_;
+    }
+    void setResult(){result_ = regs_[0]; done_= true;};
+    int getResult(){return result_;}
+    bool isDone(){return done_;}
+    void pushStack(int i){
+        stackPtr_++;
+        stack_[stackPtr_] = i;
+    }
+    int popStack(){
+        int result = stack_[stackPtr_];
+        stackPtr_--;
+        return result;
+    }
+private:
+    std::vector<int> regs_;
+    std::vector<int> stack_;
+    std::string currLabel_;
+    varList v_;
+    int pc_;
+    int result_;
+    int stackPtr_;
+    bool done_;
+};
 
 class Label{
 public:
@@ -339,13 +406,47 @@ public:
     std::string emitL(bool vars){
         return label_;
     }
+    void interp(){
+        bool found;
+        auto it = std::find(sysCalls_.begin(), sysCalls_.end(), label_);
+        found = (it !=sysCalls_.end()); 
+        if(found){
+            int index, i;
+            index = std::distance(sysCalls_.begin(), it);
+            switch(index){
+                //read
+                case 0:
+                    std::cin >> i;
+                    i_->setReg(0,i);
+                    break;
+                case 1:
+                    std::cout << i_->getReg(0) << std::endl;
+                    break;
+            }
+        }
+        else{
+            i_->setLabel(label_);
+        }
+    }
+    void setInfo(std::shared_ptr<xInfo> i){
+        i_ = i;
+    }
+    
 private:
    std::string label_;
+   static std::shared_ptr<xInfo> i_;
+   static const std::vector<std::string> sysCalls_;
 };
 class Arg{
 public:
     virtual const std::string emitA(bool vars) = 0;
-private:
+    void setInfo(std::shared_ptr<xInfo> i){
+        i_ = i;
+    }
+    virtual int get() = 0;
+    virtual void set(int i) = 0;
+protected:
+    static std::shared_ptr<xInfo> i_;
 };
 class Reg: public Arg{
 public:
@@ -370,18 +471,28 @@ public:
     const std::string emitA(bool vars){
         return regNames[reg_];
     }
+    int get(){
+        return i_->getReg(reg_);
+    }
+    void set(int i){
+        i_->setReg(reg_,i);
+    }
 private:
     int reg_;
     static std::vector<std::string> regNames;
 };
-//set of register names
-std::vector<std::string> Reg::regNames = {"%rax", "%rbx", "%rcx", "%rdx", "%rsi", "%rdi", "%rbp", "%rsp", "%r8", "%r9", "%r10", "%r11", "%r12", "%r13", "%r14", "%r15"};
 
 class Const: public Arg{
 public:
     explicit Const( int con ):con_(con){};
     const std::string emitA(bool vars){
         return std::to_string(con_);
+    }
+    int get(){
+        return con_;
+    }
+    void set(int i){
+        throw std::logic_error("Can't Write to Constant");
     }
 private:
     int con_;
@@ -390,7 +501,9 @@ private:
 class DeRef: public Arg{
 public:
     explicit DeRef(Reg* reg):reg_(reg), offset_(0){};
-    explicit DeRef(Reg* reg, int off):reg_(reg), offset_(off){};
+    explicit DeRef(Reg* reg, int off):reg_(reg){
+        offset_ = off/8;
+    }
     const std::string emitA(bool vars){
         std::string output;
         if( offset_ != 0 ) output += std::to_string(offset_);
@@ -398,6 +511,16 @@ public:
         output += reg_->emitA(vars);
         output += ")";
         return output;
+    }
+    int get(){
+        int addr;
+        addr = reg_->get() + offset_;
+        return i_->getStack(addr);
+    }
+    void set(int i){
+        int addr;
+        addr = reg_->get() + offset_;
+        i_->setStack(addr, i);
     }
 private:
     Reg* reg_;
@@ -410,13 +533,28 @@ public:
     const std::string emitA(bool vars){
         std::string output;
         output += "&";
-        output += name_;
+        if(vars){
+            output += name_;
+        }else{
+            output += i_->getVar(name_);
+        }
         return output;
+    }
+    int get(){
+        return i_->getVar(name_);
+    }
+    void set(int i){
+        i_->setVar(name_,i);
     }
 private:
     std::string name_;
 };
-
+class BlkComplete : public std::exception{
+public:
+    const char * what () const throw () {
+      return "Used to break current Iteration on Label Change";
+   }
+};
 //instructions
 class Instr{
 public:
@@ -424,8 +562,12 @@ public:
    explicit Instr(Arg* a1): al_(a1){ar_ = NULL;}
    explicit Instr(Arg* a1, Arg* a2): al_(a1), ar_(a2){}
    virtual std::string emitI(bool vars) = 0;
+   void setInfo(std::shared_ptr<xInfo> i){i_ = i;}
+   virtual void interp() = 0;
 protected:
-   Arg* al_, *ar_;
+    Arg* al_, *ar_;
+    static std::shared_ptr<xInfo> i_;
+    bool isControl;
 };
 class Addq: public Instr{
 public:
@@ -438,6 +580,11 @@ public:
         output += ar_->emitA(vars);
         output += "\n";
         return output;
+    }
+    void interp(){
+        int out;
+        out =  al_->get() + ar_->get();
+        ar_->set(out);
     }
 };
 class Subq: public Instr{
@@ -452,6 +599,11 @@ public:
         output += "\n";
         return output;
     }
+    void interp(){
+        int out;
+        out =  al_->get() - ar_->get();
+        ar_->set(out);
+    }
 };
 class Movq: public Instr{
 public:
@@ -465,15 +617,29 @@ public:
         output += "\n";
         return output;
     }
+    void interp(){
+        ar_->set(al_->get());
+    }
 }; 
 class Retq: public Instr{
 public:
-    Retq();
+    Retq(): Instr(){};
     virtual std::string emitI(bool vars){
         std::string output;
         output += "retq";
         output += "\n";
         return output;
+    }
+    void interp(){
+        //int rbp = 6, retaddr = i_->getStack(i_->getReg(rbp)-1);
+        
+        i_->setResult();
+        /*if(retaddr == 0){
+        }
+        else{
+            //i_->setReg(rbp, retaddr);
+        }
+         */
     }
 };
 class Negq: public Instr{
@@ -486,19 +652,28 @@ public:
         output += "\n";
         return output;
     }
+    void interp(){
+        al_->set(-al_->get());
+    }
 };
 class Callq: public Instr{
 public:
-    Callq(Label lab): lab_(lab){};
+    Callq(Label* lab): lab_(lab){};
     virtual std::string emitI(bool vars){
         std::string output;
         output += "callq ";
-        output += lab_.emitL(vars);
+        output += lab_->emitL(vars);
         output += "\n";
         return output;
     }
+    void interp(){
+        i_->pushStack(i_->getReg(6));
+        i_->setReg(6, i_->getReg(7));
+        lab_->interp();
+        throw BlkComplete();
+    }
 private:
-    Label lab_;
+    Label* lab_;
 };
 class Jmp: public Instr{
 public:
@@ -510,7 +685,10 @@ public:
         output += "\n";
         return output;
     }
-private:
+    void interp(){
+        lab_->interp();
+        throw BlkComplete();
+    }
 private:
     Label* lab_;
 };
@@ -524,6 +702,9 @@ public:
         output += "\n";
         return output;
     }
+    void interp(){
+        i_->pushStack(al_->get());
+    }
 };
 class Popq: public Instr{
 public:
@@ -535,12 +716,9 @@ public:
         output += "\n";
         return output;
     }
-};
-//placeholder info class
-class xInfo{
-public:
-    xInfo(){};
-private:
+    void interp(){
+        al_->set(i_->popStack());
+    }
 };
 //block definition
 typedef std::vector<Instr*> blk;
@@ -554,11 +732,21 @@ public:
         }
         return output;
     }
-    void setInfo(xInfo* i){
+    void setInfo(std::shared_ptr<xInfo> i){
         i_ = i;
     }
+    void interp(){
+        for(auto it : blk_){
+            try{
+                it->interp();
+            }
+            catch(BlkComplete& e){
+                return;
+            }
+        }
+    }
 private:
-    xInfo* i_;
+    std::shared_ptr<xInfo> i_;
     blk blk_;
 };
 typedef std::unordered_map<std::string, Block*> blkList; 
@@ -566,9 +754,13 @@ typedef std::unordered_map<std::string, Block*> blkList;
 class xProgram{
 public:
     xProgram(Block* blk){
-        i_ = new xInfo();
+        i_ = std::make_shared<xInfo>();
         blk->setInfo(i_);
         blks_["main"] = blk;
+        init();
+    }
+    void declareVar(std::string n, int v){
+        i_->setVar(n,v);
     }
     std::vector<std::string> emit(bool vars){
         std::vector<std::string> output;
@@ -586,9 +778,38 @@ public:
     void addBlock(std::string name, Block* blk){
         blks_[name] = blk;
     }
+    int interp(){
+        while(!(i_->isDone())){
+            blks_[i_->getLabel()]->interp();
+        }
+        return i_->getResult();
+    }
 private:
-    xInfo* i_;
+    void init(){
+        Const aTemp(0);
+        Addq iTemp(new Const(1), new Const(1));
+        Label lTemp("i");
+        blks_["main"]->setInfo(i_);
+        aTemp.setInfo(i_);
+        iTemp.setInfo(i_);
+        lTemp.setInfo(i_);
+        i_->setLabel("main");
+        return;
+    }
+    std::shared_ptr<xInfo> i_;
     blkList blks_;
 };
-
+std::shared_ptr<xInfo> Label::i_ = NULL;
+std::vector<std::string> sysCalls_ = {"read", "print"};
+std::shared_ptr<xInfo> Arg::i_ = NULL;
+//set of register names
+std::vector<std::string> Reg::regNames = {
+    "%rax", "%rbx", "%rcx",
+    "%rdx", "%rsi", "%rdi",
+    "%rbp", "%rsp", "%r8",
+    "%r9", "%r10", "%r11",
+    "%r12", "%r13", "%r14",
+    "%r15"};
+std::shared_ptr<xInfo> Instr::i_ = NULL;
+}
 #endif

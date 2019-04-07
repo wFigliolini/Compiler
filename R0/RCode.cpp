@@ -116,4 +116,3 @@ Program* opt( Program* orig){
     e->optE(env);
     return new Program(orig->getInfo(), e);
 }
-
