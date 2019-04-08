@@ -225,12 +225,13 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             std::vector<Instr*> instrSet;
                 instrSet.push_back(new Pushq(new Const(8)));
                 instrSet.push_back(new Pushq(new Const(12)));
-                instrSet.push_back(new Movq(new DeRef(new Reg("%rbp"), 8), new Reg("%rdx")));
-                std::cout << "first deref passed" << std::endl;
-                instrSet.push_back(new Addq(new DeRef(new Reg("%rbp"), 16), new Reg("%rax")));
+                instrSet.push_back(new Movq(new DeRef(new Reg("%rbp"), 8), new Reg("%rax")));
+                instrSet.push_back(new Addq(new DeRef(new Reg("%rbp"), 0), new Reg("%rax")));
                 instrSet.push_back(new Retq());
             xProgram* pTest = new xProgram(new Block(instrSet));
-            BOOST_REQUIRE(pTest->interp() == 20);
+            int result = pTest->interp() ;
+            //std::cout << "DEREFTEST Result = " << result << std::endl;
+            BOOST_REQUIRE(result == 20);
         }
         //TestInt = 20
         BOOST_AUTO_TEST_CASE(REFTEST){
@@ -259,7 +260,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             std::vector<Instr*> instrSet;
                 instrSet.push_back(new Pushq(new Reg("%rbp")));
                 instrSet.push_back(new Movq(new Reg("%rsp"), new Reg("%rbp")));
-                instrSet.push_back(new Subq(new Const(-16), new Reg("%rsp")));
+                instrSet.push_back(new Subq(new Const(16), new Reg("%rsp")));
                 instrSet.push_back(new Jmp(new Label("start")));
             std::vector<Instr*>concSet;
                 concSet.push_back(new Addq(new Const(16), new Reg("%rsp")));
@@ -275,7 +276,9 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             xProgram* pTest = new xProgram(new Block(instrSet));
             pTest->addBlock("conclusion", new Block( concSet));
             pTest->addBlock("start", new Block(begSet));
-            BOOST_REQUIRE(pTest->interp() == 62);
+            int result = pTest->interp() ;
+            //std::cout << "LABELS Result = " << result << std::endl;
+            BOOST_REQUIRE(result == 42);
         }
         
         //exception testing
@@ -301,5 +304,14 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                 instrSet.push_back(new Retq());
             xProgram* pTest = new xProgram(new Block(instrSet));
             BOOST_REQUIRE(pTest->interp() == -7);
+        }
+        BOOST_AUTO_TEST_CASE(BREAKTEST){
+            std::vector<Instr*> instrSet;
+                instrSet.push_back(new Movq(new Const(7), new Reg("%rax")));
+                instrSet.push_back(new Addq(new Const(13), new Reg("%rax")));
+                instrSet.push_back(new Retq());
+                instrSet.push_back(new Addq(new Const(13), new Reg("%rax")));
+            xProgram* pTest = new xProgram(new Block(instrSet));
+            BOOST_REQUIRE(pTest->interp() == 20);
         }
 BOOST_AUTO_TEST_SUITE_END()

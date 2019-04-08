@@ -5,17 +5,17 @@
 #include <list>
 
 Expr* powE(int x, int b){
-	if(x == 1){
-		return new Num(b);
-	}
-	else{
-		return new Add(powE(x-1 , b) , powE(x-1 , b) );
-	}
+    if(x == 1){
+        return new Num(b);
+    }
+    else{
+        return new Add(powE(x-1 , b) , powE(x-1 , b) );
+    }
 }
 Program* pow(int x, int b ){
-	Expr* val = powE(x , b);
-	Program* ret = new Program(NULL, val);
-	return ret;
+    Expr* val = powE(x , b);
+    Program* ret = new Program(NULL, val);
+    return ret;
 }
 
  //Global generators for rand Expr
@@ -32,17 +32,17 @@ typedef std::vector<std::string> vars;
 std::string randString(int len);
  
 Expr* randExpr(int depth, vars env){
-	int choice =  choiceDis(choiceGen);
-	//std::cout << "choice: " << choice << std::endl;
-	if(depth <= 0){
-		if( choice == 0 ){
-			return new Read(1);
-		}
-		else if(choice == 1){
+    int choice =  choiceDis(choiceGen);
+    //std::cout << "choice: " << choice << std::endl;
+    if(depth <= 0){
+        if( choice == 0 ){
+            return new Read(1);
+        }
+        else if(choice == 1){
             int i(numDis(numGen));
-			Num* num = new Num(i);
-			return num;
-		}else{
+            Num* num = new Num(i);
+            return num;
+        }else{
             int i(numDis(numGen));
             //generate var
             if(env.empty()) {
@@ -57,23 +57,23 @@ Expr* randExpr(int depth, vars env){
             }
             
         }
-	}
-	else{
-		int nextDepth= depth-1 ;
-		if( choice == 0 ){
-			return new Neg( randExpr(nextDepth, env) );
-		}
-		else if(choice == 1){
-			return new Add( randExpr(nextDepth, env), randExpr(nextDepth, env) );
-		}
-		else{
+    }
+    else{
+        int nextDepth= depth-1 ;
+        if( choice == 0 ){
+            return new Neg( randExpr(nextDepth, env) );
+        }
+        else if(choice == 1){
+            return new Add( randExpr(nextDepth, env), randExpr(nextDepth, env) );
+        }
+        else{
             //generate let
             std::string name = randString(10);
             vars env2(env);
             env2.push_back(name);
             return new Let(name, randExpr(nextDepth, env), randExpr(nextDepth,env2)); 
         }
-	}
+    }
 }
 
 std::string randString(int len){
@@ -89,10 +89,10 @@ std::string randString(int len){
 
 Program* randProg(int depth){
     vars env;
-	Expr* val = randExpr(depth, env);
-	Program* ret = new Program(NULL, val);
-	//std::cout << "returning prog" << std::endl;
-	return ret;
+    Expr* val = randExpr(depth, env);
+    Program* ret = new Program(NULL, val);
+    //std::cout << "returning prog" << std::endl;
+    return ret;
 }
 
 //depricated optimizer, saved for refrence
