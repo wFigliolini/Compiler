@@ -12,6 +12,9 @@
 #include <iterator>
 #include <stdexcept>
 #include <algorithm>
+#include <fstream>
+#include <unistd.h>
+#include <sys/wait.h>
 
 //virtual Expression class
 enum opCode { num, add, neg, rRead, ERROR = -1};
@@ -783,6 +786,44 @@ public:
             blks_[i_->getLabel()]->interp();
         }
         return i_->getResult();
+    }
+    void outputToFile(std::string n, bool vars){
+        std::vector<std::string> output;
+        std::ofstream ofs;
+        n+=".asm";
+        ofs.open(n);
+        
+        output = emit(vars);
+        
+        for(auto it: output){
+            ofs << it;
+        }
+    }
+    //TODO: find how to get return value out of as
+    int runAsm(){
+        outputToFile("o", false);
+        int* err;
+        pid_t pid = fork();
+
+        if(pid == 0){
+            //child
+            //run as
+            *err = execl("/usr/bin/as", "-- o.asm" ,NULL);
+        }
+        else if(pid > 0){
+            //parent
+            
+        }
+        else{
+            //fork failed
+            throw std::runtime_error("runAsm Fork Failed");
+        }
+        if(err == 0){
+            std::cout << "execution successful" << std::endl;
+        }
+        else{
+            std::cout << "as terminated with error code " << err << std::endl;
+        }
     }
 private:
     void init(){
