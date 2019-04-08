@@ -842,4 +842,57 @@ std::vector<std::string> Reg::regNames = {
     "%r12", "%r13", "%r14",
     "%r15"};
 }
+
+//C Definitions
+
+class CLabel{
+public:
+    
+private:
+    std::string s_;
+}
+
+
+class CExp{
+public:
+    
+private:
+    
+}
+class CArg{
+public:
+    
+private:
+    
+}
+class CNum : public CArg{
+public:
+    
+private:
+    int i_;
+}
+class CVar : public CArg{
+public:
+    
+private:
+    
+}
+class CAdd: public CArg{
+    
+}
+class CRead: public CArg{
+    
+}
+class CNeg: public CArg{
+    
+}
+class CStat{
+    
+}
+class CTail{
+    
+}
+class CProg{
+    
+}
 #endif
