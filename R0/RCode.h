@@ -845,54 +845,157 @@ std::vector<std::string> Reg::regNames = {
 
 //C Definitions
 
+class CInfo{
+    
+};
+
 class CLabel{
 public:
-    
+    std::string AST(){
+        return name_;
+    }
 private:
-    std::string s_;
-}
+    std::string name_;
+};
 
 
 class CExp{
 public:
-    
+    virtual std::string AST() = 0;
 private:
     
-}
-class CArg{
+};
+class CArg : public CExp{
 public:
     
 private:
     
-}
+};
 class CNum : public CArg{
 public:
-    
+    std::string AST(){
+        return std::to_string(i_);
+    }
 private:
     int i_;
-}
+};
 class CVar : public CArg{
 public:
-    
+    std::string AST(){
+        return v_->AST();
+    }
+private:
+    CExp* v_;
+};
+class CAdd: public CExp{
+    std::string AST(){
+        std::string out;
+        out += "(+ ";
+        out += ar_->AST();
+        out += " ";
+        out += al_->AST();
+        out +=")\n";
+        return out;
+    }
+private:
+    CArg* ar_, *al_;
+};
+class CRead: public CExp{
+public:
+    std::string AST(){
+        std::string out;
+        out = "(Read)\n";
+        return out;
+    }
 private:
     
-}
-class CAdd: public CArg{
-    
-}
-class CRead: public CArg{
-    
-}
-class CNeg: public CArg{
-    
-}
+};
+class CNeg: public CExp{
+public:
+    std::string AST(){
+        std::string out;
+        out += "(- ";
+        out += a_->AST();
+        out +=")\n";
+        return out;
+    }
+private:
+    CArg* a_;
+};
 class CStat{
-    
-}
+public:
+    std::string AST(){
+        std::string out;
+        out += "(Set! ";
+        out += name_;
+        out += " = ";
+        out += a_->AST();
+        out +=")\n";
+        return out;
+    }
+private:
+    std::string name_;
+    CArg* a_;
+};
 class CTail{
-    
-}
+public:
+    virtual std::string AST() = 0;
+};
+class CRet: public CTail{
+public:
+    std::string AST(){
+        std::string out;
+        out+= "(Ret ";
+        out+= ret_->AST();
+        out +=")\n";
+        return out;
+    }
+private:
+    CArg* ret_;
+};
+class CSeq: public CTail{
+public:
+    std::string AST(){
+        std::string out;
+        out+= "(seq ";
+        out+= stmt_->AST();
+        out += " ";
+        out += tail_->AST();
+        out += ")\n";
+        return out;
+    }
+private:
+    CStat* stmt_;
+    CTail* tail_;
+};
+class CList{
+public:
+    std::string AST(){
+        std::string out;
+        for( auto it: l_){
+            out += it->AST();
+        }
+        out += t_->AST();
+        return out;
+    }
+private:
+    std::vector<CExp*> l_;
+    CTail* t_;
+};
+typedef std::unordered_map<std::string,CList*> CListTable;
 class CProg{
-    
-}
+public:
+    std::string AST(){
+        std::string out;
+        for( auto [name, l]: instr_){
+            out += name;
+            out += ":\n";
+            out += l->AST();
+        }
+        return out;
+    }
+private:
+   CListTable instr_;
+   CInfo i_;
+};
 #endif
