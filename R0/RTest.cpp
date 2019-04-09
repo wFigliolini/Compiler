@@ -3,10 +3,7 @@
 #include <boost/test/included/unit_test.hpp>
 #include "RCode.h"
 
-#define BOOST_TEST_STATIC_LINK	
-    //init stack for reads
-    //testing
-
+#define BOOST_TEST_STATIC_LINK
 BOOST_AUTO_TEST_SUITE(R0TESTS)
     // setting up for first set of tests
 
@@ -104,6 +101,55 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             BOOST_REQUIRE(pTest->print() == AST);
         }
     
+    //uniquify tests
+    BOOST_AUTO_TEST_CASE(UNIQ1){
+        Add* expr = new Add( new Let("x", new Num(7), new Var("x") ),
+                             new Let("x", new Num(8), 
+                             new Let("x", new Add(new Num(1), new Var("x")), 
+                             new Add(new Var("x"), new Var("x")))));
+        int orig, f;
+        Program* pTest = new Program(expr);
+        orig = pTest->run();
+        Program* pFinal = pTest->uniquify();
+        f = pFinal->run();
+        std::string AST("(+(Let n1 = 7){\nn1}\n(Let n2 = 8){\n(Let n3 = (+1 n2)){\n(+n3 n3)}\n}\n");
+        BOOST_REQUIRE(orig == f);
+        BOOST_REQUIRE(pFinal->print() == AST);
+    }
+    BOOST_AUTO_TEST_CASE(UNIQ2){
+        Let* expr = new Let("x", new Num(16), new Add(new Var("x"), new Var("x")));
+        int orig, f;
+        Program* pTest = new Program(expr);
+        orig = pTest->run();
+        Program* pFinal = pTest->uniquify();
+        f = pFinal->run();
+        std::string AST("(Let x = 16){\n(+n1 n1)}\n");
+        BOOST_REQUIRE(orig == f);
+        BOOST_REQUIRE(pFinal->print() == AST);
+    }
+    //from textbook page 28
+    BOOST_AUTO_TEST_CASE(UNIQ3){
+        Let* expr = new Let("x", new Num(32), new Add(new Let("x", new Num(10), new Var("x")), new Var("x")));
+        int orig, f;
+        Program* pTest = new Program(expr);
+        orig = pTest->run();
+        Program* pFinal = pTest->uniquify();
+        f = pFinal->run();
+        std::string AST("(Let n1 = 32){\n(+(Let n2 = 10){\n n2}\n n1)}\n");
+        BOOST_REQUIRE(orig == f);
+        BOOST_REQUIRE(pFinal->print() == AST);
+    }
+    BOOST_AUTO_TEST_CASE(UNIQ4){
+        Let* expr = new Let("x", new Let("x", new Num(4), new Add(new Var("x"), new Num(1))), new Add(new Var("x"), new Num(2)));
+        int orig, f;
+        Program* pTest = new Program(expr);
+        orig = pTest->run();
+        Program* pFinal = pTest->uniquify();
+        f = pFinal->run();
+        std::string AST("(Let n1 = (Let n2 = 4){\n(+n2 1)}\n){\n(+n1 2)}\n");
+        BOOST_REQUIRE(orig == f);
+        BOOST_REQUIRE(pFinal->print() == AST);
+    }
     //Random Program Tests for stability
     
     //Base Case
