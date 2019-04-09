@@ -385,8 +385,14 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             int ret = pTest->interp();
             BOOST_REQUIRE(ret == 78);
         }
-        //
+        //(+52 (-10))
         BOOST_AUTO_TEST_CASE(CTEST6){
-            
+            CSeq* lTest = new CSeq(new CStat("x", new CNeg(new CNum(10))),
+                          new CSeq(new CStat("f", new CAdd(new CVar("x"), new CNum(52))),
+                          new CRet(new CVar("f"))
+                          ));
+            CProg* pTest = new CProg(lTest);
+            int ret = pTest->interp();
+            BOOST_REQUIRE(ret == 42);
         }
 BOOST_AUTO_TEST_SUITE_END()

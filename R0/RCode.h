@@ -845,12 +845,16 @@ std::vector<std::string> Reg::regNames = {
 
 //C Definitions
 
+class CExp;
+typedef std::unordered_map<std::string, CExp*> CEnv;
+
 class CInfo{
     
 };
 
 class CLabel{
 public:
+    explicit CLabel(std::string name): name_(name){};
     std::string AST(){
         return name_;
     }
@@ -858,13 +862,14 @@ private:
     std::string name_;
 };
 
-
 class CExp{
 public:
     virtual std::string AST() = 0;
+    virtual int interp(CEnv* e) = 0;
 private:
     
 };
+
 class CArg : public CExp{
 public:
     
@@ -873,21 +878,42 @@ private:
 };
 class CNum : public CArg{
 public:
+    explicit CNum(int i): i_(i){};
     std::string AST(){
         return std::to_string(i_);
+    }
+    int interp(CEnv* e){
+        return i_;
     }
 private:
     int i_;
 };
 class CVar : public CArg{
 public:
+    explicit CVar(std::string name):n_(name){};
     std::string AST(){
-        return v_->AST();
+        return n_;
+    }
+    int interp(CEnv* e){
+        CExp* out;
+        try{
+            out = e->at(n_);
+        }
+        catch(std::out_of_range& e){
+            std::cerr << "Attempted to read from undefined Variable " << n_ << std::endl;
+            std::string errorString("Undefined Var ");
+            errorString+= n_;
+            throw std::runtime_error(errorString);
+            
+        }
+        return out->interp(e);
     }
 private:
-    CExp* v_;
+    std::string n_;
 };
 class CAdd: public CExp{
+public:
+    explicit CAdd(CArg* ar, CArg* al):ar_(ar), al_(al){};
     std::string AST(){
         std::string out;
         out += "(+ ";
@@ -897,21 +923,47 @@ class CAdd: public CExp{
         out +=")\n";
         return out;
     }
+    int interp(CEnv* e){
+        return ar_->interp(e) + al_->interp(e);
+    }
 private:
     CArg* ar_, *al_;
 };
+namespace{
 class CRead: public CExp{
 public:
+    explicit CRead():auto_(false), i_(NULL){};
+    explicit CRead(bool a):auto_(a), i_(NULL){};
     std::string AST(){
         std::string out;
         out = "(Read)\n";
         return out;
     }
-private:
+    int interp(CEnv* e){
+        if(i_ == NULL){
+            int i;
+            if(auto_){
+                i = n_;
+                n_--;
+            } else{
+                std::cin >> i;
+            }
+            i_ = new int(i);
+            return *i_;
+        }
+        else return *i_;
+    }
     
+private:
+    bool auto_;
+    static int n_;
+    int* i_;
 };
+int CRead::n_ = 42;
+}
 class CNeg: public CExp{
 public:
+    explicit CNeg(CArg* a): a_(a){};
     std::string AST(){
         std::string out;
         out += "(- ";
@@ -919,30 +971,39 @@ public:
         out +=")\n";
         return out;
     }
+    int interp(CEnv* e){
+        return -a_->interp(e);
+    }
 private:
     CArg* a_;
 };
 class CStat{
 public:
+    explicit CStat(std::string n, CExp* e):name_(n), e_(e){};
     std::string AST(){
         std::string out;
         out += "(Set! ";
         out += name_;
         out += " = ";
-        out += a_->AST();
+        out += e_->AST();
         out +=")\n";
         return out;
     }
+    void interp(CEnv* e){
+        (*e)[name_] = e_;
+    }
 private:
     std::string name_;
-    CArg* a_;
+    CExp* e_;
 };
 class CTail{
 public:
     virtual std::string AST() = 0;
+    virtual int interp(CEnv* e) = 0;
 };
 class CRet: public CTail{
 public:
+    explicit CRet(CArg* a): ret_(a){};
     std::string AST(){
         std::string out;
         out+= "(Ret ";
@@ -950,41 +1011,40 @@ public:
         out +=")\n";
         return out;
     }
+    int interp(CEnv* e){
+        return ret_->interp(e);
+    }
 private:
     CArg* ret_;
 };
 class CSeq: public CTail{
 public:
+    explicit CSeq(CStat* s, CTail* t):stmt_(s), tail_(t){};
     std::string AST(){
         std::string out;
         out+= "(seq ";
         out+= stmt_->AST();
-        out += " ";
+        out += " in ";
         out += tail_->AST();
         out += ")\n";
         return out;
+    }
+    int interp(CEnv* e){
+        stmt_->interp(e);
+        return tail_->interp(e);
     }
 private:
     CStat* stmt_;
     CTail* tail_;
 };
-class CList{
-public:
-    std::string AST(){
-        std::string out;
-        for( auto it: l_){
-            out += it->AST();
-        }
-        out += t_->AST();
-        return out;
-    }
-private:
-    std::vector<CExp*> l_;
-    CTail* t_;
-};
-typedef std::unordered_map<std::string,CList*> CListTable;
+typedef std::unordered_map<std::string,CTail*> CTailTable;
 class CProg{
 public:
+    CProg(){};
+    CProg(CTail* t){
+        instr_["main"] = t;
+        
+    }
     std::string AST(){
         std::string out;
         for( auto [name, l]: instr_){
@@ -994,8 +1054,24 @@ public:
         }
         return out;
     }
+    void addTail(std::string name, CTail* l){
+        instr_[name] = l;
+    }
+    int interp(){
+        int i;
+        CEnv* e = new CEnv();
+        CTail* t;
+        try{
+            t = instr_.at("main");
+        } catch( std::out_of_range& e){
+            std::cerr << "Main not defined" << std::endl;
+            throw std::runtime_error("Main Not Defined");
+        }
+        i = t->interp(e);
+        return i;
+    }
 private:
-   CListTable instr_;
+   CTailTable instr_;
    CInfo i_;
 };
 #endif
