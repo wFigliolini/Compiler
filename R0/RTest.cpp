@@ -314,4 +314,79 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             xProgram* pTest = new xProgram(new Block(instrSet));
             BOOST_REQUIRE(pTest->interp() == 20);
         }
+        //CTests
+        // exception handlers
+        BOOST_AUTO_TEST_CASE(CNOVAR){
+            CRet* lTest = new CRet(new CVar("f"));
+            CProg* pTest = new CProg(lTest);
+            BOOST_REQUIRE_THROW( pTest->interp(), std::runtime_error);
+        }
+        BOOST_AUTO_TEST_CASE(CNOMAIN){
+            CRet* lTest = new CRet(new CNum(5));
+            CProg* pTest = new CProg();
+            pTest->addTail("NULL", lTest);
+            BOOST_REQUIRE_THROW( pTest->interp(), std::runtime_error);
+        }
+        
+        //Test 1 manually compiled
+        //r = 42
+        BOOST_AUTO_TEST_CASE(CTEST1){
+            CSeq* lTest = new CSeq(new CStat("r", new CRead(1)),
+                          new CSeq(new CStat("y", new CAdd(new CVar("r"), new CNum(42))),
+                          new CSeq(new CStat("x", new CAdd(new CVar("y"), new CNum(17))),
+                          new CSeq(new CStat("f", new CNeg(new CVar("x"))),
+                          new CRet(new CVar("f"))
+                          ))));
+            CProg* pTest = new CProg(lTest);
+            int ret = pTest->interp();
+            BOOST_REQUIRE(ret == -101);
+        }
+        //Test 3  manually compiled
+        //r1 = 41, r2 = 40
+        BOOST_AUTO_TEST_CASE(CTEST2){
+            CSeq* lTest = new CSeq(new CStat("r1", new CRead(1)),
+                          new CSeq(new CStat("y", new CAdd(new CVar("r1"), new CNum(7))),
+                          new CSeq(new CStat("r2", new CRead(1)),
+                          new CSeq(new CStat("x", new CAdd(new CVar("r2"), new CNum(13))),
+                          new CSeq(new CStat("f", new CAdd(new CVar("x"), new CVar("y"))),
+                          new CRet(new CVar("f"))
+                          )))));
+            CProg* pTest = new CProg(lTest);
+            int ret = pTest->interp();
+            BOOST_REQUIRE(ret == 101);
+        }
+        //BASELET Manually compiled
+        BOOST_AUTO_TEST_CASE(CTEST3){
+            CSeq* lTest = new CSeq(new CStat("x", new CNum(8)),
+                          new CSeq(new CStat("f", new CAdd(new CVar("x"), new CVar("x"))),
+                          new CRet(new CVar("f"))
+                          ));
+            CProg* pTest = new CProg(lTest);
+            int ret = pTest->interp();
+            BOOST_REQUIRE(ret == 16);
+        }
+        //EXPHAND manually compiled
+        BOOST_AUTO_TEST_CASE(CTEST4){
+            CSeq* lTest = new CSeq(new CStat("f", new CAdd(new CNum(32), new CNum(64))),
+                                   new CRet(new CVar("f"))
+                                  );
+            CProg* pTest = new CProg(lTest);
+            int ret = pTest->interp();
+            BOOST_REQUIRE(ret == 96);
+        }
+        //multiple read Test
+        // x = 39
+        BOOST_AUTO_TEST_CASE(CTEST5){
+            CSeq* lTest = new CSeq(new CStat("x", new CRead(1)),
+                          new CSeq(new CStat("f", new CAdd(new CVar("x"), new CVar("x"))),
+                          new CRet(new CVar("f"))
+                          ));
+            CProg* pTest = new CProg(lTest);
+            int ret = pTest->interp();
+            BOOST_REQUIRE(ret == 78);
+        }
+        //
+        BOOST_AUTO_TEST_CASE(CTEST6){
+            
+        }
 BOOST_AUTO_TEST_SUITE_END()
