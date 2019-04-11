@@ -21,6 +21,7 @@ enum opCode { num, add, neg, rRead, ERROR = -1};
 class Expr;
 class Num;
 typedef std::unordered_map<std::string, Expr*> Environ;
+typedef std::unordered_map<std::string, int> envmap;
 
 class Expr {
 public:
@@ -35,10 +36,12 @@ public:
     virtual Expr* optE(Environ env) = 0;
     virtual bool isPure(Environ env) = 0;
     virtual bool containVar(std::string name) = 0;
+    virtual Expr* uniquify(envmap* env) = 0;
 protected:
     virtual Expr* cloneImpl() const = 0;
     std::unique_ptr<Expr> e1_, e2_;
     opCode op_;
+    static int varCount;
 private:
 
 };
@@ -72,6 +75,9 @@ public:
     std::string AST()  {
         std::string str = std::to_string(i_);
         return str;
+    }
+    Expr* uniquify(envmap* env){
+        return this;
     }
     bool isPure(Environ env) { return true;}
     bool containVar(std::string name){return false;}
@@ -120,6 +126,12 @@ public:
             return this;
         }
     }
+    Expr* uniquify(envmap* env){
+        Expr *e1 =e1_.release(), *e2 = e2_.release();
+        e2_.reset(e2->uniquify(env));e1_.reset(e1->uniquify(env));  
+
+        return this;
+    }
     bool containVar(std::string name){ return e1_->containVar(name) || e2_->containVar(name);}
 protected:
     Add* cloneImpl() const override {
@@ -160,6 +172,11 @@ public:
             return this;
         }
     };
+    Expr* uniquify(envmap* env){
+        Expr* e = e1_.release();
+        e1_.reset(e->uniquify(env));
+        return this;
+    }
 protected:
     Neg* cloneImpl() const override {
             return new Neg((e1_->clone().release()));
@@ -188,6 +205,9 @@ public:
     //	std::cout << str << std::endl;
         return str;
     }
+    Expr* uniquify(envmap* env){
+        return this;
+    }
     bool isPure(Environ env) { return false; }
     Expr* optE(Environ env) { return this; }
     bool containVar(std::string name){return false;}
@@ -204,7 +224,7 @@ class Let: public Expr{
 public:
     Let(std::string var, Expr* exp, Expr* body): Expr(exp, body), var_(var){}
     Num* inter(Environ env){
-        env[var_] = e1_->clone().release();
+        env[var_] = e1_->inter(env);
         Num* out;
         out = e2_->inter(env);
         return out;
@@ -227,8 +247,8 @@ public:
     }
     bool containVar(std::string name){ return e1_->containVar(name) || e2_->containVar(name);}
     Expr* optE(Environ env){
-        Expr* e1 = e1_->clone().release();
-        Expr* e2 = e2_->clone().release();
+        Expr* e1 = e1_.release();
+        Expr* e2 = e2_.release();
         e1 = e1->optE(env);
         e1_.reset(e1);
         env[var_] = e1;
@@ -244,6 +264,31 @@ public:
             return e2;
         }
     }
+    Expr* uniquify(envmap* env){
+        //envmap* newmap = new envmap(*env);
+        Expr* e1 = e1_.release();
+        e1 = e1->uniquify(env);
+        e1_.reset(e1);
+        //insert to envmap and change var_
+        if(env->count(var_) == 0){
+            env->insert(std::pair<std::string, int>(var_, 1));
+        }else{
+            try{
+                env->at(var_)++;
+            }catch(std::out_of_range &e){
+                std::cerr<< "updating var in let failed" << std::endl;
+                throw std::runtime_error("Let uniquify failed");
+            }
+        }
+
+        var_ += std::to_string((*env)[var_]);
+
+
+        Expr* e2 = e2_.release();
+        e2 = e2->uniquify(env);
+        e2_.reset(e2);
+        return this;
+    }
 protected:
     Let* cloneImpl() const override {
         return new Let(var_,(e1_->clone().release()), (e2_->clone().release()));
@@ -256,7 +301,14 @@ class Var:public Expr{
 public:
     Var(std::string name):name_(name){};
     Num* inter(Environ env){
-        Expr* container = env[name_];
+        Expr* container;
+        try{
+            container = env.at(name_);
+        }
+        catch(std::out_of_range &e){
+            std::cerr << "Attemted to read undefined var " << name_ << std::endl;
+            throw std::runtime_error("Undefined var read");
+        }
         Num* result = container->inter(env);
         return result;
     }
@@ -268,10 +320,29 @@ public:
     }
     bool containVar(std::string name){return name == name_;}
     Expr* optE(Environ env) {
-        Expr* temp= env[name_];
+        Expr* temp;
+        try{
+            temp = env.at(name_);
+        }
+        catch(std::out_of_range &e){
+            std::cerr << "Attemted to read undefined var " << name_ << std::endl;
+            throw std::runtime_error("Undefined var read");
+        }
         if( temp->isPure(env)){
             return temp;
         }
+        return this;
+    }
+    Expr* uniquify(envmap* env){
+        //update based on envmap
+        std::string s;
+        try{
+        s = std::to_string(env->at(name_));
+        }catch(std::out_of_range &e){
+            std::cerr<< "attempted to update variable that was not previously found" << std::endl;
+            throw std::runtime_error("Var uniquify failed");
+        }
+        name_+= s;
         return this;
     }
 protected:
@@ -292,8 +363,15 @@ public:
 class Program {
 public:
     //constructors and = operators
-    explicit Program():i_(NULL) {   };
-    explicit Program(Info* i, Expr* e):e_(e), i_(i) { };
+    explicit Program(){ 
+        i_ = new Info();
+    };
+    explicit Program(Info* i, Expr* e):e_(e){
+        i_ = new Info();
+    };
+    explicit Program(Expr* e):e_(e) {
+        i_ = new Info();
+    };
     ~Program() = default;
     explicit Program(const Program& orig):e_(orig.e_->clone()), i_(orig.i_){}
     Program( Program&& orig) = default;
@@ -305,7 +383,14 @@ public:
     int run() {
         Num* out;
         Environ env;
-        out = e_->inter(env);
+        try{
+            out = e_->inter(env);
+        }
+        catch(std::runtime_error &e){
+            std::cerr << "run() failed, dumping AST" << std::endl;
+            std::cerr << print() << std::endl;
+            throw e;
+        }
         return out->output();
     }
     std::string print() {
@@ -322,6 +407,7 @@ public:
             return NULL;
         }
     }
+    friend Program* uniquify(Program* orig);
     inline Info* getInfo() { return i_; };
     inline void setExpr(Expr* n) { e_.reset(n); };
     inline void setInfo(Info* n) { i_ = n; };

@@ -116,3 +116,9 @@ Program* opt( Program* orig){
     e->optE(env);
     return new Program(orig->getInfo(), e);
 }
+Program* uniquify(Program* orig){
+    Expr* e = orig->getExpr();
+    envmap* env = new envmap;
+    e = e->uniquify(env);
+    return new Program(e);
+}
