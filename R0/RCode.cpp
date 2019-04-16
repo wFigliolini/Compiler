@@ -48,7 +48,7 @@ Expr* randExpr(int depth, vars env){
             if(env.empty()) {
                 //fallback if no lets is to act as a number
                 //will result in uneven distributions prior to first let, after should have 33% chance of any 
-                return new Num(i);
+                return new Num(0);
             }
             else{
                 //use i to randomly select from set of vars
@@ -120,5 +120,11 @@ Program* uniquify(Program* orig){
     Expr* e = orig->getExpr();
     envmap* env = new envmap;
     e = e->uniquify(env);
+    return new Program(e);
+}
+Program* rco(Program* orig){
+    Expr* e = orig->getExpr();
+    envmap* env = new envmap;
+    e = e->rco(env);
     return new Program(e);
 }

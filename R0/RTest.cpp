@@ -163,6 +163,60 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         BOOST_REQUIRE(orig == f);
         BOOST_REQUIRE(out == AST);
     }
+    //RCO Tests
+    BOOST_AUTO_TEST_CASE(RCO1){
+        Expr* expr = new Add(new Add(new Num(2), new Num(3)), new Let( x, new Read(1), new Add(new Var("x"), new Var("x"))));
+        int orig, f;
+        std::string AST("(Let 1i = (+2 3)){\n(Let x = (Read)){\n(Let 2i = (+x x)){\n(Let 3i = (+1i 2i)){\n 3i}\n}\n}\n}\n");
+        Program* pTest = new Program(expr);
+        orig = pTest->run();
+        Program* pFinal = rco(pTest);
+        f = pFinal->run();
+        BOOST_REQUIRE(orig == f);
+    }
+    BOOST_AUTO_TEST_CASE(RCO2){
+        Expr* expr = new Add(new Num(10), new Neg(new Num(10)));
+        int orig, f;
+        std::string AST("(Let 1i = (-10)){\n (Let 2i = (+10 i1)){\n 2i}\n}\n");
+        Program* pTest = new Program(expr);
+        orig = pTest->run();
+        Program* pFinal = rco(pTest);
+        f = pFinal->run();
+        BOOST_REQUIRE(orig == f);
+    }
+    BOOST_AUTO_TEST_CASE(RCO3){
+        Expr* expr = new Add(new Add(new Num(7), new Read(1)), new Add(new Num(13), new Read(1)));
+        int orig, f;
+        Program* pTest = new Program(expr);
+        orig = pTest->run();
+        Program* pFinal = rco(pTest);
+        f = pFinal->run();
+        BOOST_REQUIRE(orig == f);
+    }
+    BOOST_AUTO_TEST_CASE(RCO4){
+        Expr* expr = new Neg(new Add(new Num(17), new Add(new Read(1), new Num(42))));
+        int orig, f;
+        std::string AST("(Let 1i = (Read)){\n(Let 2i = (+1i 42)){\n(Let 3i = (+17 2i)){\n 3i}\n}\n}\n")
+        Program* pTest = new Program(expr);
+        orig = pTest->run();
+        Program* pFinal = rco(pTest);
+        f = pFinal->run();
+        BOOST_REQUIRE(orig == f);
+    }
+    BOOST_AUTO_TEST_CASE(RCO5){
+        //testing for preservation of lets
+        Expr* expr = new Let("a", new Num(42), new Let("b", new Var("a"), new Var("b")));
+        int orig, f;
+        Program* pTest = new Program(expr);
+        std::string AST = pTest->print();
+        orig = pTest->run();
+        Program* pFinal = rco(pTest);
+        std::string sFinal = pFinal->AST(); 
+        f = pFinal->run();
+        BOOST_REQUIRE(orig == f);
+        BOOST_REQUIRE(sFinal == AST);
+    }
+
     //Random Program Tests for stability
     
     //Base Case

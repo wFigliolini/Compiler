@@ -416,6 +416,7 @@ public:
         }
     }
     friend Program* uniquify(Program* orig);
+    friend Program* rco(Program* orig);
     inline Info* getInfo() { return i_; };
     inline void setExpr(Expr* n) { e_.reset(n); };
     inline void setInfo(Info* n) { i_ = n; };
