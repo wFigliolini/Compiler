@@ -113,7 +113,7 @@ Program* randProg(int depth){
 Program* opt( Program* orig){
     Expr *e = orig->getExpr();
     Environ env;
-    e->optE(env);
+    e = e->optE(env);
     return new Program(orig->getInfo(), e);
 }
 Program* uniquify(Program* orig){

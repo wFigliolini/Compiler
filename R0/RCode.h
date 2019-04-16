@@ -21,7 +21,8 @@ enum opCode { num, add, neg, rRead, ERROR = -1};
 class Expr;
 class Num;
 typedef std::unordered_map<std::string, Expr*> Environ;
-typedef std::unordered_map<std::string, int> envmap;
+typedef std::pair<std::string, int> strCount;
+typedef std::unordered_map<std::string, strCount> envmap;
 
 class Expr {
 public:
@@ -128,7 +129,7 @@ public:
     }
     Expr* uniquify(envmap* env){
         Expr *e1 =e1_.release(), *e2 = e2_.release();
-        e2_.reset(e2->uniquify(env));e1_.reset(e1->uniquify(env));  
+        e1_.reset(e1->uniquify(env));  e2_.reset(e2->uniquify(env));
 
         return this;
     }
@@ -208,6 +209,7 @@ public:
     Expr* uniquify(envmap* env){
         return this;
     }
+    void reset(){ num_= 42;}
     bool isPure(Environ env) { return false; }
     Expr* optE(Environ env) { return this; }
     bool containVar(std::string name){return false;}
@@ -265,28 +267,33 @@ public:
         }
     }
     Expr* uniquify(envmap* env){
-        //envmap* newmap = new envmap(*env);
+        std::string oldName = var_; std::string oldMap = var_;
         Expr* e1 = e1_.release();
         e1 = e1->uniquify(env);
         e1_.reset(e1);
-        //insert to envmap and change var_
         if(env->count(var_) == 0){
-            env->insert(std::pair<std::string, int>(var_, 1));
+            std::string newString = var_;
+            newString +="1"; 
+            strCount newCount(newString, 1);
+            env->insert(std::pair<std::string,strCount>(var_, newCount));
+            oldMap = newString;
         }else{
             try{
-                env->at(var_)++;
+                std::string newString = var_;
+                env->at(var_).second++;
+                newString +=std::to_string(env->at(var_).second);
+                oldMap = env->at(var_).first;
+                env->at(var_).first = newString;
             }catch(std::out_of_range &e){
                 std::cerr<< "updating var in let failed" << std::endl;
                 throw std::runtime_error("Let uniquify failed");
             }
         }
-
-        var_ += std::to_string((*env)[var_]);
-
-
+        var_ =env->at(var_).first;
         Expr* e2 = e2_.release();
         e2 = e2->uniquify(env);
         e2_.reset(e2);
+        env->at(oldName).first = oldMap;
         return this;
     }
 protected:
@@ -337,12 +344,11 @@ public:
         //update based on envmap
         std::string s;
         try{
-        s = std::to_string(env->at(name_));
+        name_ =env->at(name_).first;
         }catch(std::out_of_range &e){
             std::cerr<< "attempted to update variable that was not previously found" << std::endl;
             throw std::runtime_error("Var uniquify failed");
         }
-        name_+= s;
         return this;
     }
 protected:
@@ -391,6 +397,8 @@ public:
             std::cerr << print() << std::endl;
             throw e;
         }
+        Read* temp = new Read();
+        temp->reset();
         return out->output();
     }
     std::string print() {
@@ -429,6 +437,9 @@ class xInfo{
 public:
     xInfo(): pc_(0),result_(0), done_(false){
         regs_.reserve(16);
+        for(auto it = regs_.begin(); it != regs_.end(); ++it){
+            *it = 0;
+        }
     };
     void setLabel(std::string s){
         currLabel_ = s;

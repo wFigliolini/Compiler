@@ -11,7 +11,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             Program* pTest = new Program();
             pTest->setExpr(new Neg(new Add(new Num(17), new Add(new Read(1), new Num(42)))));
         //Program* pOpt = opt(pTest);
-            int int1, final1(-101);		
+            int int1, final1(-101);
             int1 = pTest->run();
             BOOST_REQUIRE(int1 == final1);
     }
@@ -27,7 +27,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
     BOOST_AUTO_TEST_CASE(Test3) {
             Program* pTest = new Program(NULL, new Add(new Add(new Num(7), new Read(1)), new Add(new Num(13), new Read(1))));
             Program* pOpt = opt(pTest);
-        int  int3, final3(101);
+        int  int3, final3(103);
         int3 = pOpt->run();
         BOOST_REQUIRE(int3 == final3);
     }
@@ -112,10 +112,10 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         orig =  pTest->run();
         Program* pFinal = uniquify(pTest);
         f = pFinal->run();
-        std::string AST("(+(Let x3 = 7){\nx3}\n (Let x1 = 8){\n(Let x2 = (+1 x1)){\n(+x2 x2)}\n}");
+        std::string AST("(+(Let x1 = 7){\nx1}\n (Let x2 = 8){\n(Let x3 = (+1 x2)){\n(+x3 x3)}\n}");
         std::string out = pFinal->print();
-        //std::cout << AST <<std::endl;
-        //std::cout << out;
+        std::cout << AST <<std::endl;
+        std::cout << out;
         BOOST_REQUIRE(orig == f);
         BOOST_REQUIRE(out == AST); //fails even though the output is the same?
     }
@@ -195,17 +195,37 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
     // Depth 100 results in system stalling and losing the rest of the file 
     BOOST_AUTO_TEST_CASE(Mass_Test){
             int depth(10), runCount(100);
-        //std::cout << "generating "<< runCount << " programs of depth " << depth << std::endl;
+            int optFails(0), uniqFails(0);
+            std::vector<int> optList, uniqList;
             Program* pTest;
             for(int i = 0; i< runCount; ++i){
+                int result, opresult;
                 pTest = randProg(depth);
-                pTest->run();
-                Program* pOpt = opt(pTest);
-                pOpt->run();
-                //BOOST_REQUIRE( pTest->run()-1 == pOpt->run());
-                        //std::cout << "program generated, result: " << result << std::endl;
+                result = pTest->run();
+                pTest = opt( pTest);
+                opresult = pTest->run();
+                if (result !=opresult){
+                    
+                    //std::cout <<"Intended result: "<< result << " Opt Result: " << opresult << std::endl; 
+                    optList.push_back(opresult);
+                    ++optFails;
+                }
+                pTest = uniquify( pTest);
+                opresult = pTest->run();
+                if (result !=opresult){
+                    //std::cout <<"Intended result: "<< result << " Uniq Result: " << opresult << std::endl;
+                    uniqList.push_back(opresult);
+                    ++uniqFails;
+                }
             }
-        BOOST_TEST(true);
+            if(optFails > 0){
+                std::cout <<"Optimizer failed "<< optFails << " tests." << std::endl;
+            }
+            if(uniqFails > 0){
+                std::cout <<"Uniquify failed "<< uniqFails <<" tests." << std::endl;
+            }
+            
+            BOOST_REQUIRE(optFails == 0 && uniqFails == 0);
         }
     // Optimizer cases
     // Addition Case
@@ -236,8 +256,8 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             Program* pTest = new Program(NULL, new Let("x", new Num(2), new Add(new Var("x"), new Read(1))));
             std::string AST("(+2 (Read))");
             Program* pOpt = opt(pTest);
-            std::cout << pOpt->print() << std::endl;
-            BOOST_REQUIRE( pOpt->run()-1 == pTest->run());
+            //std::cout << pOpt->print() << std::endl;
+            BOOST_REQUIRE( pOpt->run() == pTest->run());
             BOOST_REQUIRE( pOpt->print() == AST);
         }
         //Expr in assignment
@@ -245,8 +265,8 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             Program* pTest = new Program(NULL, new Let("x", new Add(new Num(1), new Num(1)), new Add(new Var("x"), new Read(1))));
             std::string AST("(+2 (Read))");
             Program* pOpt = opt(pTest);
-            std::cout << pOpt->print() << std::endl;
-            BOOST_REQUIRE( pOpt->run()-1 == pTest->run());
+            //std::cout << pOpt->print() << std::endl;
+            BOOST_REQUIRE( pOpt->run() == pTest->run());
             BOOST_REQUIRE( pOpt->print() == AST);
         }
         // inlining of variables
@@ -254,8 +274,8 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             Program* pTest = new Program(NULL,new Let("y", new Num(2), new Let("x", new Var("y"), new Add(new Var("x"), new Read(1)))));
             std::string AST("(+2 (Read))");
             Program* pOpt = opt(pTest);
-            std::cout << pOpt->print() << std::endl;
-            BOOST_REQUIRE( pOpt->run()-1 == pTest->run());
+            //std::cout << pOpt->print() << std::endl;
+            BOOST_REQUIRE( pOpt->run() == pTest->run());
             BOOST_REQUIRE( pOpt->print() == AST);
         }
         //Read Case
@@ -264,7 +284,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             std::string AST("(Let x = (Read)){\n(+x 3)}\n");
             Program* pOpt = opt(pTest);
             //std::cout << pOpt->print() << std::endl;
-            BOOST_REQUIRE( pOpt->run()-1 == pTest->run());
+            BOOST_REQUIRE( pOpt->run() == pTest->run());
             BOOST_REQUIRE( pOpt->print() == AST);
         }
         
