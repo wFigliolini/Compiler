@@ -14,40 +14,81 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             int int1, final1(-101);
             int1 = pTest->run();
             BOOST_REQUIRE(int1 == final1);
+            pTest = opt(pTest);
+            int1 = pTest->run();
+            BOOST_REQUIRE(int1 == final1);
+            pTest = uniquify(pTest);
+            int1 = pTest->run();
+            BOOST_REQUIRE(int1 == final1);
+            pTest = rco(pTest);
+            int1 = pTest->run();
+            BOOST_REQUIRE(int1 == final1);
     }
     BOOST_AUTO_TEST_CASE(Test2) {
             Program* pTest = new Program(NULL, new Add(new Num(7), new Num(13)));
             int int2, final2(20);
             int2 = pTest->run();
         BOOST_REQUIRE(int2 == final2);
-            Program* pOpt = opt(pTest);
-        BOOST_REQUIRE( pTest->run() == pOpt->run());
+            pTest = opt(pTest);
+            int2 = pTest->run();
+            BOOST_REQUIRE(int2 == final2);
+            pTest = uniquify(pTest);
+            int2 = pTest->run();
+            BOOST_REQUIRE(int2 == final2);
+            pTest = rco(pTest);
+        int2 = pTest->run();
+        BOOST_REQUIRE(int2 == final2);
     }
     // test for two branches with reads
     BOOST_AUTO_TEST_CASE(Test3) {
             Program* pTest = new Program(NULL, new Add(new Add(new Num(7), new Read(1)), new Add(new Num(13), new Read(1))));
-            Program* pOpt = opt(pTest);
+
         int  int3, final3(103);
-        int3 = pOpt->run();
+        int3 = pTest->run();
+        BOOST_REQUIRE(int3 == final3);
+        pTest = opt(pTest);
+        int3 = pTest->run();
+        BOOST_REQUIRE(int3 == final3);
+        pTest = uniquify(pTest);
+        int3 = pTest->run();
+        BOOST_REQUIRE(int3 == final3);
+        pTest = rco(pTest);
+        int3 = pTest->run();
         BOOST_REQUIRE(int3 == final3);
     }
 
     BOOST_AUTO_TEST_CASE(Test4) {
         Program* pTest = new Program(NULL, new Neg(new Num(7)));
-            Program* pOpt = opt(pTest);
             int  int4, final4(-7);
-            int4 = pOpt->run();
+            int4 = pTest->run();
+        BOOST_REQUIRE(int4 == final4);
+        pTest = opt(pTest);
+        int4 = pTest->run();
+        BOOST_REQUIRE(int4 == final4);
+        pTest = uniquify(pTest);
+        int4 = pTest->run();
+        BOOST_REQUIRE(int4 == final4);
+        pTest = rco(pTest);
+        int4 = pTest->run();
         BOOST_REQUIRE(int4 == final4);
     }
 
     BOOST_AUTO_TEST_CASE(Test5) {
         Program* pTest = new Program(NULL, new Num(5));
-            Program* pOpt = opt(pTest);
             std::string temp5, result5("5");
         int  int5, final5(5);
         temp5 = pTest->print();
-        int5 = pOpt->run();
+        int5 = pTest->run();
         BOOST_REQUIRE(temp5 == result5);
+        BOOST_REQUIRE(int5 == final5);
+        pTest = opt(pTest);
+        int5 = pTest->run();
+        BOOST_REQUIRE(int5 == final5);
+        pTest = uniquify(pTest);
+        int5 = pTest->run();
+        BOOST_REQUIRE(int5 == final5);
+        pTest = rco(pTest);
+        int5 = pTest->run();
         BOOST_REQUIRE(int5 == final5);
     }
 
@@ -65,6 +106,12 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             std::string AST("(Let x = 8){\n(+x x)}\n");
             BOOST_REQUIRE(pTest->run() == result);
             BOOST_REQUIRE(pTest->print() == AST);
+            pTest = opt(pTest);
+            BOOST_REQUIRE(pTest->run() == result);
+            pTest = uniquify(pTest);
+            BOOST_REQUIRE(pTest->run() == result);
+            pTest = rco(pTest);
+            BOOST_REQUIRE(pTest->run() == result);
         }
     //Overwrite Test Case
         BOOST_AUTO_TEST_CASE(OWCASE){
@@ -74,6 +121,12 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             //std::cout << pTest ->run() << std::endl;
             BOOST_REQUIRE(pTest->run() == result);
             BOOST_REQUIRE(pTest->print() == AST);
+            pTest = opt(pTest);
+            BOOST_REQUIRE(pTest->run() == result);
+            pTest = uniquify(pTest);
+            BOOST_REQUIRE(pTest->run() == result);
+            pTest = rco(pTest);
+            BOOST_REQUIRE(pTest->run() == result);
         }
     //Multiple Vars
         BOOST_AUTO_TEST_CASE(MVCASE){
@@ -82,6 +135,12 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             std::string AST("(Let x = 32){\n(Let y = 8){\n(+x y)}\n}\n");
             BOOST_REQUIRE(pTest->run() == result);
             BOOST_REQUIRE(pTest->print() == AST);
+            pTest = opt(pTest);
+            BOOST_REQUIRE(pTest->run() == result);
+            pTest = uniquify(pTest);
+            BOOST_REQUIRE(pTest->run() == result);
+            pTest = rco(pTest);
+            BOOST_REQUIRE(pTest->run() == result);
         }
     //Expression Handling
         BOOST_AUTO_TEST_CASE(EXPHAND){
@@ -90,6 +149,12 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             std::string AST("(Let x = (+32 64)){\nx}\n");
             BOOST_REQUIRE(pTest->run() == result);
             BOOST_REQUIRE(pTest->print() == AST);
+            pTest = opt(pTest);
+            BOOST_REQUIRE(pTest->run() == result);
+            pTest = uniquify(pTest);
+            BOOST_REQUIRE(pTest->run() == result);
+            pTest = rco(pTest);
+            BOOST_REQUIRE(pTest->run() == result);
         }
     //Order of Operations Test
     //Reads Will be 39,38
@@ -99,6 +164,12 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             std::string AST("(Let x = (Read)){\n(Let y = (Read)){\n(+x (-y))}\n}\n");
             BOOST_REQUIRE(pTest->run() == result);
             BOOST_REQUIRE(pTest->print() == AST);
+            pTest = opt(pTest);
+            BOOST_REQUIRE(pTest->run() == result);
+            pTest = uniquify(pTest);
+            BOOST_REQUIRE(pTest->run() == result);
+            pTest = rco(pTest);
+            BOOST_REQUIRE(pTest->run() == result);
         }
     
     //uniquify tests
@@ -118,6 +189,8 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         //std::cout << out;
         BOOST_REQUIRE(orig == f);
         BOOST_REQUIRE(out == AST); //fails even though the output is the same?
+        pTest = rco(pTest);
+        BOOST_REQUIRE(pTest->run() == f);
     }
     BOOST_AUTO_TEST_CASE(UNIQ2){
         Let* expr = new Let("x", new Num(16), new Add(new Var("x"), new Var("x")));
@@ -135,6 +208,8 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         //std::cout << out;
         BOOST_REQUIRE(orig == f);
         BOOST_REQUIRE(out == AST);
+        pTest = rco(pTest);
+        BOOST_REQUIRE(pTest->run() == f);
     }
     //from textbook page 28
     BOOST_AUTO_TEST_CASE(UNIQ3){
@@ -149,6 +224,8 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         //std::cout << out;
         BOOST_REQUIRE(orig == f);
         BOOST_REQUIRE(out == AST);
+        pTest = rco(pTest);
+        BOOST_REQUIRE(pTest->run() == f);
     }
     BOOST_AUTO_TEST_CASE(UNIQ4){
         Let* expr = new Let("x", new Let("x", new Num(4), new Add(new Var("x"), new Num(1))), new Add(new Var("x"), new Num(2)));
@@ -162,6 +239,8 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         //std::cout << out;
         BOOST_REQUIRE(orig == f);
         BOOST_REQUIRE(out == AST);
+        pTest = rco(pTest);
+        BOOST_REQUIRE(pTest->run() == f);
     }
     //RCO Tests
     BOOST_AUTO_TEST_CASE(RCO1){
@@ -240,7 +319,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             //int result;
             //std::cout << "generating program of depth 10 ";
             Program* pTest = randProg(10);
-                Program* pOpt = opt(pTest);
+            Program* pOpt = opt(pTest);
             //BOOST_REQUIRE( pTest->run() == pOpt->run());
             pTest->run();
             pOpt->run();
@@ -250,27 +329,38 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
     // Depth 100 results in system stalling and losing the rest of the file 
     BOOST_AUTO_TEST_CASE(Mass_Test){
             int depth(10), runCount(100);
-            int optFails(0), uniqFails(0);
-            std::vector<int>  uniqList;
+            int optFails(0), uniqFails(0), rcoFails(0);
+            std::vector<int>  uniqList, optList, rcoList;
             Program* pTest;
             for(int i = 0; i< runCount; ++i){
                 int result, opresult;
                 pTest = randProg(depth);
                 result = pTest->run();
-                /*pTest = opt( pTest);
+                pTest = opt( pTest);
                 opresult = pTest->run();
                 if (result !=opresult){
                     
                     //std::cout <<"Intended result: "<< result << " Opt Result: " << opresult << std::endl; 
                     optList.push_back(opresult);
                     ++optFails;
-                }*/
+                    //to determine if the later stages still work
+                    result = opresult;
+                }
                 pTest = uniquify( pTest);
                 opresult = pTest->run();
                 if (result !=opresult){
                     //std::cout <<"Intended result: "<< result << " Uniq Result: " << opresult << std::endl;
                     uniqList.push_back(opresult);
                     ++uniqFails;
+                    result = opresult;
+                }
+                pTest = rco( pTest);
+                opresult = pTest->run();
+                if (result !=opresult){
+                    //std::cout <<"Intended result: "<< result << " Uniq Result: " << opresult << std::endl;
+                    rcoList.push_back(opresult);
+                    ++rcoFails;
+                    result = opresult;
                 }
             }
             if(optFails > 0){
@@ -279,8 +369,10 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             if(uniqFails > 0){
                 std::cout <<"Uniquify failed "<< uniqFails <<" tests." << std::endl;
             }
-            
-            BOOST_REQUIRE(optFails == 0 && uniqFails == 0);
+            if(rcoFails > 0){
+                std::cout <<"Uniquify failed "<< rcoFails <<" tests." << std::endl;
+            }
+            BOOST_REQUIRE(optFails == 0 && uniqFails == 0 && rcoFails ==0);
         }
     // Optimizer cases
     // Addition Case
