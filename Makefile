@@ -6,7 +6,7 @@ MEMDEBUG := -fsanitize=address
 all: $(PROG)
 
 RTest: RTest.o RCode.o
-	$(CXX) $(CXXFLAGS) RCode.o RTest.o  -o RTest -lboost_unit_test_framework 
+	$(CXX) $(CXXFLAGS) RCode.o RTest.o  -o RTest -lboost_unit_test_framework -g
 RTest.o: ./R0/RTest.cpp 
 	$(CXX) $(CXXFLAGS) -c ./R0/RTest.cpp
 RCode.o: ./R0/RCode.cpp ./R0/RCode.h

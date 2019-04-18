@@ -124,7 +124,31 @@ Program* uniquify(Program* orig){
 }
 Program* rco(Program* orig){
     Expr* e = orig->getExpr();
-    envmap* env = new envmap;
-    e = e->rco(env);
-    return new Program(e);
+    Expr* e2, *temp;
+    bool debug = 0;
+    std::vector<rcoPair> eMap;
+    envmap env;
+    eMap = e->rco(env);
+    for(auto it = eMap.rbegin(); it != eMap.rend(); ++it){
+        if(debug) std::cout << it->first << " = " << it->second->AST() << std::endl;
+        if(it == eMap.rbegin()){
+            temp = new Var(it->first);
+        }else{
+            temp = e2;
+            e2 = NULL;
+        }
+        if(it->first.empty() == false){
+            e2 = new Let(it->first, it->second, temp);
+        }else{
+            e2 = it->second;
+        }
+    }
+    if(debug) std::cout << "End RCO Pass" << std::endl;
+    return new Program(e2);
+}
+std::string genNewVar(std::string type){
+    static int count = 0;
+    std::string out = std::to_string(count++);
+    out += type;
+    return out;
 }
