@@ -144,11 +144,19 @@ Program* rco(Program* orig){
         }
     }
     if(debug) std::cout << "End RCO Pass" << std::endl;
+    genNewVar("i", 1);
     return new Program(e2);
 }
-std::string genNewVar(std::string type){
+CProg* econ(Program* orig){
+    return new CProg();
+}
+std::string genNewVar(std::string type, bool reset){
+    
     static int count = 0;
     std::string out = std::to_string(count++);
     out += type;
+    if(reset){
+        count = 0;
+    }
     return out;
 }

@@ -296,6 +296,62 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         BOOST_REQUIRE(orig == f);
         BOOST_REQUIRE(sFinal == AST);
     }
+    //econ Tests
+
+    BOOST_AUTO_TEST_CASE(ECON1){
+        Expr* expr = new Add(new Add(new Num(2), new Num(3)), new Let( "x", new Read(1), new Add(new Var("x"), new Var("x"))));
+        int orig, f;
+        Program* pTest = new Program(expr);
+        pTest = rco(pTest);
+        orig = pTest->run();
+        CProg* pFinal = econ(pTest);
+        f = pFinal->run();
+        BOOST_REQUIRE(orig == f);
+    }
+    BOOST_AUTO_TEST_CASE(ECON2){
+        Expr* expr = new Add(new Add(new Num(7), new Read(1)), new Add(new Num(13), new Read(1)));
+        int orig, f;
+        Program* pTest = new Program(expr);
+        orig = pTest->run();
+        CProg* pFinal = econ(pTest);
+        f = pFinal->run();
+        BOOST_REQUIRE(orig == f);
+    }
+    //Manually decompiled C Tests
+    //CTest2
+    BOOST_AUTO_TEST_CASE(ECON3){
+        Expr* expr = new Add(new Add(new Read(1), new Num(7)), new Add(new Read(1), new Num(13)));
+        int orig, f;
+        Program* pTest = new Program(expr);
+        pTest = rco(pTest);
+        orig = pTest->run();
+        CProg* pFinal = econ(pTest);
+        f = pFinal->run();
+        BOOST_REQUIRE(orig == f);
+    }
+    //CTest5
+    BOOST_AUTO_TEST_CASE(ECON4){
+        Expr* expr = new Let("x", new Read(1), new Add(new Var("x"), new Var("x")));
+        int orig, f;
+        Program* pTest = new Program(expr);
+        pTest = uniquify(pTest);
+        pTest = rco(pTest);
+        orig = pTest->run();
+        CProg* pFinal = econ(pTest);
+        f = pFinal->run();
+        BOOST_REQUIRE(orig == f);
+    }
+    BOOST_AUTO_TEST_CASE(ECON5){
+        //testing for preservation of lets
+        Expr* expr = new Add(new Num(52), new Neg(new Num(10)));
+        int orig, f;
+        Program* pTest = new Program(expr);
+        pTest = rco(pTest);
+        orig = pTest->run();
+        CProg* pFinal = econ(pTest);
+        f = pFinal->run();
+        BOOST_REQUIRE(orig == f);
+    }
 
     //Random Program Tests for stability
     
@@ -370,7 +426,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                 std::cout <<"Uniquify failed "<< uniqFails <<" tests." << std::endl;
             }
             if(rcoFails > 0){
-                std::cout <<"Uniquify failed "<< rcoFails <<" tests." << std::endl;
+                std::cout <<"Rco failed "<< rcoFails <<" tests." << std::endl;
             }
             BOOST_REQUIRE(optFails == 0 && uniqFails == 0 && rcoFails ==0);
         }
@@ -545,13 +601,13 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         BOOST_AUTO_TEST_CASE(CNOVAR){
             CRet* lTest = new CRet(new CVar("f"));
             CProg* pTest = new CProg(lTest);
-            BOOST_REQUIRE_THROW( pTest->interp(), std::runtime_error);
+            BOOST_REQUIRE_THROW( pTest->run(), std::runtime_error);
         }
         BOOST_AUTO_TEST_CASE(CNOMAIN){
             CRet* lTest = new CRet(new CNum(5));
             CProg* pTest = new CProg();
             pTest->addTail("NULL", lTest);
-            BOOST_REQUIRE_THROW( pTest->interp(), std::runtime_error);
+            BOOST_REQUIRE_THROW( pTest->run(), std::runtime_error);
         }
         
         //Test 1 manually compiled
@@ -564,7 +620,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                           new CRet(new CVar("f"))
                           ))));
             CProg* pTest = new CProg(lTest);
-            int ret = pTest->interp();
+            int ret = pTest->run();
             BOOST_REQUIRE(ret == -101);
         }
         //Test 3  manually compiled
@@ -578,7 +634,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                           new CRet(new CVar("f"))
                           )))));
             CProg* pTest = new CProg(lTest);
-            int ret = pTest->interp();
+            int ret = pTest->run();
             BOOST_REQUIRE(ret == 101);
         }
         //BASELET Manually compiled
@@ -588,7 +644,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                           new CRet(new CVar("f"))
                           ));
             CProg* pTest = new CProg(lTest);
-            int ret = pTest->interp();
+            int ret = pTest->run();
             BOOST_REQUIRE(ret == 16);
         }
         //EXPHAND manually compiled
@@ -597,7 +653,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                                    new CRet(new CVar("f"))
                                   );
             CProg* pTest = new CProg(lTest);
-            int ret = pTest->interp();
+            int ret = pTest->run();
             BOOST_REQUIRE(ret == 96);
         }
         //multiple read Test
@@ -608,7 +664,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                           new CRet(new CVar("f"))
                           ));
             CProg* pTest = new CProg(lTest);
-            int ret = pTest->interp();
+            int ret = pTest->run();
             BOOST_REQUIRE(ret == 78);
         }
         //(+52 (-10))
@@ -618,7 +674,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                           new CRet(new CVar("f"))
                           ));
             CProg* pTest = new CProg(lTest);
-            int ret = pTest->interp();
+            int ret = pTest->run();
             BOOST_REQUIRE(ret == 42);
         }
 BOOST_AUTO_TEST_SUITE_END()

@@ -20,11 +20,12 @@
 enum opCode { num, add, neg, rRead, ERROR = -1};
 class Expr;
 class Num;
+class CProg;
 typedef std::unordered_map<std::string, Expr*> Environ;
 typedef std::pair<std::string, int> strCount;
 typedef std::unordered_map<std::string, strCount> envmap;
 typedef std::pair<std::string, Expr*> rcoPair;
-std::string genNewVar(std::string type = "i");
+std::string genNewVar(std::string type = "i", bool reset = 0);
 class Expr {
 public:
     //standard constructors
@@ -503,6 +504,7 @@ public:
     inline void setExpr(Expr* n) { e_.reset(n); };
     inline void setInfo(Info* n) { i_ = n; };
     friend Program* opt( Program* orig);
+    friend CProg* econ(Program* orig);
     private:
     std::unique_ptr<Expr> e_;
     Info* i_;
@@ -518,12 +520,7 @@ typedef std::unordered_map<std::string, int> varList;
 //Handles the Stack and Registers
 class xInfo{
 public:
-    xInfo(): pc_(0),result_(0), done_(false){
-        regs_.reserve(16);
-        for(auto it = regs_.begin(); it != regs_.end(); ++it){
-            *it = 0;
-        }
-    };
+    xInfo():regs_(16,0), pc_(0),result_(0), done_(false){};
     void setLabel(std::string s){
         currLabel_ = s;
     }
@@ -1237,7 +1234,7 @@ public:
     void addTail(std::string name, CTail* l){
         instr_[name] = l;
     }
-    int interp(){
+    int run(){
         int i;
         CEnv* e = new CEnv();
         CTail* t;
