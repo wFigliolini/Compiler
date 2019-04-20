@@ -417,7 +417,8 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         f = pFinal->run();
         BOOST_REQUIRE(orig == f);
     }
-
+    
+    
     //Random Program Tests for stability
     
     //Base Case
@@ -687,8 +688,10 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         }
         
         //Test 1 manually compiled
+        //Uncover Locals Tests added later
         //r = 42
         BOOST_AUTO_TEST_CASE(CTEST1){
+            ;
             CSeq* lTest = new CSeq(new CStat("r", new CRead(1)),
                           new CSeq(new CStat("y", new CAdd(new CVar("r"), new CNum(42))),
                           new CSeq(new CStat("x", new CAdd(new CVar("y"), new CNum(17))),
@@ -696,6 +699,17 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                           new CRet(new CVar("f"))
                           ))));
             CProg* pTest = new CProg(lTest);
+            std::vector<std::string> ulOut = {"r","y", "x", "f"}, ulTest;
+            pTest->uncoverLocals();
+            Cinfo* locals = pTest->getInfo();
+            ulTest = locals->vars();
+            BOOST_REQUIRE(ulTest.empty() == false);
+            for(auto it : ulOut){
+                if(std::find(ulTest.begin(), ulTest.end(), it) != ulTest.end()){
+                    ulTest.erase(std::remove(ulTest.begin(), ulTest.end(), (*it)), ulTest.end());
+                }
+            }
+            BOOST_REQUIRE(ulTest.empty());
             int ret = pTest->run();
             //std::cout << ret << std::endl;
             BOOST_REQUIRE(ret == -101);
@@ -711,6 +725,17 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                           new CRet(new CVar("f"))
                           )))));
             CProg* pTest = new CProg(lTest);
+            std::vector<std::string> ulOut = {"r1","y","r2", "x", "f"}, ulTest;
+            pTest->uncoverLocals();
+            Cinfo* locals = pTest->getInfo();
+            ulTest = locals->vars();
+            BOOST_REQUIRE(ulTest.empty() == false);
+            for(auto it : ulOut){
+                if(std::find(ulTest.begin(), ulTest.end(), it) != ulTest.end()){
+                    ulTest.erase(std::remove(ulTest.begin(), ulTest.end(), (*it)), ulTest.end());
+                }
+            }
+            BOOST_REQUIRE(ulTest.empty());
             int ret = pTest->run();
             //std::cout << ret << std::endl;
             BOOST_REQUIRE(ret == 103);
@@ -722,6 +747,14 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                           new CRet(new CVar("f"))
                           ));
             CProg* pTest = new CProg(lTest);
+            std::vector<std::string> ulOut = { "x", "f"}, ulTest;
+            BOOST_REQUIRE(ulTest.empty() == false);
+            for(auto it : ulOut){
+                if(std::find(ulTest.begin(), ulTest.end(), it) != ulTest.end()){
+                    ulTest.erase(std::remove(ulTest.begin(), ulTest.end(), (*it)), ulTest.end());
+                }
+            }
+            BOOST_REQUIRE(ulTest.empty());
             int ret = pTest->run();
             BOOST_REQUIRE(ret == 16);
         }
@@ -731,6 +764,17 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                                    new CRet(new CVar("f"))
                                   );
             CProg* pTest = new CProg(lTest);
+            std::vector<std::string> ulOut = {"f"}, ulTest;
+            pTest->uncoverLocals();
+            Cinfo* locals = pTest->getInfo();
+            ulTest = locals->vars();
+            BOOST_REQUIRE(ulTest.empty() == false);
+            for(auto it : ulOut){
+                if(std::find(ulTest.begin(), ulTest.end(), it) != ulTest.end()){
+                    ulTest.erase(std::remove(ulTest.begin(), ulTest.end(), (*it)), ulTest.end());
+                }
+            }
+            BOOST_REQUIRE(ulTest.empty());
             int ret = pTest->run();
             BOOST_REQUIRE(ret == 96);
         }
@@ -742,6 +786,17 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                           new CRet(new CVar("f"))
                           ));
             CProg* pTest = new CProg(lTest);
+            std::vector<std::string> ulOut = {"x", "f"}, ulTest;
+            pTest->uncoverLocals();
+            Cinfo* locals = pTest->getInfo();
+            ulTest = locals->vars();
+            BOOST_REQUIRE(ulTest.empty() == false);
+            for(auto it : ulOut){
+                if(std::find(ulTest.begin(), ulTest.end(), it) != ulTest.end()){
+                    ulTest.erase(std::remove(ulTest.begin(), ulTest.end(), (*it)), ulTest.end());
+                }
+            }
+            BOOST_REQUIRE(ulTest.empty());
             int ret = pTest->run();
             //std::cout << ret << std::endl;
             BOOST_REQUIRE(ret == 84);
@@ -753,6 +808,17 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                           new CRet(new CVar("f"))
                           ));
             CProg* pTest = new CProg(lTest);
+            std::vector<std::string> ulOut = {"x", "f"}, ulTest;
+            pTest->uncoverLocals();
+            Cinfo* locals = pTest->getInfo();
+            ulTest = locals->vars();
+            BOOST_REQUIRE(ulTest.empty() == false);
+            for(auto it : ulOut){
+                if(std::find(ulTest.begin(), ulTest.end(), it) != ulTest.end()){
+                    ulTest.erase(std::remove(ulTest.begin(), ulTest.end(), (*it)), ulTest.end());
+                }
+            }
+            BOOST_REQUIRE(ulTest.empty());
             int ret = pTest->run();
             BOOST_REQUIRE(ret == 42);
         }
