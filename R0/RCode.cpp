@@ -163,3 +163,7 @@ std::string genNewVar(std::string type, bool reset){
     }
     return out;
 }
+XProgram* selInsr(CProg* orig){
+    
+    return new XProgram();
+}

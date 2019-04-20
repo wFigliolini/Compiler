@@ -603,7 +603,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                 instrSet.push_back(new Addq(new Const(5), new Reg(0)));
                 instrSet.push_back(new Retq());
             xProgram* pTest = new xProgram(new Block(instrSet));
-            BOOST_REQUIRE(pTest->interp() == 9);
+            BOOST_REQUIRE(pTest->run() == 9);
         }
         //int x = 12, int y = 8
         //also functions as stack test
@@ -615,7 +615,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                 instrSet.push_back(new Addq(new DeRef(new Reg("%rbp"), 0), new Reg("%rax")));
                 instrSet.push_back(new Retq());
             xProgram* pTest = new xProgram(new Block(instrSet));
-            int result = pTest->interp() ;
+            int result = pTest->run() ;
             //std::cout << "DEREFTEST Result = " << result << std::endl;
             BOOST_REQUIRE(result == 20);
         }
@@ -626,7 +626,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                 instrSet.push_back(new Retq());
             xProgram* pTest = new xProgram(new Block(instrSet));
             pTest->declareVar("TestInt", 20);
-            BOOST_REQUIRE(pTest->interp() == 20);
+            BOOST_REQUIRE(pTest->run() == 20);
         }
         //constant val already tested in REGISTERTEST
         //label tests
@@ -638,7 +638,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                 finalSet.push_back(new Retq());
             xProgram* pTest = new xProgram(new Block(instrSet));
             pTest->addBlock("final", new Block( finalSet));
-            BOOST_REQUIRE(pTest->interp() == 5);
+            BOOST_REQUIRE(pTest->run() == 5);
         }
         //Textbook Example, page 22 of Essentials of Compilation
         
@@ -662,7 +662,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             xProgram* pTest = new xProgram(new Block(instrSet));
             pTest->addBlock("conclusion", new Block( concSet));
             pTest->addBlock("start", new Block(begSet));
-            int result = pTest->interp() ;
+            int result = pTest->run() ;
             //std::cout << "LABELS Result = " << result << std::endl;
             BOOST_REQUIRE(result == 42);
         }
@@ -681,7 +681,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                 instrSet.push_back(new Addq(new Const(13), new Reg("%rax")));
                 instrSet.push_back(new Retq());
             xProgram* pTest = new xProgram(new Block(instrSet));
-            BOOST_REQUIRE(pTest->interp() == 20);
+            BOOST_REQUIRE(pTest->run() == 20);
         }
         BOOST_AUTO_TEST_CASE(RTOXTEST2){
             std::vector<Instr*> instrSet;
@@ -689,7 +689,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                 instrSet.push_back(new Negq(new Reg("%rax")));
                 instrSet.push_back(new Retq());
             xProgram* pTest = new xProgram(new Block(instrSet));
-            BOOST_REQUIRE(pTest->interp() == -7);
+            BOOST_REQUIRE(pTest->run() == -7);
         }
         BOOST_AUTO_TEST_CASE(BREAKTEST){
             std::vector<Instr*> instrSet;
@@ -698,7 +698,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                 instrSet.push_back(new Retq());
                 instrSet.push_back(new Addq(new Const(13), new Reg("%rax")));
             xProgram* pTest = new xProgram(new Block(instrSet));
-            BOOST_REQUIRE(pTest->interp() == 20);
+            BOOST_REQUIRE(pTest->run() == 20);
         }
         //CTests
         // exception handlers
@@ -741,6 +741,9 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             int ret = pTest->run();
             //std::cout << ret << std::endl;
             BOOST_REQUIRE(ret == -101);
+            XProgram* xTest = selInsr(cTest);
+            ret = xTest->run();
+            BOOST_REQUIRE(ret == -101);
         }
         //Test 3  manually compiled
         //r1 = 42, r2 = 41
@@ -768,6 +771,9 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             int ret = pTest->run();
             //std::cout << ret << std::endl;
             BOOST_REQUIRE(ret == 103);
+            XProgram* xTest = selInsr(cTest);
+            ret = xTest->run();
+            BOOST_REQUIRE(ret == 103);
         }
         //BASELET Manually compiled
         BOOST_AUTO_TEST_CASE(CTEST3){
@@ -790,6 +796,9 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             BOOST_REQUIRE(ulTest.empty());
             int ret = pTest->run();
             BOOST_REQUIRE(ret == 16);
+            XProgram* xTest = selInsr(cTest);
+            ret = xTest->run();
+            BOOST_REQUIRE(ret == 16);
         }
         //EXPHAND manually compiled
         BOOST_AUTO_TEST_CASE(CTEST4){
@@ -810,6 +819,9 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             }
             BOOST_REQUIRE(ulTest.empty());
             int ret = pTest->run();
+            BOOST_REQUIRE(ret == 96);
+            XProgram* xTest = selInsr(cTest);
+            ret = xTest->run();
             BOOST_REQUIRE(ret == 96);
         }
         //multiple read Test
@@ -835,6 +847,9 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             int ret = pTest->run();
             //std::cout << ret << std::endl;
             BOOST_REQUIRE(ret == 84);
+            XProgram* xTest = selInsr(cTest);
+            ret = xTest->run();
+            BOOST_REQUIRE(ret == 84);
         }
         //(+52 (-10))
         BOOST_AUTO_TEST_CASE(CTEST6){
@@ -857,5 +872,9 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             BOOST_REQUIRE(ulTest.empty());
             int ret = pTest->run();
             BOOST_REQUIRE(ret == 42);
+            XProgram* xTest = selInsr(cTest);
+            ret = xTest->run();
+            BOOST_REQUIRE(ret == 42);
         }
+
 BOOST_AUTO_TEST_SUITE_END()

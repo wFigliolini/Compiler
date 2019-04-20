@@ -473,7 +473,7 @@ public:
     void addBlock(std::string name, Block* blk){
         blks_[name] = blk;
     }
-    int interp(){
+    int run(){
         while(!(i_->isDone())){
             blks_[i_->getLabel()]->interp();
         }
@@ -788,6 +788,7 @@ public:
         i_.setVars(temp);
     }
     CInfo getInfo(){ return i_;}
+    friend XProgram* selInsr(CProg* orig);
 private:
    CTailTable instr_;
    CInfo i_;
