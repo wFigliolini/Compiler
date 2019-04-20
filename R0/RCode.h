@@ -539,10 +539,6 @@ std::vector<std::string> Reg::regNames = {
 
 typedef std::unordered_map<std::string, CExp*> CEnv;
 
-class CInfo{
-    
-};
-
 class CLabel{
 public:
     explicit CLabel(std::string name): name_(name){};
@@ -683,6 +679,7 @@ public:
     void interp(CEnv* e){
         (*e)[name_] = e_;
     }
+    std::string getVar(){ return name_;}
 private:
     std::string name_;
     CExp* e_;
@@ -691,6 +688,7 @@ class CTail{
 public:
     virtual std::string AST() = 0;
     virtual int interp(CEnv* e) = 0;
+    virtual std::vector<std::string> getVars() = 0;
 };
 class CRet: public CTail{
 public:
@@ -704,6 +702,10 @@ public:
     }
     int interp(CEnv* e){
         return ret_->interp(e);
+    }
+    std::vector<std::string> getVars(){
+        std::vector<std::string> v;
+        return v;
     }
 private:
     CArg* ret_;
@@ -724,11 +726,24 @@ public:
         stmt_->interp(e);
         return tail_->interp(e);
     }
+    std::vector<std::string> getVars(){
+        std::vector<std::string> v;
+        v = tail_->getVars();
+        v.push_back(stmt_->getVar());
+        return v;
+    }
 private:
     CStat* stmt_;
     CTail* tail_;
 };
 typedef std::unordered_map<std::string,CTail*> CTailTable;
+class CInfo{
+public:
+    std::vector<std::string> vars(){ return vars_;}
+    void setVars(std::vector<std::string> s){ vars_ = s;}
+private:
+    std::vector<std::string> vars_;
+};
 class CProg{
 public:
     CProg(){};
@@ -763,6 +778,16 @@ public:
         temp->reset();
         return i;
     }
+    void uncoverLocals(){
+        std::vector<std::string> temp;
+        for(auto [name, l] : instr_){
+            std::vector<std::string> local;
+            local = l->getVars();
+            temp.insert(temp.end(), local.begin(), local.end());
+        }
+        i_.setVars(temp);
+    }
+    CInfo getInfo(){ return i_;}
 private:
    CTailTable instr_;
    CInfo i_;
