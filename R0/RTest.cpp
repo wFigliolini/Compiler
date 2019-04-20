@@ -8,48 +8,48 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
     // setting up for first set of tests
 
     BOOST_AUTO_TEST_CASE(Test1){ 
-            Program* pTest = new Program();
-            pTest->setExpr(new Neg(new Add(new Num(17), new Add(new Read(1), new Num(42)))));
+        Program* pTest = new Program();
+        pTest->setExpr(new Neg(new Add(new Num(17), new Add(new Read(1), new Num(42)))));
         //Program* pOpt = opt(pTest);
-            int int1, final1(-101), f;
-            int1 = pTest->run();
-            BOOST_REQUIRE(int1 == final1);
-            pTest = opt(pTest);
-            int1 = pTest->run();
-            BOOST_REQUIRE(int1 == final1);
-            pTest = uniquify(pTest);
-            int1 = pTest->run();
-            BOOST_REQUIRE(int1 == final1);
-            pTest = rco(pTest);
-            int1 = pTest->run();
-            BOOST_REQUIRE(int1 == final1);
-            
+        int int1, final1(-101), f;
+        int1 = pTest->run();
+        BOOST_REQUIRE(int1 == final1);
+        pTest = opt(pTest);
+        int1 = pTest->run();
+        BOOST_REQUIRE(int1 == final1);
+        pTest = uniquify(pTest);
+        int1 = pTest->run();
+        BOOST_REQUIRE(int1 == final1);
+        pTest = rco(pTest);
+        int1 = pTest->run();
+        BOOST_REQUIRE(int1 == final1);
         CProg* cTest = econ(pTest);
+        cTest->uncoverLocals();
         f = cTest->run();
         BOOST_REQUIRE(final1 == f);
     }
     BOOST_AUTO_TEST_CASE(Test2) {
-            Program* pTest = new Program(NULL, new Add(new Num(7), new Num(13)));
-            int int2, final2(20), f;
-            int2 = pTest->run();
+        Program* pTest = new Program(NULL, new Add(new Num(7), new Num(13)));
+        int int2, final2(20), f;
+        int2 = pTest->run();
         BOOST_REQUIRE(int2 == final2);
-            pTest = opt(pTest);
-            int2 = pTest->run();
-            BOOST_REQUIRE(int2 == final2);
-            pTest = uniquify(pTest);
-            int2 = pTest->run();
-            BOOST_REQUIRE(int2 == final2);
-            pTest = rco(pTest);
+        pTest = opt(pTest);
+        int2 = pTest->run();
+        BOOST_REQUIRE(int2 == final2);
+        pTest = uniquify(pTest);
+        int2 = pTest->run();
+        BOOST_REQUIRE(int2 == final2);
+        pTest = rco(pTest);
         int2 = pTest->run();
         BOOST_REQUIRE(int2 == final2);
         CProg* cTest = econ(pTest);
+        cTest->uncoverLocals();
         f = cTest->run();
         BOOST_REQUIRE(final2 == f);
     }
     // test for two branches with reads
     BOOST_AUTO_TEST_CASE(Test3) {
-            Program* pTest = new Program(NULL, new Add(new Add(new Num(7), new Read(1)), new Add(new Num(13), new Read(1))));
-
+        Program* pTest = new Program(NULL, new Add(new Add(new Num(7), new Read(1)), new Add(new Num(13), new Read(1))));
         int  int3, final3(103), f;
         int3 = pTest->run();
         BOOST_REQUIRE(int3 == final3);
@@ -63,14 +63,15 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         int3 = pTest->run();
         BOOST_REQUIRE(int3 == final3);
         CProg* cTest = econ(pTest);
+        cTest->uncoverLocals();
         f = cTest->run();
         BOOST_REQUIRE(final3 == f);
     }
 
     BOOST_AUTO_TEST_CASE(Test4) {
         Program* pTest = new Program(NULL, new Neg(new Num(7)));
-            int  int4, final4(-7), f;
-            int4 = pTest->run();
+        int  int4, final4(-7), f;
+        int4 = pTest->run();
         BOOST_REQUIRE(int4 == final4);
         pTest = opt(pTest);
         int4 = pTest->run();
@@ -88,7 +89,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
 
     BOOST_AUTO_TEST_CASE(Test5) {
         Program* pTest = new Program(NULL, new Num(5));
-            std::string temp5, result5("5");
+        std::string temp5, result5("5");
         int  int5, final5(5), f;
         temp5 = pTest->print();
         int5 = pTest->run();
@@ -103,8 +104,8 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         pTest = rco(pTest);
         int5 = pTest->run();
         BOOST_REQUIRE(int5 == final5);
-        
         CProg* cTest = econ(pTest);
+        cTest->uncoverLocals();
         f = cTest->run();
         BOOST_REQUIRE(final5 == f);
     }
@@ -131,6 +132,8 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             BOOST_REQUIRE(pTest->run() == result);
             
             CProg* cTest = econ(pTest);
+            
+            cTest->uncoverLocals();
             f = cTest->run();
             BOOST_REQUIRE(result == f);
         }
@@ -149,6 +152,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             pTest = rco(pTest);
             BOOST_REQUIRE(pTest->run() == result);
             CProg* cTest = econ(pTest);
+            cTest->uncoverLocals();
             f = cTest->run();
             BOOST_REQUIRE(result == f);
         }
@@ -166,6 +170,8 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             pTest = rco(pTest);
             BOOST_REQUIRE(pTest->run() == result);
             CProg* cTest = econ(pTest);
+            
+            cTest->uncoverLocals();
             f = cTest->run();
             BOOST_REQUIRE(result == f);
         }
@@ -183,6 +189,8 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             pTest = rco(pTest);
             BOOST_REQUIRE(pTest->run() == result);
             CProg* cTest = econ(pTest);
+            
+            cTest->uncoverLocals();
             f = cTest->run();
             BOOST_REQUIRE(result == f);
         }
@@ -201,6 +209,8 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             pTest = rco(pTest);
             BOOST_REQUIRE(pTest->run() == result);
         CProg* cTest = econ(pTest);
+        
+        cTest->uncoverLocals();
         f = cTest->run();
         BOOST_REQUIRE(result == f);
         }
@@ -228,6 +238,8 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         //std:: cout << pTest->print() << std::endl << orig << " " << f << std::endl;
         BOOST_REQUIRE(orig == f);
         CProg* cTest = econ(pTest);
+        
+        cTest->uncoverLocals();
         f = cTest->run();
         BOOST_REQUIRE(orig == f);
     }
@@ -250,6 +262,8 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         pTest = rco(pTest);
         BOOST_REQUIRE(pTest->run() == f);
         CProg* cTest = econ(pTest);
+        
+        cTest->uncoverLocals();
         f = cTest->run();
         BOOST_REQUIRE(orig == f);
     }
@@ -269,6 +283,8 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         pTest = rco(pTest);
         BOOST_REQUIRE(pTest->run() == f);
         CProg* cTest = econ(pTest);
+        
+        cTest->uncoverLocals();
         f = cTest->run();
         BOOST_REQUIRE(orig == f);
     }
@@ -287,6 +303,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         pTest = rco(pTest);
         BOOST_REQUIRE(pTest->run() == f);
         CProg* cTest = econ(pTest);
+        cTest->uncoverLocals();
         f = cTest->run();
         BOOST_REQUIRE(orig == f);
     }
@@ -302,6 +319,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         f = pFinal->run();
         BOOST_REQUIRE(orig == f);
         CProg* cTest = econ(pFinal);
+        cTest->uncoverLocals();
         f = cTest->run();
         BOOST_REQUIRE(orig == f);
     }
@@ -327,6 +345,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         f = pFinal->run();
         BOOST_REQUIRE(orig == f);
         CProg* cTest = econ(pFinal);
+        cTest->uncoverLocals();
         f = cTest->run();
         BOOST_REQUIRE(orig == f);
     }
@@ -340,6 +359,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         f = pFinal->run();
         BOOST_REQUIRE(orig == f);
         CProg* cTest = econ(pFinal);
+        cTest->uncoverLocals();
         f = cTest->run();
         BOOST_REQUIRE(orig == f);
     }
@@ -355,6 +375,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         f = pFinal->run();
         BOOST_REQUIRE(orig == f);
         CProg* cTest = econ(pFinal);
+        cTest->uncoverLocals();
         f = cTest->run();
         BOOST_REQUIRE(orig == f);
         //BOOST_REQUIRE(sFinal == AST);
@@ -368,6 +389,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         pTest = rco(pTest);
         orig = pTest->run();
         CProg* pFinal = econ(pTest);
+        pFinal->uncoverLocals();
         f = pFinal->run();
         BOOST_REQUIRE(orig == f);
     }
@@ -379,6 +401,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         orig = pTest->run();
         //std::cout << pTest->print();
         CProg* pFinal = econ(pTest);
+        pFinal->uncoverLocals();
         f = pFinal->run();
         BOOST_REQUIRE(orig == f);
     }
@@ -391,6 +414,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         pTest = rco(pTest);
         orig = pTest->run();
         CProg* pFinal = econ(pTest);
+        pFinal->uncoverLocals();
         f = pFinal->run();
         BOOST_REQUIRE(orig == f);
     }
@@ -403,6 +427,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         pTest = rco(pTest);
         orig = pTest->run();
         CProg* pFinal = econ(pTest);
+        pFinal->uncoverLocals();
         f = pFinal->run();
         BOOST_REQUIRE(orig == f);
     }
@@ -414,6 +439,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         pTest = rco(pTest);
         orig = pTest->run();
         CProg* pFinal = econ(pTest);
+        pFinal->uncoverLocals();
         f = pFinal->run();
         BOOST_REQUIRE(orig == f);
     }
@@ -485,6 +511,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                     result = opresult;
                 }
                 CProg* cTest = econ( pTest);
+                cTest->uncoverLocals();
                 opresult = cTest->run();
                 if (result !=opresult){
                     //std::cout <<"Intended result: "<< result << " Uniq Result: " << opresult << std::endl;
