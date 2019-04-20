@@ -148,7 +148,10 @@ Program* rco(Program* orig){
     return new Program(e2);
 }
 CProg* econ(Program* orig){
-    return new CProg();
+    CProg * out = new CProg();
+    CTail * t = orig->e_->econTail();
+    out->addTail("main", t);
+    return out;
 }
 std::string genNewVar(std::string type, bool reset){
     

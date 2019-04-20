@@ -20,498 +20,13 @@
 enum opCode { num, add, neg, rRead, ERROR = -1};
 class Expr;
 class Num;
-class CProg;
+class CExp;
 typedef std::unordered_map<std::string, Expr*> Environ;
 typedef std::pair<std::string, int> strCount;
 typedef std::unordered_map<std::string, strCount> envmap;
 typedef std::pair<std::string, Expr*> rcoPair;
 std::string genNewVar(std::string type = "i", bool reset = 0);
-class Expr {
-public:
-    //standard constructors
-    explicit Expr(){}
-    explicit Expr(Expr* n):e1_(n){}
-    explicit Expr(Expr* n1, Expr* n2):e1_(n1), e2_(n2){}
-    //clone function to handle copies
-    auto clone() const { return std::unique_ptr<Expr>(cloneImpl()); };
-    virtual Num* inter(Environ env) = 0;
-    virtual std::string AST() = 0;
-    virtual Expr* optE(Environ env) = 0;
-    virtual bool isPure(Environ env) = 0;
-    virtual bool containVar(std::string name) = 0;
-    virtual Expr* uniquify(envmap* env) = 0;
-    virtual std::vector<rcoPair> rco(envmap env) = 0;
-protected:
-    virtual Expr* cloneImpl() const = 0;
-    std::unique_ptr<Expr> e1_, e2_;
-    opCode op_;
-    static int varCount;
-private:
 
-};
-
-//int class
-class Num : public Expr {
-public:
-    explicit Num(int n) {
-        i_ = n;
-        op_= num;
-    };
-    explicit Num(Num* n) {
-        i_ = n->i_;
-        op_= n->op_;
-    };
-    friend Num* numAdd(Num* const l, Num* const r){
-        Num* out = new Num(0);
-        out->i_ = l->i_ + r->i_;
-        return out;
-    }
-    friend Num* numNeg(Num* const l){
-        Num* i = new Num(-l->i_);
-        return i;
-    }
-    int output(){
-        return i_;
-    }
-    Num* inter(Environ env) { return this; };
-    std::string AST()  {
-        std::string str = std::to_string(i_);
-        return str;
-    }
-    Expr* uniquify(envmap* env){
-        return this;
-    }
-    bool isPure(Environ env) { return true;}
-    bool containVar(std::string name){return false;}
-    Expr* optE(Environ env) { return this;}
-    std::vector<rcoPair> rco(envmap env){
-        std::vector<rcoPair> out;
-        std::string s;
-        out.push_back(rcoPair(s, new Num(i_)));
-        return out;
-    }
-protected:
-    Num* cloneImpl() const override {
-        return new Num(i_);
-    }
-private:
-    void seti(int i){i_=i;};
-    int i_;
-};
-
-class Var:public Expr{
-public:
-    Var(std::string name):name_(name){};
-    Num* inter(Environ env){
-        Expr* container;
-        try{
-            container = env.at(name_);
-        }
-        catch(std::out_of_range &e){
-            std::cerr << "Attemted to read undefined var " << name_ << std::endl;
-            throw std::runtime_error("Undefined var read");
-        }
-        Num* result = container->inter(env);
-        return result;
-    }
-    std::string AST() {
-        return name_;
-    }
-    bool isPure(Environ env){
-        return env[name_]->isPure(env);
-    }
-    bool containVar(std::string name){return name == name_;}
-    Expr* optE(Environ env) {
-        Expr* temp;
-        try{
-            temp = env.at(name_);
-        }
-        catch(std::out_of_range &e){
-            std::cerr << "Attemted to read undefined var " << name_ << std::endl;
-            throw std::runtime_error("Undefined var read");
-        }
-        if( temp->isPure(env)){
-            return temp;
-        }
-        return this;
-    }
-    Expr* uniquify(envmap* env){
-        //update based on envmap
-        std::string s;
-        try{
-        name_ =env->at(name_).first;
-        }catch(std::out_of_range &e){
-            std::cerr<< "attempted to update variable that was not previously found" << std::endl;
-            throw std::runtime_error("Var uniquify failed");
-        }
-        return this;
-    }
-    std::vector<rcoPair> rco(envmap env){
-        std::vector<rcoPair> out;
-        std::string s;
-        out.push_back(rcoPair(s, new Var(env.at(name_).first)));
-        return out;
-    }
-protected:
-    Var* cloneImpl() const override {
-        return new Var(name_);
-    }
-private:
-    std::string name_;
-};
-
-//addition class
-//+ n1 n2 -> int
-class Add : public Expr {
-public:
-    explicit Add(Expr* n1, Expr* n2):Expr(n1, n2) {
-        op_ = add;
-    }
-    Num* inter(Environ env) {
-        Num *i, *j;
-        i = e1_->inter(env);
-        j = e2_->inter(env);
-        i = numAdd(i,j);
-        return i;
-    }
-    std::string AST()  {
-        std::string str("(+");
-        str += e1_->AST();
-        str += " ";
-        str += e2_->AST();
-        str += ")";
-        return str;
-    }
-    bool isPure(Environ env) { return e1_->isPure(env) && e2_->isPure(env); }
-    Expr* optE(Environ env){
-        Expr *e1 =e1_.release(), *e2 = e2_.release();
-        e1_.reset(e1->optE(env));
-        e2_.reset(e2->optE(env));
-        if(isPure(env)){
-            return new Num(inter(env));
-        }
-        else{
-            return this;
-        }
-    }
-    Expr* uniquify(envmap* env){
-        Expr *e1 =e1_.release(), *e2 = e2_.release();
-        e1_.reset(e1->uniquify(env));  e2_.reset(e2->uniquify(env));
-
-        return this;
-    }
-    bool containVar(std::string name){ return e1_->containVar(name) || e2_->containVar(name);}
-    std::vector<rcoPair> rco(envmap env){
-        std::vector<rcoPair> out, temp;
-        std::string s;
-        Expr* t1, *t2;
-        temp = e1_->rco(env);
-        s = temp.back().first;
-        if(s.empty()){
-            t1 = temp.back().second;
-        }else{
-            t1 = new Var(s);
-            out.insert(out.end(), temp.begin(), temp.end());
-        }
-        temp = e2_->rco(env);
-        s = temp.back().first;
-        if(s.empty()){
-            t2 = temp.back().second;
-        }else{
-            t2 = new Var(s);
-            out.insert(out.end(), temp.begin(), temp.end());
-        }
-        out.push_back(rcoPair(genNewVar(), new Add(t1, t2)));
-        return out;
-        
-    }
-protected:
-    Add* cloneImpl() const override {
-        return new Add((e1_->clone().release()), (e2_->clone().release()));
-    };
-private:
-};
-
-//negation class
-class Neg : public Expr {
-public:
-    explicit Neg(Expr* n): Expr(n) {
-        op_ = neg;
-    }
-    Num* inter(Environ env) {
-        Num* i;
-        i = e1_->inter(env);
-        i = numNeg(i);
-        return i;
-    }
-    std::string AST() {
-        std::string str("(-");
-        str += e1_->AST();
-        str += ")";
-        return str;
-    }
-    bool isPure(Environ env) {
-        return e1_->isPure(env);
-    }
-    bool containVar(std::string name){ return e1_->containVar(name);}
-    Expr* optE(Environ env){
-        Expr* e = e1_.release();
-        e1_.reset(e->optE(env));
-        if(isPure(env)){
-            return new Num(inter(env));
-        }
-        else{
-            return this;
-        }
-    };
-    Expr* uniquify(envmap* env){
-        Expr* e = e1_.release();
-        e1_.reset(e->uniquify(env));
-        return this;
-    }
-    std::vector<rcoPair> rco(envmap env){
-        std::vector<rcoPair> out, temp;
-        std::string s;
-        Expr* t1;
-        temp = e1_->rco(env);
-        s = temp.back().first;
-        if(s.empty()){
-            t1 = temp.back().second;
-        }else{
-            t1 = new Var(s);
-            out.insert(out.end(), temp.begin(), temp.end());
-        }
-        out.push_back(rcoPair(genNewVar(), new Neg(t1)));
-        return out;
-    }
-protected:
-    Neg* cloneImpl() const override {
-            return new Neg((e1_->clone().release()));
-    };
-private:
-};
-
-// Read class
-namespace{
-class Read : public Expr {
-public:
-    explicit Read(bool mode = 0):mode_(mode) {op_ = rRead;};
-    Num* inter(Environ env) {
-        int i;
-        if (mode_) {
-            i = num_;
-            --num_;
-        }
-        else {
-            std::cin >> i;
-        }
-        return new Num(i);
-    }
-    std::string AST() {
-        std::string str("(Read)");
-    //	std::cout << str << std::endl;
-        return str;
-    }
-    Expr* uniquify(envmap* env){
-        return this;
-    }
-    void reset(){ num_= 42;}
-    bool isPure(Environ env) { return false; }
-    Expr* optE(Environ env) { return this; }
-    bool containVar(std::string name){return false;}
-    std::vector<rcoPair> rco(envmap env){
-        std::vector<rcoPair> out;
-        out.push_back(rcoPair(genNewVar(), new Read(mode_)));
-        return out;
-    }
-protected:
-    Read* cloneImpl() const override { return new Read(mode_);};
-private:
-    bool mode_;
-    static int num_;
-};
-int Read::num_ = 42;
-}
-
-class Let: public Expr{
-public:
-    Let(std::string var, Expr* exp, Expr* body): Expr(exp, body), var_(var){}
-    Num* inter(Environ env){
-        env[var_] = e1_->inter(env);
-        Num* out;
-        out = e2_->inter(env);
-        return out;
-    }
-    std::string AST()  {
-        std::string str("(Let ");
-        str += var_;
-        str += " = ";
-        str += e1_->AST();
-        str += "){\n";
-        str += e2_->AST();
-        str += "}\n";
-        return str;
-    }
-    bool isPure(Environ env){
-        env[var_] = e1_->clone().release();
-        //e1 does not need to be evaluated here, as it may not be referenced
-        //its evaluation will occur at first var instance
-        return e2_->isPure(env);
-    }
-    bool containVar(std::string name){ return e1_->containVar(name) || e2_->containVar(name);}
-    Expr* optE(Environ env){
-        Expr* e1 = e1_.release();
-        Expr* e2 = e2_.release();
-        e1 = e1->optE(env);
-        e1_.reset(e1);
-        env[var_] = e1;
-        e2 = e2->optE(env);
-        e2_.reset(e2);
-        if(isPure(env)){
-            return new Num(inter(env));
-        }
-        if(containVar(var_)){
-            return this;
-        }
-        else{
-            return e2;
-        }
-    }
-    Expr* uniquify(envmap* env){
-        std::string oldName = var_; std::string oldMap = var_;
-        Expr* e1 = e1_.release();
-        e1 = e1->uniquify(env);
-        e1_.reset(e1);
-        if(env->count(var_) == 0){
-            std::string newString = var_;
-            newString +="1"; 
-            strCount newCount(newString, 1);
-            env->insert(std::pair<std::string,strCount>(var_, newCount));
-            oldMap = newString;
-        }else{
-            try{
-                std::string newString = var_;
-                env->at(var_).second++;
-                newString +=std::to_string(env->at(var_).second);
-                oldMap = env->at(var_).first;
-                env->at(var_).first = newString;
-            }catch(std::out_of_range &e){
-                std::cerr<< "updating var in let failed" << std::endl;
-                throw std::runtime_error("Let uniquify failed");
-            }
-        }
-        var_ =env->at(var_).first;
-        Expr* e2 = e2_.release();
-        e2 = e2->uniquify(env);
-        e2_.reset(e2);
-        env->at(oldName).first = oldMap;
-        return this;
-    }
-    std::vector<rcoPair> rco(envmap env){
-        std::vector<rcoPair> out, temp;
-        std::string s;
-        strCount newCount;
-        //Expr* t1;
-        temp = e1_->rco(env);
-        s = temp.back().first;
-        if(s.empty()){
-            s = genNewVar();
-            newCount.first = s;
-            temp.back().first = s;
-
-        }else{
-            newCount.first = s;
-        }
-        env.insert(std::pair<std::string, strCount>(var_, newCount));
-
-        out.insert(out.end(), temp.begin(), temp.end());
-        temp = e2_->rco(env);
-        s = temp.back().first;
-        if(s.empty() == false){
-            out.insert(out.end(), temp.begin(), temp.end());
-        }
-        return out;
-    }
-protected:
-    Let* cloneImpl() const override {
-        return new Let(var_,(e1_->clone().release()), (e2_->clone().release()));
-    };
-private:
-    std::string var_;
-};
-
-
-
-//temp Info class
-class Info {
-public:
-    explicit Info(){};
-};
-
-//program
-class Program {
-public:
-    //constructors and = operators
-    explicit Program(){ 
-        i_ = new Info();
-    };
-    explicit Program(Info* i, Expr* e):e_(e){
-        i_ = new Info();
-    };
-    explicit Program(Expr* e):e_(e) {
-        i_ = new Info();
-    };
-    ~Program() = default;
-    explicit Program(const Program& orig):e_(orig.e_->clone()), i_(orig.i_){}
-    Program( Program&& orig) = default;
-    Program& operator= (const Program& orig){
-        e_ = orig.e_->clone();
-        return *this;
-    }
-    Program& operator= (Program&& orig) = default;
-    int run() {
-        Num* out;
-        Environ env;
-        try{
-            out = e_->inter(env);
-        }
-        catch(std::runtime_error &e){
-            std::cerr << "run() failed, dumping AST" << std::endl;
-            std::cerr << print() << std::endl;
-            throw e;
-        }
-        Read* temp = new Read();
-        temp->reset();
-        return out->output();
-    }
-    std::string print() {
-        std::string out;
-            out = e_->AST();	
-        return out;
-    }
-    inline Expr* getExpr() {
-        if(e_){
-        Expr* e = (e_->clone()).release();
-        return e;
-        }
-        else{
-            return NULL;
-        }
-    }
-    friend Program* uniquify(Program* orig);
-    friend Program* rco(Program* orig);
-    inline Info* getInfo() { return i_; };
-    inline void setExpr(Expr* n) { e_.reset(n); };
-    inline void setInfo(Info* n) { i_ = n; };
-    friend Program* opt( Program* orig);
-    friend CProg* econ(Program* orig);
-    private:
-    std::unique_ptr<Expr> e_;
-    Info* i_;
-};
-//functions
-Program* pow(int x, int b = 2);
-Program* randProg(int depth);
 namespace{
 //X definitions
 typedef std::unordered_map<std::string, int> varList;
@@ -1022,7 +537,6 @@ std::vector<std::string> Reg::regNames = {
 
 //C Definitions
 
-class CExp;
 typedef std::unordered_map<std::string, CExp*> CEnv;
 
 class CInfo{
@@ -1130,7 +644,7 @@ public:
         }
         else return *i_;
     }
-    
+    void reset(){ n_= 42;}
 private:
     bool auto_;
     static int n_;
@@ -1245,10 +759,550 @@ public:
             throw std::runtime_error("Main Not Defined");
         }
         i = t->interp(e);
+        CRead* temp = new CRead();
+        temp->reset();
         return i;
     }
 private:
    CTailTable instr_;
    CInfo i_;
 };
+
+class Expr {
+public:
+    //standard constructors
+    explicit Expr(){}
+    explicit Expr(Expr* n):e1_(n){}
+    explicit Expr(Expr* n1, Expr* n2):e1_(n1), e2_(n2){}
+    //clone function to handle copies
+    auto clone() const { return std::unique_ptr<Expr>(cloneImpl()); };
+    virtual Num* inter(Environ env) = 0;
+    virtual std::string AST() = 0;
+    virtual Expr* optE(Environ env) = 0;
+    virtual bool isPure(Environ env) = 0;
+    virtual bool containVar(std::string name) = 0;
+    virtual Expr* uniquify(envmap* env) = 0;
+    virtual std::vector<rcoPair> rco(envmap env) = 0;
+    virtual CTail* econTail() = 0;
+    virtual CExp* econAssign() = 0;
+protected:
+    virtual Expr* cloneImpl() const = 0;
+    std::unique_ptr<Expr> e1_, e2_;
+    opCode op_;
+    static int varCount;
+private:
+
+};
+
+//int class
+class Num : public Expr {
+public:
+    explicit Num(int n) {
+        i_ = n;
+        op_= num;
+    };
+    explicit Num(Num* n) {
+        i_ = n->i_;
+        op_= n->op_;
+    };
+    friend Num* numAdd(Num* const l, Num* const r){
+        Num* out = new Num(0);
+        out->i_ = l->i_ + r->i_;
+        return out;
+    }
+    friend Num* numNeg(Num* const l){
+        Num* i = new Num(-l->i_);
+        return i;
+    }
+    int output(){
+        return i_;
+    }
+    Num* inter(Environ env) { return this; };
+    std::string AST()  {
+        std::string str = std::to_string(i_);
+        return str;
+    }
+    Expr* uniquify(envmap* env){
+        return this;
+    }
+    bool isPure(Environ env) { return true;}
+    bool containVar(std::string name){return false;}
+    Expr* optE(Environ env) { return this;}
+    std::vector<rcoPair> rco(envmap env){
+        std::vector<rcoPair> out;
+        std::string s;
+        out.push_back(rcoPair(s, new Num(i_)));
+        return out;
+    }
+    CTail* econTail(){
+        return new CRet(this->econAssign());
+    }
+    CArg* econAssign() override{
+        return new CNum(i_);
+    }
+protected:
+    Num* cloneImpl() const override {
+        return new Num(i_);
+    }
+private:
+    void seti(int i){i_=i;};
+    int i_;
+};
+
+class Var:public Expr{
+public:
+    Var(std::string name):name_(name){};
+    Num* inter(Environ env){
+        Expr* container;
+        try{
+            container = env.at(name_);
+        }
+        catch(std::out_of_range &e){
+            std::cerr << "Attemted to read undefined var " << name_ << std::endl;
+            throw std::runtime_error("Undefined var read");
+        }
+        Num* result = container->inter(env);
+        return result;
+    }
+    std::string AST() {
+        return name_;
+    }
+    bool isPure(Environ env){
+        return env[name_]->isPure(env);
+    }
+    bool containVar(std::string name){return name == name_;}
+    Expr* optE(Environ env) {
+        Expr* temp;
+        try{
+            temp = env.at(name_);
+        }
+        catch(std::out_of_range &e){
+            std::cerr << "Attemted to read undefined var " << name_ << std::endl;
+            throw std::runtime_error("Undefined var read");
+        }
+        if( temp->isPure(env)){
+            return temp;
+        }
+        return this;
+    }
+    Expr* uniquify(envmap* env){
+        //update based on envmap
+        std::string s;
+        try{
+        name_ =env->at(name_).first;
+        }catch(std::out_of_range &e){
+            std::cerr<< "attempted to update variable that was not previously found" << std::endl;
+            throw std::runtime_error("Var uniquify failed");
+        }
+        return this;
+    }
+    std::vector<rcoPair> rco(envmap env){
+        std::vector<rcoPair> out;
+        std::string s;
+        out.push_back(rcoPair(s, new Var(env.at(name_).first)));
+        return out;
+    }
+    CTail* econTail(){
+        return new CRet(this->econAssign());
+    }
+    CArg* econAssign() override{
+        return new CVar(name_);
+    }
+protected:
+    Var* cloneImpl() const override {
+        return new Var(name_);
+    }
+private:
+    std::string name_;
+};
+
+//addition class
+//+ n1 n2 -> int
+class Add : public Expr {
+public:
+    explicit Add(Expr* n1, Expr* n2):Expr(n1, n2) {
+        op_ = add;
+    }
+    Num* inter(Environ env) {
+        Num *i, *j;
+        i = e1_->inter(env);
+        j = e2_->inter(env);
+        i = numAdd(i,j);
+        return i;
+    }
+    std::string AST()  {
+        std::string str("(+");
+        str += e1_->AST();
+        str += " ";
+        str += e2_->AST();
+        str += ")";
+        return str;
+    }
+    bool isPure(Environ env) { return e1_->isPure(env) && e2_->isPure(env); }
+    Expr* optE(Environ env){
+        Expr *e1 =e1_.release(), *e2 = e2_.release();
+        e1_.reset(e1->optE(env));
+        e2_.reset(e2->optE(env));
+        if(isPure(env)){
+            return new Num(inter(env));
+        }
+        else{
+            return this;
+        }
+    }
+    Expr* uniquify(envmap* env){
+        Expr *e1 =e1_.release(), *e2 = e2_.release();
+        e1_.reset(e1->uniquify(env));  e2_.reset(e2->uniquify(env));
+
+        return this;
+    }
+    bool containVar(std::string name){ return e1_->containVar(name) || e2_->containVar(name);}
+    std::vector<rcoPair> rco(envmap env){
+        std::vector<rcoPair> out, temp;
+        std::string s;
+        Expr* t1, *t2;
+        temp = e1_->rco(env);
+        s = temp.back().first;
+        if(s.empty()){
+            t1 = temp.back().second;
+        }else{
+            t1 = new Var(s);
+            out.insert(out.end(), temp.begin(), temp.end());
+        }
+        temp = e2_->rco(env);
+        s = temp.back().first;
+        if(s.empty()){
+            t2 = temp.back().second;
+        }else{
+            t2 = new Var(s);
+            out.insert(out.end(), temp.begin(), temp.end());
+        }
+        out.push_back(rcoPair(genNewVar(), new Add(t1, t2)));
+        return out;
+    }
+    CTail* econTail(){
+        throw std::runtime_error("RCO Pass Failed, Add not contained in Let");
+        return NULL;
+    }
+    CExp* econAssign(){
+        CArg* c1, *c2;
+        c1 = e1_->econAssign();
+        c2 = e2_->econAssign();
+        return new CAdd(c1, c2);
+    }
+protected:
+    Add* cloneImpl() const override {
+        return new Add((e1_->clone().release()), (e2_->clone().release()));
+    };
+private:
+};
+
+//negation class
+class Neg : public Expr {
+public:
+    explicit Neg(Expr* n): Expr(n) {
+        op_ = neg;
+    }
+    Num* inter(Environ env) {
+        Num* i;
+        i = e1_->inter(env);
+        i = numNeg(i);
+        return i;
+    }
+    std::string AST() {
+        std::string str("(-");
+        str += e1_->AST();
+        str += ")";
+        return str;
+    }
+    bool isPure(Environ env) {
+        return e1_->isPure(env);
+    }
+    bool containVar(std::string name){ return e1_->containVar(name);}
+    Expr* optE(Environ env){
+        Expr* e = e1_.release();
+        e1_.reset(e->optE(env));
+        if(isPure(env)){
+            return new Num(inter(env));
+        }
+        else{
+            return this;
+        }
+    };
+    Expr* uniquify(envmap* env){
+        Expr* e = e1_.release();
+        e1_.reset(e->uniquify(env));
+        return this;
+    }
+    std::vector<rcoPair> rco(envmap env){
+        std::vector<rcoPair> out, temp;
+        std::string s;
+        Expr* t1;
+        temp = e1_->rco(env);
+        s = temp.back().first;
+        if(s.empty()){
+            t1 = temp.back().second;
+        }else{
+            t1 = new Var(s);
+            out.insert(out.end(), temp.begin(), temp.end());
+        }
+        out.push_back(rcoPair(genNewVar(), new Neg(t1)));
+        return out;
+    }
+    CTail* econTail(){
+        throw std::runtime_error("RCO Pass Failed, Neg not contained in Let");
+        return NULL;
+    }
+    CExp* econAssign(){
+        CArg* c1;
+        c1 = e1_->econAssign();
+        return new CNeg(c1);
+    }
+protected:
+    Neg* cloneImpl() const override {
+            return new Neg((e1_->clone().release()));
+    };
+private:
+};
+
+// Read class
+namespace{
+class Read : public Expr {
+public:
+    explicit Read(bool mode = 0):mode_(mode) {op_ = rRead;};
+    Num* inter(Environ env) {
+        int i;
+        if (mode_) {
+            i = num_;
+            --num_;
+        }
+        else {
+            std::cin >> i;
+        }
+        return new Num(i);
+    }
+    std::string AST() {
+        std::string str("(Read)");
+    //	std::cout << str << std::endl;
+        return str;
+    }
+    Expr* uniquify(envmap* env){
+        return this;
+    }
+    void reset(){ num_= 42;}
+    bool isPure(Environ env) { return false; }
+    Expr* optE(Environ env) { return this; }
+    bool containVar(std::string name){return false;}
+    std::vector<rcoPair> rco(envmap env){
+        std::vector<rcoPair> out;
+        out.push_back(rcoPair(genNewVar(), new Read(mode_)));
+        return out;
+    }
+    CTail* econTail(){
+        throw std::runtime_error("RCO Pass Failed, Read not contained in Let");
+        return NULL;
+    }
+    CExp* econAssign(){
+        return new CRead(mode_);
+    }
+protected:
+    Read* cloneImpl() const override { return new Read(mode_);};
+private:
+    bool mode_;
+    static int num_;
+};
+int Read::num_ = 42;
+}
+
+class Let: public Expr{
+public:
+    Let(std::string var, Expr* exp, Expr* body): Expr(exp, body), var_(var){}
+    Num* inter(Environ env){
+        env[var_] = e1_->inter(env);
+        Num* out;
+        out = e2_->inter(env);
+        return out;
+    }
+    std::string AST()  {
+        std::string str("(Let ");
+        str += var_;
+        str += " = ";
+        str += e1_->AST();
+        str += "){\n";
+        str += e2_->AST();
+        str += "}\n";
+        return str;
+    }
+    bool isPure(Environ env){
+        env[var_] = e1_->clone().release();
+        //e1 does not need to be evaluated here, as it may not be referenced
+        //its evaluation will occur at first var instance
+        return e2_->isPure(env);
+    }
+    bool containVar(std::string name){ return e1_->containVar(name) || e2_->containVar(name);}
+    Expr* optE(Environ env){
+        Expr* e1 = e1_.release();
+        Expr* e2 = e2_.release();
+        e1 = e1->optE(env);
+        e1_.reset(e1);
+        env[var_] = e1;
+        e2 = e2->optE(env);
+        e2_.reset(e2);
+        if(isPure(env)){
+            return new Num(inter(env));
+        }
+        if(containVar(var_)){
+            return this;
+        }
+        else{
+            return e2;
+        }
+    }
+    Expr* uniquify(envmap* env){
+        std::string oldName = var_; std::string oldMap = var_;
+        Expr* e1 = e1_.release();
+        e1 = e1->uniquify(env);
+        e1_.reset(e1);
+        if(env->count(var_) == 0){
+            std::string newString = var_;
+            newString +="1"; 
+            strCount newCount(newString, 1);
+            env->insert(std::pair<std::string,strCount>(var_, newCount));
+            oldMap = newString;
+        }else{
+            try{
+                std::string newString = var_;
+                env->at(var_).second++;
+                newString +=std::to_string(env->at(var_).second);
+                oldMap = env->at(var_).first;
+                env->at(var_).first = newString;
+            }catch(std::out_of_range &e){
+                std::cerr<< "updating var in let failed" << std::endl;
+                throw std::runtime_error("Let uniquify failed");
+            }
+        }
+        var_ =env->at(var_).first;
+        Expr* e2 = e2_.release();
+        e2 = e2->uniquify(env);
+        e2_.reset(e2);
+        env->at(oldName).first = oldMap;
+        return this;
+    }
+    std::vector<rcoPair> rco(envmap env){
+        std::vector<rcoPair> out, temp;
+        std::string s;
+        strCount newCount;
+        //Expr* t1;
+        temp = e1_->rco(env);
+        s = temp.back().first;
+        if(s.empty()){
+            s = genNewVar();
+            newCount.first = s;
+            temp.back().first = s;
+
+        }else{
+            newCount.first = s;
+        }
+        env.insert(std::pair<std::string, strCount>(var_, newCount));
+
+        out.insert(out.end(), temp.begin(), temp.end());
+        temp = e2_->rco(env);
+        s = temp.back().first;
+        if(s.empty() == false){
+            out.insert(out.end(), temp.begin(), temp.end());
+        }
+        return out;
+    }
+    CTail* econTail(){
+        CExp* assign = e1_->econAssign();
+        CTail* body = e2_->econTail();
+        return new CSeq(new CStat(var_, assign), body);
+    }
+    CExp* econAssign(){
+        throw std::runtime_error("RCO Pass Failed, Let used in Assignment");
+        return NULL;
+    }
+protected:
+    Let* cloneImpl() const override {
+        return new Let(var_,(e1_->clone().release()), (e2_->clone().release()));
+    };
+private:
+    std::string var_;
+};
+
+
+
+//temp Info class
+class Info {
+public:
+    explicit Info(){};
+};
+
+//program
+class Program {
+public:
+    //constructors and = operators
+    explicit Program(){ 
+        i_ = new Info();
+    };
+    explicit Program(Info* i, Expr* e):e_(e){
+        i_ = new Info();
+    };
+    explicit Program(Expr* e):e_(e) {
+        i_ = new Info();
+    };
+    ~Program() = default;
+    explicit Program(const Program& orig):e_(orig.e_->clone()), i_(orig.i_){}
+    Program( Program&& orig) = default;
+    Program& operator= (const Program& orig){
+        e_ = orig.e_->clone();
+        return *this;
+    }
+    Program& operator= (Program&& orig) = default;
+    int run() {
+        Num* out;
+        Environ env;
+        try{
+            out = e_->inter(env);
+        }
+        catch(std::runtime_error &e){
+            std::cerr << "run() failed, dumping AST" << std::endl;
+            std::cerr << print() << std::endl;
+            throw e;
+        }
+        Read* temp = new Read();
+        temp->reset();
+        return out->output();
+    }
+    std::string print() {
+        std::string out;
+            out = e_->AST();	
+        return out;
+    }
+    inline Expr* getExpr() {
+        if(e_){
+        Expr* e = (e_->clone()).release();
+        return e;
+        }
+        else{
+            return NULL;
+        }
+    }
+    friend Program* uniquify(Program* orig);
+    friend Program* rco(Program* orig);
+    inline Info* getInfo() { return i_; };
+    inline void setExpr(Expr* n) { e_.reset(n); };
+    inline void setInfo(Info* n) { i_ = n; };
+    friend Program* opt( Program* orig);
+    friend CProg* econ(Program* orig);
+    private:
+    std::unique_ptr<Expr> e_;
+    Info* i_;
+};
+//functions
+Program* pow(int x, int b = 2);
+Program* randProg(int depth);
+
+
+
 #endif
