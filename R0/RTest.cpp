@@ -725,25 +725,33 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                           new CSeq(new CStat("f", new CNeg(new CVar("x"))),
                           new CRet(new CVar("f"))
                           ))));
-            CProg* pTest = new CProg(lTest);
+            CProg* cTest = new CProg(lTest);
             std::vector<std::string> ulOut = {"r","y", "x", "f"}, ulTest;
-            pTest->uncoverLocals();
-            CInfo locals = pTest->getInfo();
+            cTest->uncoverLocals();
+            CInfo locals = cTest->getInfo();
             ulTest = locals.vars();
             BOOST_REQUIRE(ulTest.empty() == false);
             for(auto it : ulOut){
                 if(std::find(ulTest.begin(), ulTest.end(), it) != ulTest.end()){
                     std::string s = it;
+                    std::cout << s << std::endl;
                     ulTest.erase(std::remove(ulTest.begin(), ulTest.end(), s), ulTest.end());
                 }
             }
             BOOST_REQUIRE(ulTest.empty());
-            int ret = pTest->run();
+            int ret = cTest->run();
             //std::cout << ret << std::endl;
             BOOST_REQUIRE(ret == -101);
-            XProgram* xTest = selInsr(cTest);
-            ret = xTest->run();
+            //std::cout << cTest->AST() << std::endl;
+            xProgram* xTest = cTest->selInsr();
+            std::cout << "selInstr complete" << std::endl;
+            std::vector<std::string> out = xTest->emit(1);
+            for(auto it : out){
+                std::cout << it;
+            }
+            //ret = xTest->run();
             BOOST_REQUIRE(ret == -101);
+            std::cout << "CTEST1 Complete" << std::endl;
         }
         //Test 3  manually compiled
         //r1 = 42, r2 = 41
@@ -755,10 +763,10 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                           new CSeq(new CStat("f", new CAdd(new CVar("x"), new CVar("y"))),
                           new CRet(new CVar("f"))
                           )))));
-            CProg* pTest = new CProg(lTest);
+            CProg* cTest = new CProg(lTest);
             std::vector<std::string> ulOut = {"r1","y","r2", "x", "f"}, ulTest;
-            pTest->uncoverLocals();
-            CInfo locals = pTest->getInfo();
+            cTest->uncoverLocals();
+            CInfo locals = cTest->getInfo();
             ulTest = locals.vars();
             BOOST_REQUIRE(ulTest.empty() == false);
             for(auto it : ulOut){
@@ -768,12 +776,14 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                 }
             }
             BOOST_REQUIRE(ulTest.empty());
-            int ret = pTest->run();
+            int ret = cTest->run();
             //std::cout << ret << std::endl;
             BOOST_REQUIRE(ret == 103);
-            XProgram* xTest = selInsr(cTest);
-            ret = xTest->run();
+            xProgram* xTest = cTest->selInsr();
+            //ret = xTest->run();
+            std::vector<std::string> out = xTest->emit(1);
             BOOST_REQUIRE(ret == 103);
+            std::cout << "CTEST2 Complete" << std::endl;
         }
         //BASELET Manually compiled
         BOOST_AUTO_TEST_CASE(CTEST3){
@@ -781,10 +791,10 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                           new CSeq(new CStat("f", new CAdd(new CVar("x"), new CVar("x"))),
                           new CRet(new CVar("f"))
                           ));
-            CProg* pTest = new CProg(lTest);
+            CProg* cTest = new CProg(lTest);
             std::vector<std::string> ulOut = { "x", "f"}, ulTest;
-            pTest->uncoverLocals();
-            CInfo locals = pTest->getInfo();
+            cTest->uncoverLocals();
+            CInfo locals = cTest->getInfo();
             ulTest = locals.vars();
             BOOST_REQUIRE(ulTest.empty() == false);
             for(auto it : ulOut){
@@ -794,21 +804,26 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                 }
             }
             BOOST_REQUIRE(ulTest.empty());
-            int ret = pTest->run();
+            int ret = cTest->run();
             BOOST_REQUIRE(ret == 16);
-            XProgram* xTest = selInsr(cTest);
+            xProgram* xTest = cTest->selInsr();
+            std::vector<std::string> out = xTest->emit(1);
+            for(auto it : out){
+                std::cout << it;
+            }
             ret = xTest->run();
             BOOST_REQUIRE(ret == 16);
+            std::cout << "CTEST3 Complete" << std::endl;
         }
         //EXPHAND manually compiled
         BOOST_AUTO_TEST_CASE(CTEST4){
             CSeq* lTest = new CSeq(new CStat("f", new CAdd(new CNum(32), new CNum(64))),
                                    new CRet(new CVar("f"))
                                   );
-            CProg* pTest = new CProg(lTest);
+            CProg* cTest = new CProg(lTest);
             std::vector<std::string> ulOut = {"f"}, ulTest;
-            pTest->uncoverLocals();
-            CInfo locals = pTest->getInfo();
+            cTest->uncoverLocals();
+            CInfo locals = cTest->getInfo();
             ulTest = locals.vars();
             BOOST_REQUIRE(ulTest.empty() == false);
             for(auto it : ulOut){
@@ -818,11 +833,12 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                 }
             }
             BOOST_REQUIRE(ulTest.empty());
-            int ret = pTest->run();
+            int ret = cTest->run();
             BOOST_REQUIRE(ret == 96);
-            XProgram* xTest = selInsr(cTest);
+            xProgram* xTest = cTest->selInsr();
             ret = xTest->run();
             BOOST_REQUIRE(ret == 96);
+            std::cout << "CTEST4 Complete" << std::endl;
         }
         //multiple read Test
         // x = 42
@@ -831,10 +847,10 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                           new CSeq(new CStat("f", new CAdd(new CVar("x"), new CVar("x"))),
                           new CRet(new CVar("f"))
                           ));
-            CProg* pTest = new CProg(lTest);
+            CProg* cTest = new CProg(lTest);
             std::vector<std::string> ulOut = {"x", "f"}, ulTest;
-            pTest->uncoverLocals();
-            CInfo locals = pTest->getInfo();
+            cTest->uncoverLocals();
+            CInfo locals = cTest->getInfo();
             ulTest = locals.vars();
             BOOST_REQUIRE(ulTest.empty() == false);
             for(auto it : ulOut){
@@ -844,12 +860,13 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                 }
             }
             BOOST_REQUIRE(ulTest.empty());
-            int ret = pTest->run();
+            int ret = cTest->run();
             //std::cout << ret << std::endl;
             BOOST_REQUIRE(ret == 84);
-            XProgram* xTest = selInsr(cTest);
-            ret = xTest->run();
+            xProgram* xTest = cTest->selInsr();
+            //ret = xTest->run();
             BOOST_REQUIRE(ret == 84);
+            std::cout << "CTEST5 Complete" << std::endl;
         }
         //(+52 (-10))
         BOOST_AUTO_TEST_CASE(CTEST6){
@@ -857,10 +874,10 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                           new CSeq(new CStat("f", new CAdd(new CVar("x"), new CNum(52))),
                           new CRet(new CVar("f"))
                           ));
-            CProg* pTest = new CProg(lTest);
+            CProg* cTest = new CProg(lTest);
             std::vector<std::string> ulOut = {"x", "f"}, ulTest;
-            pTest->uncoverLocals();
-            CInfo locals = pTest->getInfo();
+            cTest->uncoverLocals();
+            CInfo locals = cTest->getInfo();
             ulTest = locals.vars();
             BOOST_REQUIRE(ulTest.empty() == false);
             for(auto it : ulOut){
@@ -870,11 +887,40 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                 }
             }
             BOOST_REQUIRE(ulTest.empty());
-            int ret = pTest->run();
+            int ret = cTest->run();
             BOOST_REQUIRE(ret == 42);
-            XProgram* xTest = selInsr(cTest);
+            xProgram* xTest = cTest->selInsr();
             ret = xTest->run();
             BOOST_REQUIRE(ret == 42);
+            std::cout << "CTEST6 Complete" << std::endl;
         }
-
+        BOOST_AUTO_TEST_CASE(SITEST1){
+            CSeq* lTest = new CSeq(new CStat("x", new CAdd(new CNum(10), new CVar("x"))), new CRet(new CVar("x")));
+            CProg* cTest = new CProg(lTest);
+            int result, ret;
+            result = cTest->run();
+            xProgram* xTest = cTest->selInsr();
+            ret = xTest->run();
+            BOOST_REQUIRE(ret == result);
+            std::string AST(".globl main\nmain:\naddq 10 &x\nmovq &x %rax\njmp END");
+            std::vector<std::string> out;
+            out = xTest->emit(1);
+            
+            BOOST_REQUIRE(out[0] == AST);
+            std::cout << "SITEST1 Complete" << std::endl;
+        }
+        BOOST_AUTO_TEST_CASE(SITEST2){
+            CSeq* lTest = new CSeq(new CStat("x", new CRead(1)), new CRet(new CVar("x")));
+            CProg* cTest = new CProg(lTest);
+            int result, ret;
+            result = cTest->run();
+            xProgram* xTest = cTest->selInsr();
+            //ret = xTest->run();
+            BOOST_REQUIRE(ret == result);
+            std::string AST(".globl main\nmain:\ncallq read_int\nmovq %rax &x\nmovq &x %rax\njmp END");
+            std::vector<std::string> out;
+            out = xTest->emit(1);
+            BOOST_REQUIRE(out[0] == AST);
+            std::cout << "SITEST2 Complete" << std::endl;
+        }
 BOOST_AUTO_TEST_SUITE_END()

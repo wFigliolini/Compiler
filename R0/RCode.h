@@ -48,7 +48,12 @@ public:
         stack_[ad/8] = val;
     }
     void setVar(std::string s, int val){
-        v_[s] = val;
+        try{
+            v_.at(s) = val;
+        } catch(std::out_of_range &e){
+            std::cerr <<"Attempted Write to Undefined Var " << s << std::endl;
+            throw std::runtime_error("undefined Var Write");
+        }
     }
     int getReg(int reg){
         if( reg < 0 || reg > 15) throw std::invalid_argument("Register must be in range 0->15");
@@ -113,13 +118,14 @@ public:
         return label_;
     }
     void interp(){
-        std::vector<std::string> sys_ = {"read", "print"};
+        std::vector<std::string> sys_ = {"read_int", "print_int"};
         auto it = std::find(std::begin(sys_), std::end(sys_), label_);
         int index, i;
         index = std::distance(sys_.begin(), it);
         switch(index){
                 //read
             case 0:
+                //std::cout <<"input an integer" << std::endl;
                 std::cin >> i;
                 i_->setReg(0,i);
                 break;
@@ -448,7 +454,11 @@ private:
 typedef std::unordered_map<std::string, Block*> blkList; 
 //Program definition
 class xProgram: public X{
-public:
+    public:
+    xProgram(){
+        i_ = std::make_shared<xInfo>();
+        init();
+    }
     xProgram(Block* blk){
         i_ = std::make_shared<xInfo>();
         blks_["main"] = blk;
@@ -459,9 +469,9 @@ public:
     }
     std::vector<std::string> emit(bool vars){
         std::vector<std::string> output;
-        output.push_back(".globl main");
         for(auto [ name, block] : blks_){
             std::vector<std::string> blockOut;
+            if(name == "main") blockOut.push_back(".globl main");
             std::string outName(name);
             outName+=":\n";
             output.push_back(outName);
@@ -553,13 +563,19 @@ class CExp{
 public:
     virtual std::string AST() = 0;
     virtual int interp(CEnv* e) = 0;
+    virtual blk SIExp(std::string dest) = 0;
 private:
     
 };
 
 class CArg : public CExp{
 public:
-    
+    virtual Arg* SIArg() = 0;
+    blk SIExp(std::string dest){
+        blk out;
+        out.push_back(new Movq(this->SIArg(), new Ref(dest)));
+        return out;
+    }
 private:
     
 };
@@ -572,6 +588,10 @@ public:
     int interp(CEnv* e){
         return i_;
     }
+    Arg* SIArg(){
+        return new Const(i_);
+    }
+
 private:
     int i_;
 };
@@ -595,6 +615,9 @@ public:
         }
         return out->interp(e);
     }
+    Arg* SIArg(){
+            return new Ref(n_);
+    }
 private:
     std::string n_;
 };
@@ -612,6 +635,22 @@ public:
     }
     int interp(CEnv* e){
         return ar_->interp(e) + al_->interp(e);
+    }
+    blk SIExp(std::string dest){
+        blk out;
+        Ref* d = new Ref(dest);
+        Arg* ar = ar_->SIArg(), *al = al_->SIArg();
+        std::string tr = ar_->AST(), tl = al_->AST();
+        if(tl != dest || tr != dest){
+            out.push_back(new Movq(ar, d));
+        }
+        if(tl == dest){
+            out.push_back(new Addq(ar, d));
+        }
+        else{
+            out.push_back(new Addq(al, d));
+        }
+        return out;
     }
 private:
     CArg* ar_, *al_;
@@ -641,6 +680,12 @@ public:
         else return *i_;
     }
     void reset(){ n_= 42;}
+    blk SIExp(std::string dest){
+        blk out;
+        out.push_back(new Callq(new Label("read_int")));
+        out.push_back(new Movq(new Reg(0), new Ref(dest)));
+        return out;
+    }
 private:
     bool auto_;
     static int n_;
@@ -661,6 +706,14 @@ public:
     int interp(CEnv* e){
         return -a_->interp(e);
     }
+    blk SIExp(std::string dest){
+        blk out;
+        Arg* a = a_->SIArg();
+        Ref* r = new Ref(dest);
+        if(a_->AST() != dest) out.push_back(new Movq(a, r));
+        out.push_back(new Negq(r));
+        return out;
+    }
 private:
     CArg* a_;
 };
@@ -680,6 +733,10 @@ public:
         (*e)[name_] = e_;
     }
     std::string getVar(){ return name_;}
+    blk SIStat(){
+        blk out = e_->SIExp(name_);
+        return out;
+    }
 private:
     std::string name_;
     CExp* e_;
@@ -689,6 +746,7 @@ public:
     virtual std::string AST() = 0;
     virtual int interp(CEnv* e) = 0;
     virtual std::vector<std::string> getVars() = 0;
+    virtual blk SITail() = 0;
 };
 class CRet: public CTail{
 public:
@@ -706,6 +764,15 @@ public:
     std::vector<std::string> getVars(){
         std::vector<std::string> v;
         return v;
+    }
+    blk SITail(){
+        blk out;
+        Arg* temp = ret_->SIArg();
+        out.push_back(new Movq(temp, new Reg(0)));
+        out.push_back(new Retq());
+        //will uncomment when adding header and tail
+        //out.push_back(new Jmp(new Label("END")));
+        return out;
     }
 private:
     CArg* ret_;
@@ -731,6 +798,12 @@ public:
         v = tail_->getVars();
         v.push_back(stmt_->getVar());
         return v;
+    }
+    blk SITail(){
+        //std::cout << "entering tail" << std::endl;
+        blk out = stmt_->SIStat(), temp = tail_->SITail();
+        out.insert(out.end(), temp.begin(), temp.end());
+        return out;
     }
 private:
     CStat* stmt_;
@@ -788,7 +861,19 @@ public:
         i_.setVars(temp);
     }
     CInfo getInfo(){ return i_;}
-    friend XProgram* selInsr(CProg* orig);
+    xProgram* selInsr(){
+        xProgram* out = new xProgram();
+        for(auto it = instr_.begin(); it != instr_.end(); ++it){
+            //std::cout << "getting Block " << it->first << std::endl;
+            Block* bl = new Block(it->second->SITail());
+            out->addBlock(it->first, bl);
+        }
+        //initialize vars
+        for(auto it : i_.vars()){
+            out->declareVar(it, 0);
+        }
+        return out;
+    }
 private:
    CTailTable instr_;
    CInfo i_;
