@@ -27,6 +27,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         cTest->uncoverLocals();
         f = cTest->run();
         BOOST_REQUIRE(final1 == f);
+        xProgram* xTest = cTest->selInsr();
     }
     BOOST_AUTO_TEST_CASE(Test2) {
         Program* pTest = new Program(NULL, new Add(new Num(7), new Num(13)));
@@ -46,6 +47,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         cTest->uncoverLocals();
         f = cTest->run();
         BOOST_REQUIRE(final2 == f);
+        xProgram* xTest = cTest->selInsr();
     }
     // test for two branches with reads
     BOOST_AUTO_TEST_CASE(Test3) {
@@ -66,6 +68,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         cTest->uncoverLocals();
         f = cTest->run();
         BOOST_REQUIRE(final3 == f);
+        xProgram* xTest = cTest->selInsr();
     }
 
     BOOST_AUTO_TEST_CASE(Test4) {
@@ -85,6 +88,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         CProg* cTest = econ(pTest);
         f = cTest->run();
         BOOST_REQUIRE(final4 == f);
+        xProgram* xTest = cTest->selInsr();
     }
 
     BOOST_AUTO_TEST_CASE(Test5) {
@@ -108,6 +112,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         cTest->uncoverLocals();
         f = cTest->run();
         BOOST_REQUIRE(final5 == f);
+        xProgram* xTest = cTest->selInsr();
     }
 
     BOOST_AUTO_TEST_CASE(Null_Test) {
@@ -136,6 +141,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             cTest->uncoverLocals();
             f = cTest->run();
             BOOST_REQUIRE(result == f);
+        xProgram* xTest = cTest->selInsr();
         }
     //Overwrite Test Case
         BOOST_AUTO_TEST_CASE(OWCASE){
@@ -155,6 +161,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             cTest->uncoverLocals();
             f = cTest->run();
             BOOST_REQUIRE(result == f);
+        xProgram* xTest = cTest->selInsr();
         }
     //Multiple Vars
         BOOST_AUTO_TEST_CASE(MVCASE){
@@ -174,6 +181,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             cTest->uncoverLocals();
             f = cTest->run();
             BOOST_REQUIRE(result == f);
+        xProgram* xTest = cTest->selInsr();
         }
     //Expression Handling
         BOOST_AUTO_TEST_CASE(EXPHAND){
@@ -193,6 +201,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             cTest->uncoverLocals();
             f = cTest->run();
             BOOST_REQUIRE(result == f);
+        xProgram* xTest = cTest->selInsr();
         }
     //Order of Operations Test
     //Reads Will be 39,38
@@ -213,6 +222,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         cTest->uncoverLocals();
         f = cTest->run();
         BOOST_REQUIRE(result == f);
+        xProgram* xTest = cTest->selInsr();
         }
     
     //uniquify tests
@@ -242,6 +252,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         cTest->uncoverLocals();
         f = cTest->run();
         BOOST_REQUIRE(orig == f);
+        xProgram* xTest = cTest->selInsr();
     }
     BOOST_AUTO_TEST_CASE(UNIQ2){
         Let* expr = new Let("x", new Num(16), new Add(new Var("x"), new Var("x")));
@@ -266,6 +277,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         cTest->uncoverLocals();
         f = cTest->run();
         BOOST_REQUIRE(orig == f);
+        xProgram* xTest = cTest->selInsr();
     }
     //from textbook page 28
     BOOST_AUTO_TEST_CASE(UNIQ3){
@@ -287,6 +299,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         cTest->uncoverLocals();
         f = cTest->run();
         BOOST_REQUIRE(orig == f);
+        xProgram* xTest = cTest->selInsr();
     }
     BOOST_AUTO_TEST_CASE(UNIQ4){
         Let* expr = new Let("x", new Let("x", new Num(4), new Add(new Var("x"), new Num(1))), new Add(new Var("x"), new Num(2)));
@@ -306,6 +319,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         cTest->uncoverLocals();
         f = cTest->run();
         BOOST_REQUIRE(orig == f);
+        xProgram* xTest = cTest->selInsr();
     }
     //RCO Tests
     BOOST_AUTO_TEST_CASE(RCO1){
@@ -322,6 +336,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         cTest->uncoverLocals();
         f = cTest->run();
         BOOST_REQUIRE(orig == f);
+        xProgram* xTest = cTest->selInsr();
     }
     BOOST_AUTO_TEST_CASE(RCO2){
         Expr* expr = new Add(new Num(10), new Neg(new Num(10)));
@@ -335,6 +350,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         CProg* cTest = econ(pFinal);
         f = cTest->run();
         BOOST_REQUIRE(orig == f);
+        xProgram* xTest = cTest->selInsr();
     }
     BOOST_AUTO_TEST_CASE(RCO3){
         Expr* expr = new Add(new Add(new Num(7), new Read(1)), new Add(new Num(13), new Read(1)));
@@ -348,6 +364,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         cTest->uncoverLocals();
         f = cTest->run();
         BOOST_REQUIRE(orig == f);
+        xProgram* xTest = cTest->selInsr();
     }
     BOOST_AUTO_TEST_CASE(RCO4){
         Expr* expr = new Neg(new Add(new Num(17), new Add(new Read(1), new Num(42))));
@@ -362,6 +379,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         cTest->uncoverLocals();
         f = cTest->run();
         BOOST_REQUIRE(orig == f);
+        xProgram* xTest = cTest->selInsr();
     }
     BOOST_AUTO_TEST_CASE(RCO5){
         //testing for preservation of lets
@@ -379,6 +397,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         f = cTest->run();
         BOOST_REQUIRE(orig == f);
         //BOOST_REQUIRE(sFinal == AST);
+        xProgram* xTest = cTest->selInsr();
     }
     //econ Tests
 
@@ -392,6 +411,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         pFinal->uncoverLocals();
         f = pFinal->run();
         BOOST_REQUIRE(orig == f);
+        xProgram* xTest = cTest->selInsr();
     }
     BOOST_AUTO_TEST_CASE(ECON2){
         Expr* expr = new Add(new Add(new Num(7), new Read(1)), new Add(new Num(13), new Read(1)));
@@ -404,6 +424,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         pFinal->uncoverLocals();
         f = pFinal->run();
         BOOST_REQUIRE(orig == f);
+        xProgram* xTest = cTest->selInsr();
     }
     //Manually decompiled C Tests
     //CTest2
@@ -417,6 +438,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         pFinal->uncoverLocals();
         f = pFinal->run();
         BOOST_REQUIRE(orig == f);
+        xProgram* xTest = cTest->selInsr();
     }
     //CTest5
     BOOST_AUTO_TEST_CASE(ECON4){
@@ -430,6 +452,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         pFinal->uncoverLocals();
         f = pFinal->run();
         BOOST_REQUIRE(orig == f);
+        xProgram* xTest = cTest->selInsr();
     }
     BOOST_AUTO_TEST_CASE(ECON5){
         //testing for preservation of lets
@@ -442,6 +465,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         pFinal->uncoverLocals();
         f = pFinal->run();
         BOOST_REQUIRE(orig == f);
+        xProgram* xTest = cTest->selInsr();
     }
     
     
@@ -459,6 +483,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             //BOOST_REQUIRE( pTest->run()-1 == pOpt->run());
             //std::cout << "program generated, result: "<< result << std::endl;
             BOOST_TEST(true);
+        xProgram* xTest = cTest->selInsr();
     }
 
     //expand by power of 10
@@ -473,6 +498,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             pOpt->run();
             //std::cout << "program generated, result: " << result << std::endl;
             BOOST_TEST(true);
+        xProgram* xTest = cTest->selInsr();
     }
     // Depth 100 results in system stalling and losing the rest of the file 
     BOOST_AUTO_TEST_CASE(Mass_Test){
