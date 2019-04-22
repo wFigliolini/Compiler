@@ -30,12 +30,17 @@ std::string genNewVar(std::string type = "i", bool reset = 0);
 namespace{
 //X definitions
 typedef std::unordered_map<std::string, int> varList;
-
+class BlkComplete : public std::exception{
+public:
+    const char * what () const throw () {
+      return "Used to break current Iteration on Label Change";
+   }
+};
 //Info class
 //Handles the Stack and Registers
 class xInfo{
 public:
-    xInfo():regs_(16,0), pc_(0),result_(0), done_(false){};
+    xInfo():regs_(16,0),result_(0), done_(false){};
     void setLabel(std::string s){
         currLabel_ = s;
     }
@@ -48,11 +53,11 @@ public:
         stack_[ad/8] = val;
     }
     void setVar(std::string s, int val){
+        //std::cout << "setting var "<< s << " to " << val<< std::endl;
         try{
             v_.at(s) = val;
         } catch(std::out_of_range &e){
-            std::cerr <<"Attempted Write to Undefined Var " << s << std::endl;
-            throw std::runtime_error("undefined Var Write");
+            v_.insert(std::pair<std::string, int>(s, val));
         }
     }
     int getReg(int reg){
@@ -67,16 +72,17 @@ public:
         return currLabel_;
     }
     int getVar(std::string name){
-        return v_[name];
-    }
-    void resetPC(){
-        pc_=0;
-    }
-    int getPC(){
-        return pc_;
-    }
-    void updatePC(){
-        ++pc_;
+        int i;
+        std::cout << "getting var "<< name << std::endl;
+        //segfaults in all of the select tests, evne though variable will have been inserted prior
+        try{
+            i = v_.at(name);
+        }
+        catch(std::out_of_range &e){
+            throw std::runtime_error("undefined Var Read");
+        }
+        std::cout << name << " = " << i << std::endl;
+        return i;
     }
     void setResult(){result_ = regs_[0]; done_= true;};
     int getResult(){return result_;}
@@ -98,7 +104,6 @@ private:
     std::vector<int> stack_;
     std::string currLabel_;
     varList v_;
-    int pc_;
     int result_;
     bool done_;
 };
@@ -126,7 +131,9 @@ public:
                 //read
             case 0:
                 //std::cout <<"input an integer" << std::endl;
-                std::cin >> i;
+                //std::cin >> i;
+                i = num_--;
+                //std::cout << "int " << i << " read" << std::endl;
                 i_->setReg(0,i);
                 break;
                 //write
@@ -135,13 +142,17 @@ public:
                 break;
                 //else
             default:
+                //std::cout << "setting label to " << label_ << std::endl;
                 i_->setLabel(label_);
+                throw BlkComplete();
         }
     }
+    void reset(){ num_=42;}
 protected:
    std::string label_;
+   static int num_;
 };
-
+int Label::num_ = 42;
 
 class Arg: public X{
 public:
@@ -245,7 +256,13 @@ public:
         return output;
     }
     int get(){
-        return i_->getVar(name_);
+        int i;
+        try{
+            i = i_->getVar(name_);
+        }catch(std::out_of_range &e){
+            std::cerr << "Attempted to read undefined Var " << name_ << std::endl;
+        }
+        return i;
     }
     void set(int i){
         i_->setVar(name_,i);
@@ -253,12 +270,7 @@ public:
 private:
     std::string name_;
 };
-class BlkComplete : public std::exception{
-public:
-    const char * what () const throw () {
-      return "Used to break current Iteration on Label Change";
-   }
-};
+
 //instructions
 class Instr: public X{
 public:
@@ -336,6 +348,7 @@ public:
         //int rbp = 6, retaddr = i_->getStack(i_->getReg(rbp)-1);
         
         i_->setResult();
+        //throw BlkComplete();
         /*if(retaddr == 0){
         }
         else{
@@ -369,10 +382,9 @@ public:
         return output;
     }
     void interp(){
-        i_->pushStack(i_->getReg(6));
-        i_->setReg(6, i_->getReg(7));
+        //i_->pushStack(i_->getReg(6));
+        //i_->setReg(6, i_->getReg(7));
         lab_->interp();
-        throw BlkComplete();
     }
 private:
     Label* lab_;
@@ -389,7 +401,6 @@ public:
     }
     void interp(){
         lab_->interp();
-        throw BlkComplete();
     }
 private:
     Label* lab_;
@@ -487,6 +498,8 @@ class xProgram: public X{
         while(!(i_->isDone())){
             blks_[i_->getLabel()]->interp();
         }
+        Label* temp = new Label("temp");
+        temp->reset();
         return i_->getResult();
     }
     void outputToFile(std::string n, bool vars){
@@ -769,9 +782,7 @@ public:
         blk out;
         Arg* temp = ret_->SIArg();
         out.push_back(new Movq(temp, new Reg(0)));
-        out.push_back(new Retq());
-        //will uncomment when adding header and tail
-        //out.push_back(new Jmp(new Label("END")));
+        out.push_back(new Jmp(new Label("END")));
         return out;
     }
 private:
@@ -869,9 +880,6 @@ public:
             out->addBlock(it->first, bl);
         }
         //initialize vars
-        for(auto it : i_.vars()){
-            out->declareVar(it, 0);
-        }
         return out;
     }
 private:
