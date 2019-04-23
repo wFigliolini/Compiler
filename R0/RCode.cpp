@@ -163,3 +163,7 @@ std::string genNewVar(std::string type, bool reset){
     }
     return out;
 }
+
+xProgram* assign(xProgram* orig){
+    return orig->assignHomes();
+}

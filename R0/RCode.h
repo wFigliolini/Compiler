@@ -25,6 +25,7 @@ typedef std::unordered_map<std::string, Expr*> Environ;
 typedef std::pair<std::string, int> strCount;
 typedef std::unordered_map<std::string, strCount> envmap;
 typedef std::pair<std::string, Expr*> rcoPair;
+typedef std::unordered_map<std::string, int> stackMap;
 std::string genNewVar(std::string type = "i", bool reset = 0);
 
 namespace{
@@ -74,7 +75,7 @@ public:
     int getVar(std::string name){
         int i;
         std::cout << "getting var "<< name << std::endl;
-        //segfaults in all of the select tests, evne though variable will have been inserted prior
+        //segfaults in all of the select tests, even though variable will have been inserted prior
         try{
             i = v_.at(name);
         }
@@ -539,6 +540,12 @@ class xProgram: public X{
         else{
             std::cout << "as terminated with error code " << err << std::endl;
         }
+    }
+    xProgram* assignHomes(){
+        return NULL;
+    }
+    bool containVar(){
+        return false;
     }
 private:
     void init(){
@@ -1421,7 +1428,6 @@ public:
 //functions
 Program* pow(int x, int b = 2);
 Program* randProg(int depth);
-
-
+xProgram* assign(xProgram* orig);
 
 #endif

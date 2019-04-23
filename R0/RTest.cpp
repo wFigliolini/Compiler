@@ -411,7 +411,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         pFinal->uncoverLocals();
         f = pFinal->run();
         BOOST_REQUIRE(orig == f);
-        xProgram* xTest = cTest->selInsr();
+        xProgram* xTest = pFinal->selInsr();
     }
     BOOST_AUTO_TEST_CASE(ECON2){
         Expr* expr = new Add(new Add(new Num(7), new Read(1)), new Add(new Num(13), new Read(1)));
@@ -424,7 +424,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         pFinal->uncoverLocals();
         f = pFinal->run();
         BOOST_REQUIRE(orig == f);
-        xProgram* xTest = cTest->selInsr();
+        xProgram* xTest = pFinal->selInsr();
     }
     //Manually decompiled C Tests
     //CTest2
@@ -438,7 +438,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         pFinal->uncoverLocals();
         f = pFinal->run();
         BOOST_REQUIRE(orig == f);
-        xProgram* xTest = cTest->selInsr();
+        xProgram* xTest = pFinal->selInsr();
     }
     //CTest5
     BOOST_AUTO_TEST_CASE(ECON4){
@@ -452,7 +452,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         pFinal->uncoverLocals();
         f = pFinal->run();
         BOOST_REQUIRE(orig == f);
-        xProgram* xTest = cTest->selInsr();
+        xProgram* xTest = pFinal->selInsr();
     }
     BOOST_AUTO_TEST_CASE(ECON5){
         //testing for preservation of lets
@@ -465,7 +465,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         pFinal->uncoverLocals();
         f = pFinal->run();
         BOOST_REQUIRE(orig == f);
-        xProgram* xTest = cTest->selInsr();
+        xProgram* xTest = pFinal->selInsr();
     }
     
     
@@ -483,7 +483,6 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             //BOOST_REQUIRE( pTest->run()-1 == pOpt->run());
             //std::cout << "program generated, result: "<< result << std::endl;
             BOOST_TEST(true);
-        xProgram* xTest = cTest->selInsr();
     }
 
     //expand by power of 10
@@ -498,7 +497,6 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             pOpt->run();
             //std::cout << "program generated, result: " << result << std::endl;
             BOOST_TEST(true);
-        xProgram* xTest = cTest->selInsr();
     }
     // Depth 100 results in system stalling and losing the rest of the file 
     BOOST_AUTO_TEST_CASE(Mass_Test){
@@ -770,14 +768,14 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             BOOST_REQUIRE(ret == -101);
             //std::cout << cTest->AST() << std::endl;
             xProgram* xTest = cTest->selInsr();
-            std::cout << "selInstr complete" << std::endl;
+            //std::cout << "selInstr complete" << std::endl;
             std::vector<std::string> out = xTest->emit(1);
-            for(auto it : out){
+            /*for(auto it : out){
                 std::cout << it;
-            }
+            }*/
             //ret = xTest->run();
             BOOST_REQUIRE(ret == -101);
-            std::cout << "CTEST1 Complete" << std::endl;
+            //std::cout << "CTEST1 Complete" << std::endl;
         }
         //Test 3  manually compiled
         //r1 = 42, r2 = 41
@@ -809,7 +807,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             //ret = xTest->run();
             std::vector<std::string> out = xTest->emit(1);
             BOOST_REQUIRE(ret == 103);
-            std::cout << "CTEST2 Complete" << std::endl;
+            //std::cout << "CTEST2 Complete" << std::endl;
         }
         //BASELET Manually compiled
         BOOST_AUTO_TEST_CASE(CTEST3){
@@ -834,12 +832,12 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             BOOST_REQUIRE(ret == 16);
             xProgram* xTest = cTest->selInsr();
             std::vector<std::string> out = xTest->emit(1);
-            for(auto it : out){
+            /*for(auto it : out){
                 std::cout << it;
-            }
+            }*/
             //ret = xTest->run();
             BOOST_REQUIRE(ret == 16);
-            std::cout << "CTEST3 Complete" << std::endl;
+            //std::cout << "CTEST3 Complete" << std::endl;
         }
         //EXPHAND manually compiled
         BOOST_AUTO_TEST_CASE(CTEST4){
@@ -864,7 +862,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             xProgram* xTest = cTest->selInsr();
             //ret = xTest->run();
             BOOST_REQUIRE(ret == 96);
-            std::cout << "CTEST4 Complete" << std::endl;
+            //std::cout << "CTEST4 Complete" << std::endl;
         }
         //multiple read Test
         // x = 42
@@ -892,7 +890,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             xProgram* xTest = cTest->selInsr();
             //ret = xTest->run();
             BOOST_REQUIRE(ret == 84);
-            std::cout << "CTEST5 Complete" << std::endl;
+            //std::cout << "CTEST5 Complete" << std::endl;
         }
         //(+52 (-10))
         BOOST_AUTO_TEST_CASE(CTEST6){
@@ -931,9 +929,9 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             std::vector<std::string> AST = {"main:\n", "addq 10 &x\n", "movq &x %rax\n", "jmp END\n"};
             std::vector<std::string> out;
             out = xTest->emit(1);            
-            for(auto i1 = AST.begin(), i2 = out.begin(); i1 != AST.end(), i2 != out.end(); ++i1, ++i2){
+            /*for(auto i1 = AST.begin(), i2 = out.begin(); i1 != AST.end(), i2 != out.end(); ++i1, ++i2){
                 BOOST_REQUIRE(i1 == i2);
-            } 
+            } */
             std::cout << "SITEST1 Complete" << std::endl;
         }
         BOOST_AUTO_TEST_CASE(SITEST2){
@@ -947,12 +945,94 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             std::vector<std::string> AST = {"main:\n", "callq read_int\n", "movq %rax &x\n", "movq &x %rax\n", "jmp END\n"};
             std::vector<std::string> out;
             out = xTest->emit(1);
-            for(auto it : out){
+            /*for(auto it : out){
                 std::cout << it;
             }
             for(auto it : AST){
                 std::cout << it;
-            }
+            }*/
             std::cout << "SITEST2 Complete" << std::endl;
+        }
+        //f = -8
+        BOOST_AUTO_TEST_CASE(ASSIGNHOMES1){
+            int orig, f;
+            std::vector<Instr*> instrSet;
+                instrSet.push_back(new Movq(new Const(20), new Ref("f")));
+                instrSet.push_back(new Addq(new Const(20), new Ref("f")));
+                instrSet.push_back(new Movq(new Ref("f"), new Reg("%rax")));
+                instrSet.push_back(new Retq());
+            xProgram* pTest = new xProgram(new Block(instrSet));
+            orig = pTest->run();
+            pTest = assign(pTest);
+            f = pTest->run();
+            BOOST_REQUIRE(orig == f);
+            BOOST_REQUIRE(pTest->containVar() == false);
+        }
+        BOOST_AUTO_TEST_CASE(ASSIGNHOMES2){
+            int orig, f;
+            std::vector<Instr*> instrSet;
+                instrSet.push_back(new Movq(new Const(20), new Ref("f")));
+                instrSet.push_back(new Addq(new Ref("f"), new Ref("f")));
+                instrSet.push_back(new Movq(new Ref("f"), new Reg("%rax")));
+                instrSet.push_back(new Retq());
+            xProgram* pTest = new xProgram(new Block(instrSet));
+            orig = pTest->run();
+            pTest = assign(pTest);
+            f = pTest->run();
+            BOOST_REQUIRE(orig == f);
+            BOOST_REQUIRE(pTest->containVar() == false);
+        }
+        //x = 0, f = 8
+        BOOST_AUTO_TEST_CASE(ASSIGNHOMES3){
+            int orig, f;
+            std::vector<Instr*> instrSet;
+                instrSet.push_back(new Movq(new Const(20), new Ref("x")));
+                instrSet.push_back(new Movq(new Const(40), new Ref("f")));
+                instrSet.push_back(new Addq(new Ref("x"), new Ref("f")));
+                instrSet.push_back(new Movq(new Ref("f"), new Reg("%rax")));
+                instrSet.push_back(new Retq());
+            xProgram* pTest = new xProgram(new Block(instrSet));
+            orig = pTest->run();
+            pTest = assign(pTest);
+            f = pTest->run();
+            BOOST_REQUIRE(orig == f);
+            BOOST_REQUIRE(pTest->containVar() == false);
+        }
+        //case for not overwriting already used addresses
+        //f = 0, x = 16
+        BOOST_AUTO_TEST_CASE(ASSIGNHOMES4){
+            int orig, f;
+            std::vector<Instr*> instrSet;
+                instrSet.push_back(new Movq(new Const(20), new DeRef(new Reg("%rbp"), 8)));
+                instrSet.push_back(new Movq(new Const(40), new Ref("f")));
+                instrSet.push_back(new Movq(new Const(60), new Ref("x")));
+                instrSet.push_back(new Addq(new DeRef(new Reg("%rbp"), 8), new Ref("x")));
+                instrSet.push_back(new Addq(new Ref("x"), new Ref("f")));
+                instrSet.push_back(new Movq(new Ref("f"), new Reg("%rax")));
+                instrSet.push_back(new Retq());
+            xProgram* pTest = new xProgram(new Block(instrSet));
+            orig = pTest->run();
+            pTest = assign(pTest);
+            f = pTest->run();
+            BOOST_REQUIRE(orig == f);
+            BOOST_REQUIRE(pTest->containVar() == false);
+        }
+        //code from test 
+        BOOST_AUTO_TEST_CASE(ASSIGNHOMES5){
+            int orig, f;
+            std::vector<Instr*> instrSet;
+                instrSet.push_back(new Movq(new Const(20), new DeRef(new Reg("%rbp"))));
+                instrSet.push_back(new Movq(new Const(40), new Ref("f")));
+                instrSet.push_back(new Movq(new Const(60), new Ref("x")));
+                instrSet.push_back(new Addq(new DeRef(new Reg("%rbp"), 8), new Ref("x")));
+                instrSet.push_back(new Addq(new Ref("x"), new Ref("f")));
+                instrSet.push_back(new Movq(new Ref("f"), new Reg("%rax")));
+                instrSet.push_back(new Retq());
+            xProgram* pTest = new xProgram(new Block(instrSet));
+            orig = pTest->run();
+            pTest = assign(pTest);
+            f = pTest->run();
+            BOOST_REQUIRE(orig == f);
+            BOOST_REQUIRE(pTest->containVar() == false);
         }
 BOOST_AUTO_TEST_SUITE_END()
