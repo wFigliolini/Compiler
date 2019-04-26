@@ -115,7 +115,15 @@ public:
         return result;
     }
     int getVC(){ return varCount_;}
-    void initVar(){ ++varCount_;}
+    void initVar(std::string n){
+        try{
+            v_.at(n);
+        }
+        catch(std::out_of_range &e){
+            v_.insert(std::pair<std::string, int>(n,0));
+            ++varCount_;
+        }
+    }
     void destroyVar(){ --varCount_;}
 private:
     std::vector<int> regs_;
@@ -309,7 +317,7 @@ public:
     }
     void init(std::shared_ptr<xInfo> i){
         setInfo(i);
-        i_->initVar();
+        i_->initVar(name_);
     }
     Arg* asHA(localVars* e){
         int offset;
@@ -588,6 +596,9 @@ class Block: public X{
         Block* out = new Block(exprs);
         return out;
     }
+    int size() const{
+        return blk_.size();
+    }
 private:
     Blk blk_;
 };
@@ -684,8 +695,14 @@ class xProgram{
         out->i_->setLabel("START");
         return out;
     }
+    xProgram* patch(){
+        return NULL;
+    }
     bool containVar(){
         return ((i_->getVC()!=0) ? true : false);
+    }
+    int size(std::string name = "BODY") const{
+        return blks_.size();
     }
 private:
     void init(){

@@ -168,6 +168,10 @@ xProgram* assign(xProgram* orig){
     return orig->assignHomes();
 }
 
+xProgram* patch(xProgram* orig){
+    return orig->patch();
+}
+
 //set of register names
 std::vector<std::string> Reg::regNames = {
     "%rax", "%rbx", "%rcx",
