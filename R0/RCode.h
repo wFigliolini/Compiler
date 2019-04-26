@@ -317,10 +317,10 @@ public:
             offset = e->at(name_);
         }
         catch(std::out_of_range &ex){
-            offset = 8*e->size(); 
+            offset = 8*(e->size()+1); 
             e->insert(std::pair<std::string, int>(name_, offset));
         }
-        return new DeRef(new Reg("%rbp"), offset);
+        return new DeRef(new Reg("%rsp"), offset);
     }
 private:
     std::string name_;
@@ -680,7 +680,7 @@ class xProgram{
         }
         out->addBlock("START", start);
         out->addBlock("END", end);
-        out->init();
+
         out->i_->setLabel("START");
         return out;
     }
@@ -1043,7 +1043,12 @@ public:
         for(auto it = instr_.begin(); it != instr_.end(); ++it){
             //std::cout << "getting Block " << it->first << std::endl;
             Block* bl = new Block(it->second->SITail());
-            out->addBlock(it->first, bl);
+            if(it->first == "main"){
+                out->addBlock("BODY", bl);
+            }
+            else{
+                out->addBlock(it->first, bl);
+            }
         }
         //initialize vars
         return out;

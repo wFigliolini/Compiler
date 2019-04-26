@@ -10,6 +10,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
     BOOST_AUTO_TEST_CASE(Test1){ 
         Program* pTest = new Program();
         pTest->setExpr(new Neg(new Add(new Num(17), new Add(new Read(1), new Num(42)))));
+        std::vector<std::string> out;
         //Program* pOpt = opt(pTest);
         int int1, final1(-101), f;
         int1 = pTest->run();
@@ -28,6 +29,19 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         f = cTest->run();
         BOOST_REQUIRE(final1 == f);
         xProgram* xTest = cTest->selInsr();
+        out = xTest->emit(1);
+        /*for(auto it : out){
+            std::cout << it;
+        }*/
+        xTest = assign(xTest);
+        out = xTest->emit(1);
+/*        for(auto it : out){
+            std::cout << it;
+        }
+        f = xTest->run();*/
+
+        BOOST_REQUIRE(int1 == f);
+        BOOST_REQUIRE(xTest->containVar() == false);
     }
     BOOST_AUTO_TEST_CASE(Test2) {
         Program* pTest = new Program(NULL, new Add(new Num(7), new Num(13)));
@@ -48,6 +62,10 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         f = cTest->run();
         BOOST_REQUIRE(final2 == f);
         xProgram* xTest = cTest->selInsr();
+        xTest = assign(xTest);
+        f = xTest->run();
+        BOOST_REQUIRE(int2 == f);
+        BOOST_REQUIRE(xTest->containVar() == false);
     }
     // test for two branches with reads
     BOOST_AUTO_TEST_CASE(Test3) {
@@ -69,6 +87,10 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         f = cTest->run();
         BOOST_REQUIRE(final3 == f);
         xProgram* xTest = cTest->selInsr();
+        xTest = assign(xTest);
+        f = xTest->run();
+        BOOST_REQUIRE(int3 == f);
+        BOOST_REQUIRE(xTest->containVar() == false);
     }
 
     BOOST_AUTO_TEST_CASE(Test4) {
@@ -89,6 +111,10 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         f = cTest->run();
         BOOST_REQUIRE(final4 == f);
         xProgram* xTest = cTest->selInsr();
+        xTest = assign(xTest);
+        f = xTest->run();
+        BOOST_REQUIRE(int4 == f);
+        BOOST_REQUIRE(xTest->containVar() == false);
     }
 
     BOOST_AUTO_TEST_CASE(Test5) {
@@ -113,6 +139,10 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         f = cTest->run();
         BOOST_REQUIRE(final5 == f);
         xProgram* xTest = cTest->selInsr();
+        xTest = assign(xTest);
+        f = xTest->run();
+        BOOST_REQUIRE(int5 == f);
+        BOOST_REQUIRE(xTest->containVar() == false);
     }
 
     BOOST_AUTO_TEST_CASE(Null_Test) {
@@ -142,6 +172,10 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             f = cTest->run();
             BOOST_REQUIRE(result == f);
         xProgram* xTest = cTest->selInsr();
+        xTest = assign(xTest);
+        f = xTest->run();
+        BOOST_REQUIRE(result == f);
+        BOOST_REQUIRE(xTest->containVar() == false);
         }
     //Overwrite Test Case
         BOOST_AUTO_TEST_CASE(OWCASE){
@@ -162,6 +196,10 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             f = cTest->run();
             BOOST_REQUIRE(result == f);
         xProgram* xTest = cTest->selInsr();
+                xTest = assign(xTest);
+        f = xTest->run();
+        BOOST_REQUIRE(result == f);
+        BOOST_REQUIRE(xTest->containVar() == false);
         }
     //Multiple Vars
         BOOST_AUTO_TEST_CASE(MVCASE){
@@ -182,6 +220,10 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             f = cTest->run();
             BOOST_REQUIRE(result == f);
         xProgram* xTest = cTest->selInsr();
+                xTest = assign(xTest);
+        f = xTest->run();
+        BOOST_REQUIRE(result == f);
+        BOOST_REQUIRE(xTest->containVar() == false);
         }
     //Expression Handling
         BOOST_AUTO_TEST_CASE(EXPHAND){
@@ -202,6 +244,10 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             f = cTest->run();
             BOOST_REQUIRE(result == f);
         xProgram* xTest = cTest->selInsr();
+                xTest = assign(xTest);
+        f = xTest->run();
+        BOOST_REQUIRE(result == f);
+        BOOST_REQUIRE(xTest->containVar() == false);
         }
     //Order of Operations Test
     //Reads Will be 39,38
@@ -223,6 +269,10 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         f = cTest->run();
         BOOST_REQUIRE(result == f);
         xProgram* xTest = cTest->selInsr();
+                xTest = assign(xTest);
+        f = xTest->run();
+        BOOST_REQUIRE(result == f);
+        BOOST_REQUIRE(xTest->containVar() == false);
         }
     
     //uniquify tests
@@ -253,6 +303,10 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         f = cTest->run();
         BOOST_REQUIRE(orig == f);
         xProgram* xTest = cTest->selInsr();
+                xTest = assign(xTest);
+        f = xTest->run();
+        BOOST_REQUIRE(orig == f);
+        BOOST_REQUIRE(xTest->containVar() == false);
     }
     BOOST_AUTO_TEST_CASE(UNIQ2){
         Let* expr = new Let("x", new Num(16), new Add(new Var("x"), new Var("x")));
@@ -278,6 +332,10 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         f = cTest->run();
         BOOST_REQUIRE(orig == f);
         xProgram* xTest = cTest->selInsr();
+                xTest = assign(xTest);
+        f = xTest->run();
+        BOOST_REQUIRE(orig == f);
+        BOOST_REQUIRE(xTest->containVar() == false);
     }
     //from textbook page 28
     BOOST_AUTO_TEST_CASE(UNIQ3){
@@ -300,6 +358,10 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         f = cTest->run();
         BOOST_REQUIRE(orig == f);
         xProgram* xTest = cTest->selInsr();
+                xTest = assign(xTest);
+        f = xTest->run();
+        BOOST_REQUIRE(orig == f);
+        BOOST_REQUIRE(xTest->containVar() == false);
     }
     BOOST_AUTO_TEST_CASE(UNIQ4){
         Let* expr = new Let("x", new Let("x", new Num(4), new Add(new Var("x"), new Num(1))), new Add(new Var("x"), new Num(2)));
@@ -320,6 +382,10 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         f = cTest->run();
         BOOST_REQUIRE(orig == f);
         xProgram* xTest = cTest->selInsr();
+                xTest = assign(xTest);
+        f = xTest->run();
+        BOOST_REQUIRE(orig == f);
+        BOOST_REQUIRE(xTest->containVar() == false);
     }
     //RCO Tests
     BOOST_AUTO_TEST_CASE(RCO1){
@@ -337,6 +403,10 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         f = cTest->run();
         BOOST_REQUIRE(orig == f);
         xProgram* xTest = cTest->selInsr();
+                xTest = assign(xTest);
+        f = xTest->run();
+        BOOST_REQUIRE(orig == f);
+        BOOST_REQUIRE(xTest->containVar() == false);
     }
     BOOST_AUTO_TEST_CASE(RCO2){
         Expr* expr = new Add(new Num(10), new Neg(new Num(10)));
@@ -351,6 +421,10 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         f = cTest->run();
         BOOST_REQUIRE(orig == f);
         xProgram* xTest = cTest->selInsr();
+                xTest = assign(xTest);
+        f = xTest->run();
+        BOOST_REQUIRE(orig == f);
+        BOOST_REQUIRE(xTest->containVar() == false);
     }
     BOOST_AUTO_TEST_CASE(RCO3){
         Expr* expr = new Add(new Add(new Num(7), new Read(1)), new Add(new Num(13), new Read(1)));
@@ -365,6 +439,10 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         f = cTest->run();
         BOOST_REQUIRE(orig == f);
         xProgram* xTest = cTest->selInsr();
+                xTest = assign(xTest);
+        f = xTest->run();
+        BOOST_REQUIRE(orig == f);
+        BOOST_REQUIRE(xTest->containVar() == false);
     }
     BOOST_AUTO_TEST_CASE(RCO4){
         Expr* expr = new Neg(new Add(new Num(17), new Add(new Read(1), new Num(42))));
@@ -380,6 +458,10 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         f = cTest->run();
         BOOST_REQUIRE(orig == f);
         xProgram* xTest = cTest->selInsr();
+                xTest = assign(xTest);
+        f = xTest->run();
+        BOOST_REQUIRE(orig == f);
+        BOOST_REQUIRE(xTest->containVar() == false);
     }
     BOOST_AUTO_TEST_CASE(RCO5){
         //testing for preservation of lets
@@ -398,6 +480,10 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         BOOST_REQUIRE(orig == f);
         //BOOST_REQUIRE(sFinal == AST);
         xProgram* xTest = cTest->selInsr();
+                xTest = assign(xTest);
+        f = xTest->run();
+        BOOST_REQUIRE(orig == f);
+        BOOST_REQUIRE(xTest->containVar() == false);
     }
     //econ Tests
 
@@ -412,6 +498,10 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         f = pFinal->run();
         BOOST_REQUIRE(orig == f);
         xProgram* xTest = pFinal->selInsr();
+                xTest = assign(xTest);
+        f = xTest->run();
+        BOOST_REQUIRE(orig == f);
+        BOOST_REQUIRE(xTest->containVar() == false);
     }
     BOOST_AUTO_TEST_CASE(ECON2){
         Expr* expr = new Add(new Add(new Num(7), new Read(1)), new Add(new Num(13), new Read(1)));
@@ -425,6 +515,10 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         f = pFinal->run();
         BOOST_REQUIRE(orig == f);
         xProgram* xTest = pFinal->selInsr();
+                xTest = assign(xTest);
+        f = xTest->run();
+        BOOST_REQUIRE(orig == f);
+        BOOST_REQUIRE(xTest->containVar() == false);
     }
     //Manually decompiled C Tests
     //CTest2
@@ -439,6 +533,10 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         f = pFinal->run();
         BOOST_REQUIRE(orig == f);
         xProgram* xTest = pFinal->selInsr();
+                xTest = assign(xTest);
+        f = xTest->run();
+        BOOST_REQUIRE(orig == f);
+        BOOST_REQUIRE(xTest->containVar() == false);
     }
     //CTest5
     BOOST_AUTO_TEST_CASE(ECON4){
@@ -453,6 +551,10 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         f = pFinal->run();
         BOOST_REQUIRE(orig == f);
         xProgram* xTest = pFinal->selInsr();
+                xTest = assign(xTest);
+        f = xTest->run();
+        BOOST_REQUIRE(orig == f);
+        BOOST_REQUIRE(xTest->containVar() == false);
     }
     BOOST_AUTO_TEST_CASE(ECON5){
         //testing for preservation of lets
@@ -466,6 +568,10 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         f = pFinal->run();
         BOOST_REQUIRE(orig == f);
         xProgram* xTest = pFinal->selInsr();
+                xTest = assign(xTest);
+        f = xTest->run();
+        BOOST_REQUIRE(orig == f);
+        BOOST_REQUIRE(xTest->containVar() == false);
     }
     
     
@@ -768,13 +874,10 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             BOOST_REQUIRE(ret == -101);
             //std::cout << cTest->AST() << std::endl;
             xProgram* xTest = cTest->selInsr();
-            //std::cout << "selInstr complete" << std::endl;
-            std::vector<std::string> out = xTest->emit(1);
-            /*for(auto it : out){
-                std::cout << it;
-            }*/
-            //ret = xTest->run();
-            BOOST_REQUIRE(ret == -101);
+            xTest = assign(xTest);
+            int f = xTest->run();
+            BOOST_REQUIRE(ret == f);
+            BOOST_REQUIRE(xTest->containVar() == false);
             //std::cout << "CTEST1 Complete" << std::endl;
         }
         //Test 3  manually compiled
@@ -804,9 +907,11 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             //std::cout << ret << std::endl;
             BOOST_REQUIRE(ret == 103);
             xProgram* xTest = cTest->selInsr();
-            //ret = xTest->run();
-            std::vector<std::string> out = xTest->emit(1);
-            BOOST_REQUIRE(ret == 103);
+            xTest = assign(xTest);
+            int f = xTest->run();
+            BOOST_REQUIRE(ret == f);
+            BOOST_REQUIRE(xTest->containVar() == false);
+
             //std::cout << "CTEST2 Complete" << std::endl;
         }
         //BASELET Manually compiled
@@ -836,7 +941,11 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                 std::cout << it;
             }*/
             //ret = xTest->run();
-            BOOST_REQUIRE(ret == 16);
+            xTest = assign(xTest);
+            int f = xTest->run();
+            BOOST_REQUIRE(ret == f);
+            BOOST_REQUIRE(xTest->containVar() == false);
+
             //std::cout << "CTEST3 Complete" << std::endl;
         }
         //EXPHAND manually compiled
@@ -859,9 +968,11 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             BOOST_REQUIRE(ulTest.empty());
             int ret = cTest->run();
             BOOST_REQUIRE(ret == 96);
-            xProgram* xTest = cTest->selInsr();
-            //ret = xTest->run();
-            BOOST_REQUIRE(ret == 96);
+            xProgram* xTest = cTest->selInsr();                
+            xTest = assign(xTest);
+            int f = xTest->run();
+            BOOST_REQUIRE(ret == f);
+            BOOST_REQUIRE(xTest->containVar() == false);
             //std::cout << "CTEST4 Complete" << std::endl;
         }
         //multiple read Test
@@ -888,9 +999,10 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             //std::cout << ret << std::endl;
             BOOST_REQUIRE(ret == 84);
             xProgram* xTest = cTest->selInsr();
-            //ret = xTest->run();
-            BOOST_REQUIRE(ret == 84);
-            //std::cout << "CTEST5 Complete" << std::endl;
+            xTest = assign(xTest);
+            int f = xTest->run();
+            BOOST_REQUIRE(ret == f);
+            BOOST_REQUIRE(xTest->containVar() == false);
         }
         //(+52 (-10))
         BOOST_AUTO_TEST_CASE(CTEST6){
@@ -914,9 +1026,10 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             int ret = cTest->run();
             BOOST_REQUIRE(ret == 42);
             xProgram* xTest = cTest->selInsr();
-            //ret = xTest->run();
-            BOOST_REQUIRE(ret == 42);
-            //std::cout << "CTEST6 Complete" << std::endl;
+            xTest = assign(xTest);
+            int f = xTest->run();
+            BOOST_REQUIRE(ret == f);
+            BOOST_REQUIRE(xTest->containVar() == false);
         }
         BOOST_AUTO_TEST_CASE(SITEST1){
             CSeq* lTest = new CSeq(new CStat("x", new CNum(10)), new CRet(new CVar("x")));
@@ -928,11 +1041,10 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             //BOOST_REQUIRE(ret == result);
             std::vector<std::string> AST = {"main:\n", "addq 10 &x\n", "movq &x %rax\n", "jmp END\n"};
             std::vector<std::string> out;
-            out = xTest->emit(1);            
-            /*for(auto i1 = AST.begin(), i2 = out.begin(); i1 != AST.end(), i2 != out.end(); ++i1, ++i2){
-                BOOST_REQUIRE(i1 == i2);
-            } */
-            //std::cout << "SITEST1 Complete" << std::endl;
+            xTest = assign(xTest);
+            int f = xTest->run();
+            BOOST_REQUIRE(result == f);
+            BOOST_REQUIRE(xTest->containVar() == false);
         }
         BOOST_AUTO_TEST_CASE(SITEST2){
             CSeq* lTest = new CSeq(new CStat("x", new CRead(1)), new CRet(new CVar("x")));
@@ -945,13 +1057,10 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             std::vector<std::string> AST = {"main:\n", "callq read_int\n", "movq %rax &x\n", "movq &x %rax\n", "jmp END\n"};
             std::vector<std::string> out;
             out = xTest->emit(1);
-            /*for(auto it : out){
-                std::cout << it;
-            }
-            for(auto it : AST){
-                std::cout << it;
-            }*/
-            //std::cout << "SITEST2 Complete" << std::endl;
+            xTest = assign(xTest);
+            int f = xTest->run();
+            BOOST_REQUIRE(result == f);
+            BOOST_REQUIRE(xTest->containVar() == false);
         }
         //f = -8
         BOOST_AUTO_TEST_CASE(ASSIGNHOMES1){
