@@ -635,12 +635,12 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             std::vector<Instr*> instrSet;
                 instrSet.push_back(new Pushq(new Const(8)));
                 instrSet.push_back(new Pushq(new Const(12)));
-                instrSet.push_back(new Movq(new DeRef(new Reg("%rbp"), 8), new Reg("%rax")));
-                instrSet.push_back(new Addq(new DeRef(new Reg("%rbp"), 0), new Reg("%rax")));
+                instrSet.push_back(new Movq(new DeRef(new Reg("%rsp"), -8), new Reg("%rax")));
+                instrSet.push_back(new Addq(new DeRef(new Reg("%rsp"), -16), new Reg("%rax")));
                 instrSet.push_back(new Retq());
             xProgram* pTest = new xProgram(new Block(instrSet));
             int result = pTest->run() ;
-            //std::cout << "DEREFTEST Result = " << result << std::endl;
+            std::cout << "DEREFTEST Result = " << result << std::endl;
             BOOST_REQUIRE(result == 20);
         }
         //TestInt = 20
@@ -916,7 +916,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             xProgram* xTest = cTest->selInsr();
             //ret = xTest->run();
             BOOST_REQUIRE(ret == 42);
-            std::cout << "CTEST6 Complete" << std::endl;
+            //std::cout << "CTEST6 Complete" << std::endl;
         }
         BOOST_AUTO_TEST_CASE(SITEST1){
             CSeq* lTest = new CSeq(new CStat("x", new CNum(10)), new CRet(new CVar("x")));
@@ -932,7 +932,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             /*for(auto i1 = AST.begin(), i2 = out.begin(); i1 != AST.end(), i2 != out.end(); ++i1, ++i2){
                 BOOST_REQUIRE(i1 == i2);
             } */
-            std::cout << "SITEST1 Complete" << std::endl;
+            //std::cout << "SITEST1 Complete" << std::endl;
         }
         BOOST_AUTO_TEST_CASE(SITEST2){
             CSeq* lTest = new CSeq(new CStat("x", new CRead(1)), new CRet(new CVar("x")));
@@ -951,7 +951,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             for(auto it : AST){
                 std::cout << it;
             }*/
-            std::cout << "SITEST2 Complete" << std::endl;
+            //std::cout << "SITEST2 Complete" << std::endl;
         }
         //f = -8
         BOOST_AUTO_TEST_CASE(ASSIGNHOMES1){
@@ -965,9 +965,11 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             orig = pTest->run();
             pTest = assign(pTest);
             f = pTest->run();
+
             BOOST_REQUIRE(orig == f);
             BOOST_REQUIRE(pTest->containVar() == false);
         }
+        //f = -8
         BOOST_AUTO_TEST_CASE(ASSIGNHOMES2){
             int orig, f;
             std::vector<Instr*> instrSet;
@@ -979,10 +981,15 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             orig = pTest->run();
             pTest = assign(pTest);
             f = pTest->run();
+/*          std::vector<std::string> out;
+            out = pTest->emit(1);
+            for(auto it : out){
+                std::cout << it;
+            }*/
             BOOST_REQUIRE(orig == f);
             BOOST_REQUIRE(pTest->containVar() == false);
         }
-        //x = 0, f = 8
+        //x = -8, f = -16
         BOOST_AUTO_TEST_CASE(ASSIGNHOMES3){
             int orig, f;
             std::vector<Instr*> instrSet;
@@ -995,18 +1002,20 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             orig = pTest->run();
             pTest = assign(pTest);
             f = pTest->run();
+            
             BOOST_REQUIRE(orig == f);
             BOOST_REQUIRE(pTest->containVar() == false);
         }
         //case for not overwriting already used addresses
-        //f = 0, x = 16
-        BOOST_AUTO_TEST_CASE(ASSIGNHOMES4){
+        //Unneeded as compiler will not generate DeRefs prior to assignhomes
+        //f = -16, x = -24
+/*        BOOST_AUTO_TEST_CASE(ASSIGNHOMES4){
             int orig, f;
             std::vector<Instr*> instrSet;
-                instrSet.push_back(new Movq(new Const(20), new DeRef(new Reg("%rbp"), 8)));
+                instrSet.push_back(new Movq(new Const(20), new DeRef(new Reg("%rbp"), -8)));
                 instrSet.push_back(new Movq(new Const(40), new Ref("f")));
                 instrSet.push_back(new Movq(new Const(60), new Ref("x")));
-                instrSet.push_back(new Addq(new DeRef(new Reg("%rbp"), 8), new Ref("x")));
+                instrSet.push_back(new Addq(new DeRef(new Reg("%rbp"), -8), new Ref("x")));
                 instrSet.push_back(new Addq(new Ref("x"), new Ref("f")));
                 instrSet.push_back(new Movq(new Ref("f"), new Reg("%rax")));
                 instrSet.push_back(new Retq());
@@ -1018,13 +1027,14 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             BOOST_REQUIRE(pTest->containVar() == false);
         }
         //code from test 
+        // 
         BOOST_AUTO_TEST_CASE(ASSIGNHOMES5){
             int orig, f;
             std::vector<Instr*> instrSet;
-                instrSet.push_back(new Movq(new Const(20), new DeRef(new Reg("%rbp"))));
+                instrSet.push_back(new Movq(new Const(20), new DeRef(new Reg("%rbp"), -8)));
                 instrSet.push_back(new Movq(new Const(40), new Ref("f")));
                 instrSet.push_back(new Movq(new Const(60), new Ref("x")));
-                instrSet.push_back(new Addq(new DeRef(new Reg("%rbp"), 8), new Ref("x")));
+                instrSet.push_back(new Addq(new DeRef(new Reg("%rbp"), -8), new Ref("x")));
                 instrSet.push_back(new Addq(new Ref("x"), new Ref("f")));
                 instrSet.push_back(new Movq(new Ref("f"), new Reg("%rax")));
                 instrSet.push_back(new Retq());
@@ -1034,5 +1044,5 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             f = pTest->run();
             BOOST_REQUIRE(orig == f);
             BOOST_REQUIRE(pTest->containVar() == false);
-        }
+        }*/
 BOOST_AUTO_TEST_SUITE_END()

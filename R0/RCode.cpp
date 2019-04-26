@@ -167,3 +167,13 @@ std::string genNewVar(std::string type, bool reset){
 xProgram* assign(xProgram* orig){
     return orig->assignHomes();
 }
+
+//set of register names
+std::vector<std::string> Reg::regNames = {
+    "%rax", "%rbx", "%rcx",
+    "%rdx", "%rsi", "%rdi",
+    "%rbp", "%rsp", "%r8",
+    "%r9", "%r10", "%r11",
+    "%r12", "%r13", "%r14",
+    "%r15"};
+int Label::num_ = 42;

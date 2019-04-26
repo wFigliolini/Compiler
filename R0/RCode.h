@@ -25,10 +25,9 @@ typedef std::unordered_map<std::string, Expr*> Environ;
 typedef std::pair<std::string, int> strCount;
 typedef std::unordered_map<std::string, strCount> envmap;
 typedef std::pair<std::string, Expr*> rcoPair;
-typedef std::unordered_map<std::string, int> stackMap;
+typedef std::unordered_map<std::string, int> localVars;
 std::string genNewVar(std::string type = "i", bool reset = 0);
 
-namespace{
 //X definitions
 typedef std::unordered_map<std::string, int> varList;
 class BlkComplete : public std::exception{
@@ -41,7 +40,7 @@ public:
 //Handles the Stack and Registers
 class xInfo{
 public:
-    xInfo():regs_(16,0),result_(0), done_(false){};
+    xInfo():regs_(16,0), stack_(1024,0),result_(0),varCount_(0), done_(false){};
     void setLabel(std::string s){
         currLabel_ = s;
     }
@@ -62,19 +61,34 @@ public:
         }
     }
     int getReg(int reg){
-        if( reg < 0 || reg > 15) throw std::invalid_argument("Register must be in range 0->15");
-        return regs_[reg];
+        int out;
+        //std::cout << "accessing register "<< reg << std::endl;
+        try{
+            out = regs_.at(reg);
+        }
+        catch(std::out_of_range &e){
+            std::cerr << "Register get failed. Regs_ size: " << regs_.size()<< " Register accessed: "<< reg << std::endl;
+            throw std::runtime_error("RegAccess Failed");
+        }
+        return out;
     }
     int getStack(int ad){
-        if( ad < 0 ) throw std::invalid_argument("Stack reference must be above 0");
-        return stack_[ad/8];
+        int out;
+        try{
+            out = stack_.at(ad/8);
+        }
+        catch(std::out_of_range &e){
+            std::cerr << "Stack get failed. Stack_ size: " << stack_.size()<< " Address accessed: "<< ad<< std::endl;
+            throw std::runtime_error("StackAccess Failed");
+        }
+        return out;
     }
     std::string getLabel(){
         return currLabel_;
     }
     int getVar(std::string name){
         int i;
-        std::cout << "getting var "<< name << std::endl;
+        //std::cout << "getting var "<< name << std::endl;
         //segfaults in all of the select tests, even though variable will have been inserted prior
         try{
             i = v_.at(name);
@@ -82,7 +96,7 @@ public:
         catch(std::out_of_range &e){
             throw std::runtime_error("undefined Var Read");
         }
-        std::cout << name << " = " << i << std::endl;
+        //std::cout << name << " = " << i << std::endl;
         return i;
     }
     void setResult(){result_ = regs_[0]; done_= true;};
@@ -100,12 +114,16 @@ public:
         stack_.pop_back();
         return result;
     }
+    int getVC(){ return varCount_;}
+    void initVar(){ ++varCount_;}
+    void destroyVar(){ --varCount_;}
 private:
     std::vector<int> regs_;
     std::vector<int> stack_;
     std::string currLabel_;
     varList v_;
     int result_;
+    int varCount_;
     bool done_;
 };
 
@@ -113,7 +131,7 @@ class X{
 public:
     void setInfo(std::shared_ptr<xInfo> i){i_ = i;}
 protected:
-    static std::shared_ptr<xInfo> i_;
+    std::shared_ptr<xInfo> i_;
 
 };
 
@@ -153,13 +171,14 @@ protected:
    std::string label_;
    static int num_;
 };
-int Label::num_ = 42;
 
 class Arg: public X{
 public:
     virtual const std::string emitA(bool vars) = 0;
     virtual int get() = 0;
     virtual void set(int i) = 0;
+    virtual Arg* asHA(localVars* e) = 0;
+    virtual void init(std::shared_ptr<xInfo> i) = 0;
 };
 class Reg: public Arg{
 public:
@@ -190,6 +209,12 @@ public:
     void set(int i){
         i_->setReg(reg_,i);
     }
+    Arg* asHA(localVars* e){
+        return new Reg(reg_);
+    }
+    void init(std::shared_ptr<xInfo> i){
+        setInfo(i);
+    }
 private:
     int reg_;
     static std::vector<std::string> regNames;
@@ -206,6 +231,12 @@ public:
     }
     void set(int i){
         throw std::logic_error("Can't Write to Constant");
+    }
+    Arg* asHA(localVars* e){
+        return new Const(con_);
+    }
+    void init(std::shared_ptr<xInfo> i){
+        setInfo(i);
     }
 private:
     int con_;
@@ -227,6 +258,7 @@ public:
     }
     int get(){
         int addr;
+        //std::cout << "getting register " << reg_->emitA(1) <<std::endl;
         addr = reg_->get() + offset_;
         //std::cout << "getting stack offset " << addr <<std::endl;
         return i_->getStack(addr);
@@ -237,6 +269,13 @@ public:
         //std::cout << "setting stack offset " << addr << " to " << i <<std::endl;
         i_->setStack(addr, i);
         //std::cout << "Stack set" << std::endl;
+    }
+    Arg* asHA(localVars* e){
+        return new DeRef(new Reg(reg_->emitA(0)), offset_);
+    }
+    void init(std::shared_ptr<xInfo> i){
+        setInfo(i);
+        reg_->init(i);
     }
 private:
     Reg* reg_;
@@ -268,6 +307,21 @@ public:
     void set(int i){
         i_->setVar(name_,i);
     }
+    void init(std::shared_ptr<xInfo> i){
+        setInfo(i);
+        i_->initVar();
+    }
+    Arg* asHA(localVars* e){
+        int offset;
+        try{
+            offset = e->at(name_);
+        }
+        catch(std::out_of_range &ex){
+            offset = 8*e->size(); 
+            e->insert(std::pair<std::string, int>(name_, offset));
+        }
+        return new DeRef(new Reg("%rbp"), offset);
+    }
 private:
     std::string name_;
 };
@@ -280,6 +334,8 @@ public:
    explicit Instr(Arg* a1, Arg* a2): al_(a1), ar_(a2){}
    virtual std::string emitI(bool vars) = 0;
    virtual void interp() = 0;
+   virtual void init(std::shared_ptr<xInfo> i) = 0;
+   virtual Instr* asHI(localVars *e) = 0;
 protected:
     Arg* al_, *ar_;
     bool isControl;
@@ -301,6 +357,13 @@ public:
         out =  al_->get() + ar_->get();
         ar_->set(out);
     }
+    Instr* asHI(localVars *e){
+        return new Addq(al_->asHA(e), ar_->asHA(e));
+    }
+    void init(std::shared_ptr<xInfo> i){
+        al_->init(i);
+        ar_->init(i);
+    }
 };
 class Subq: public Instr{
 public:
@@ -319,6 +382,13 @@ public:
         out =  al_->get() - ar_->get();
         ar_->set(out);
     }
+    Instr* asHI(localVars *e){
+        return new Subq(al_->asHA(e), ar_->asHA(e));
+    }
+    void init(std::shared_ptr<xInfo> i){
+        al_->init(i);
+        ar_->init(i);
+    }
 };
 class Movq: public Instr{
 public:
@@ -334,6 +404,13 @@ public:
     }
     void interp(){
         ar_->set(al_->get());
+    }
+    Instr* asHI(localVars *e){
+        return new Movq(al_->asHA(e), ar_->asHA(e));
+    }
+    void init(std::shared_ptr<xInfo> i){
+        al_->init(i);
+        ar_->init(i);
     }
 }; 
 class Retq: public Instr{
@@ -357,6 +434,13 @@ public:
         }
          */
     }
+    //should never occur
+    Instr* asHI(localVars *e){
+        return new Retq();
+    }
+    void init(std::shared_ptr<xInfo> i){
+    }
+
 };
 class Negq: public Instr{
 public:
@@ -370,6 +454,12 @@ public:
     }
     void interp(){
         al_->set(-al_->get());
+    }
+    Instr* asHI(localVars *e){
+        return new Negq(al_->asHA(e));
+    }
+    void init(std::shared_ptr<xInfo> i){
+        al_->init(i);
     }
 };
 class Callq: public Instr{
@@ -387,6 +477,12 @@ public:
         //i_->setReg(6, i_->getReg(7));
         lab_->interp();
     }
+    Instr* asHI(localVars *e){
+        return new Callq(new Label(lab_->emitL(1)));
+    }
+    void init(std::shared_ptr<xInfo> i){
+        lab_->setInfo(i);
+    }
 private:
     Label* lab_;
 };
@@ -402,6 +498,12 @@ public:
     }
     void interp(){
         lab_->interp();
+    }
+    Instr* asHI(localVars *e){
+        return new Jmp(new Label(lab_->emitL(1)));
+    }
+    void init(std::shared_ptr<xInfo> i){
+        lab_->setInfo(i);
     }
 private:
     Label* lab_;
@@ -420,6 +522,12 @@ public:
         //std::cout << "calling pushstack with val " << al_->get()<< std::endl;
         i_->pushStack(al_->get());
     }
+    Instr* asHI(localVars *e){
+        return new Pushq(al_->asHA(e));
+    }
+    void init(std::shared_ptr<xInfo> i){
+        al_->init(i);
+    }
 };
 class Popq: public Instr{
 public:
@@ -434,21 +542,25 @@ public:
     void interp(){
         al_->set(i_->popStack());
     }
+    Instr* asHI(localVars *e){
+        return new Popq(al_->asHA(e));
+    }
+    void init(std::shared_ptr<xInfo> i){
+        al_->init(i);
+    }
 };
 //block definition
-typedef std::vector<Instr*> blk;
+typedef std::vector<Instr*> Blk;
 class Block: public X{
-public:
-    Block(blk b ): blk_(b){}
+    public:
+    Block(){}
+    Block(Blk b ): blk_(b){}
     std::vector<std::string> emitB(bool vars){
         std::vector<std::string> output;
         for( auto it : blk_){
             output.push_back(it->emitI(vars));
         }
         return output;
-    }
-    void setInfo(std::shared_ptr<xInfo> i){
-        i_ = i;
     }
     void interp(){
         for(auto it : blk_){
@@ -460,20 +572,35 @@ public:
             }
         }
     }
+    void init(std::shared_ptr<xInfo> i){
+        setInfo(i);
+        for(auto it : blk_){
+            it->setInfo(i);
+            it->init(i);
+        }
+    }
+    Block* asHB(localVars* e){
+        Blk exprs;
+        for(auto it : blk_){
+            Instr* temp = it->asHI(e);
+            exprs.push_back(temp);
+        }
+        Block* out = new Block(exprs);
+        return out;
+    }
 private:
-    blk blk_;
+    Blk blk_;
 };
 typedef std::unordered_map<std::string, Block*> blkList; 
 //Program definition
-class xProgram: public X{
+class xProgram{
     public:
     xProgram(){
-        i_ = std::make_shared<xInfo>();
         init();
     }
     xProgram(Block* blk){
         i_ = std::make_shared<xInfo>();
-        blks_["main"] = blk;
+        blks_["BODY"] = blk;
         init();
     }
     void declareVar(std::string n, int v){
@@ -494,6 +621,7 @@ class xProgram: public X{
     }
     void addBlock(std::string name, Block* blk){
         blks_[name] = blk;
+        blks_[name]->init(i_);
     }
     int run(){
         while(!(i_->isDone())){
@@ -542,28 +670,59 @@ class xProgram: public X{
         }
     }
     xProgram* assignHomes(){
-        return NULL;
+        Block *start = genHeader(), *end = genEnd(), *temp = new Block();
+        xProgram* out = new xProgram();
+        localVars* env = new localVars();
+        
+        for(auto [name, block]: blks_){
+            temp = block->asHB(env);
+            out->addBlock(name, temp);
+        }
+        out->addBlock("START", start);
+        out->addBlock("END", end);
+        out->init();
+        out->i_->setLabel("START");
+        return out;
     }
     bool containVar(){
-        return false;
+        return ((i_->getVC()!=0) ? true : false);
     }
 private:
     void init(){
-        i_->setLabel("main");
+        i_ = std::make_shared<xInfo>();
+        i_->setLabel("BODY");
+        for(auto [name, block] : blks_){
+            block->init(i_);
+        }
         return;
     }
+    Block* genHeader(){
+        std::vector<Instr*> start;
+        int vc = i_->getVC();
+        if(vc % 2 == 1) vc+=1;
+        vc *= 8;
+        start.push_back(new Pushq(new Reg("%rbp")));
+        start.push_back(new Movq(new Reg("%rsp"), new Reg("%rbp")));
+        start.push_back(new Subq(new Const(vc), new Reg("%rsp")));
+        start.push_back(new Jmp(new Label("BODY")));
+        Block* out = new Block(start);
+        return out;
+    }
+    Block* genEnd(){
+        std::vector<Instr*> end;
+        int vc = i_->getVC();
+        if(vc % 2 == 1) vc+=1;
+        vc *= 8;
+        end.push_back(new Addq(new Const(vc), new Reg("%rsp")));
+        end.push_back(new Popq(new Reg("%rbp")));
+        end.push_back(new Retq());
+        Block* out = new Block(end);
+        return out;
+    }
     blkList blks_;
+    std::shared_ptr<xInfo> i_;
 };
-std::shared_ptr<xInfo> X::i_ = NULL;
-//set of register names
-std::vector<std::string> Reg::regNames = {
-    "%rax", "%rbx", "%rcx",
-    "%rdx", "%rsi", "%rdi",
-    "%rbp", "%rsp", "%r8",
-    "%r9", "%r10", "%r11",
-    "%r12", "%r13", "%r14",
-    "%r15"};
-}
+
 
 //C Definitions
 
@@ -583,7 +742,7 @@ class CExp{
 public:
     virtual std::string AST() = 0;
     virtual int interp(CEnv* e) = 0;
-    virtual blk SIExp(std::string dest) = 0;
+    virtual Blk SIExp(std::string dest) = 0;
 private:
     
 };
@@ -591,8 +750,8 @@ private:
 class CArg : public CExp{
 public:
     virtual Arg* SIArg() = 0;
-    blk SIExp(std::string dest){
-        blk out;
+    Blk SIExp(std::string dest){
+        Blk out;
         out.push_back(new Movq(this->SIArg(), new Ref(dest)));
         return out;
     }
@@ -656,8 +815,8 @@ public:
     int interp(CEnv* e){
         return ar_->interp(e) + al_->interp(e);
     }
-    blk SIExp(std::string dest){
-        blk out;
+    Blk SIExp(std::string dest){
+        Blk out;
         Ref* d = new Ref(dest);
         Arg* ar = ar_->SIArg(), *al = al_->SIArg();
         std::string tr = ar_->AST(), tl = al_->AST();
@@ -700,8 +859,8 @@ public:
         else return *i_;
     }
     void reset(){ n_= 42;}
-    blk SIExp(std::string dest){
-        blk out;
+    Blk SIExp(std::string dest){
+        Blk out;
         out.push_back(new Callq(new Label("read_int")));
         out.push_back(new Movq(new Reg(0), new Ref(dest)));
         return out;
@@ -726,8 +885,8 @@ public:
     int interp(CEnv* e){
         return -a_->interp(e);
     }
-    blk SIExp(std::string dest){
-        blk out;
+    Blk SIExp(std::string dest){
+        Blk out;
         Arg* a = a_->SIArg();
         Ref* r = new Ref(dest);
         if(a_->AST() != dest) out.push_back(new Movq(a, r));
@@ -753,8 +912,8 @@ public:
         (*e)[name_] = e_;
     }
     std::string getVar(){ return name_;}
-    blk SIStat(){
-        blk out = e_->SIExp(name_);
+    Blk SIStat(){
+        Blk out = e_->SIExp(name_);
         return out;
     }
 private:
@@ -766,7 +925,7 @@ public:
     virtual std::string AST() = 0;
     virtual int interp(CEnv* e) = 0;
     virtual std::vector<std::string> getVars() = 0;
-    virtual blk SITail() = 0;
+    virtual Blk SITail() = 0;
 };
 class CRet: public CTail{
 public:
@@ -785,8 +944,8 @@ public:
         std::vector<std::string> v;
         return v;
     }
-    blk SITail(){
-        blk out;
+    Blk SITail(){
+        Blk out;
         Arg* temp = ret_->SIArg();
         out.push_back(new Movq(temp, new Reg(0)));
         out.push_back(new Jmp(new Label("END")));
@@ -817,9 +976,9 @@ public:
         v.push_back(stmt_->getVar());
         return v;
     }
-    blk SITail(){
+    Blk SITail(){
         //std::cout << "entering tail" << std::endl;
-        blk out = stmt_->SIStat(), temp = tail_->SITail();
+        Blk out = stmt_->SIStat(), temp = tail_->SITail();
         out.insert(out.end(), temp.begin(), temp.end());
         return out;
     }
