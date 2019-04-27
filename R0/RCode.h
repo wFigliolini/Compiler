@@ -812,6 +812,19 @@ class xProgram{
     int size(std::string name) const{
         return blks_[name]->size();
     }
+    xProgram* genMain(){
+        xProgram* out = this->patchP();
+        std::string sMain("main");
+        Blk temp;
+        temp.push_back(new Callq(new Label("BEGIN")));
+        temp.push_back(new Movq(new Reg(0), new Reg("%rdi")));
+        temp.push_back(new Callq(new Label("print_int")));
+        temp.push_back(new Retq());
+        Block* main = new Block(temp);
+        out->addBlock(sMain, main);
+        out->i_->setLabel(sMain);
+        return out;
+    }
 private:
     void init(){
         i_ = std::make_shared<xInfo>();
@@ -841,6 +854,7 @@ private:
         end.push_back(new Addq(new Const(vc), new Reg("%rsp")));
         end.push_back(new Popq(new Reg("%rbp")));
         end.push_back(new Retq());
+
         Block* out = new Block(end);
         return out;
     }
