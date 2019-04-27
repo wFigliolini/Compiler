@@ -153,7 +153,7 @@ public:
         return label_;
     }
     void interp(){
-        std::vector<std::string> sys_ = {"read_int", "print_int"};
+        std::vector<std::string> sys_ = {"_read_int", "_print_int"};
         auto it = std::find(std::begin(sys_), std::end(sys_), label_);
         int index, i;
         index = std::distance(sys_.begin(), it);
@@ -239,7 +239,9 @@ class Const: public Arg{
 public:
     explicit Const( int con ):con_(con){};
     const std::string emitA(bool vars){
-        return std::to_string(con_);
+        std::string out("$");
+        out+= std::to_string(con_);
+        return out;
     }
     int get(){
         return con_;
@@ -375,7 +377,7 @@ public:
         std::string output;
         output += "movq ";
         output += al_->emitA(vars);
-        output += " ";
+        output += ", ";
         output += ar_->emitA(vars);
         output += "\n";
         return output;
@@ -410,7 +412,7 @@ public:
         std::string output;
         output += "addq ";
         output += al_->emitA(vars);
-        output += " ";
+        output += ", ";
         output += ar_->emitA(vars);
         output += "\n";
         return output;
@@ -447,7 +449,7 @@ public:
         std::string output;
         output += "subq ";
         output += al_->emitA(vars);
-        output += " ";
+        output += ", ";
         output += ar_->emitA(vars);
         output += "\n";
         return output;
@@ -720,9 +722,9 @@ class xProgram{
     }
     std::vector<std::string> emit(bool vars){
         std::vector<std::string> output;
+        output.push_back(".globl main\n");
         for(auto [ name, block] : blks_){
             std::vector<std::string> blockOut;
-            if(name == "main") blockOut.push_back(".globl main");
             std::string outName(name);
             outName+=":\n";
             output.push_back(outName);
@@ -746,7 +748,7 @@ class xProgram{
     void outputToFile(std::string n, bool vars){
         std::vector<std::string> output;
         std::ofstream ofs;
-        n+=".asm";
+        n+=".s";
         ofs.open(n);
         
         output = emit(vars);
@@ -764,7 +766,7 @@ class xProgram{
         if(pid == 0){
             //child
             //run as
-            *err = execl("/usr/bin/as", "-- o.asm" ,NULL);
+            *err = execl("/usr/bin/cc","R0/runtime.c", "o.s" ,"-o", "o.bin", NULL);
         }
         else if(pid > 0){
             //parent
@@ -816,9 +818,9 @@ class xProgram{
         xProgram* out = this->patchP();
         std::string sMain("main");
         Blk temp;
-        temp.push_back(new Callq(new Label("BEGIN")));
+        temp.push_back(new Callq(new Label("START")));
         temp.push_back(new Movq(new Reg(0), new Reg("%rdi")));
-        temp.push_back(new Callq(new Label("print_int")));
+        temp.push_back(new Callq(new Label("_print_int")));
         temp.push_back(new Retq());
         Block* main = new Block(temp);
         out->addBlock(sMain, main);
@@ -1000,7 +1002,7 @@ public:
     void reset(){ n_= 42;}
     Blk SIExp(std::string dest){
         Blk out;
-        out.push_back(new Callq(new Label("read_int")));
+        out.push_back(new Callq(new Label("_read_int")));
         out.push_back(new Movq(new Reg(0), new Ref(dest)));
         return out;
     }

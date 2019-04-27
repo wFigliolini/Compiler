@@ -74,6 +74,8 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         xTest = patch(xTest);
         f = xTest->run();
         BOOST_REQUIRE(int2 == f);
+        xTest = xTest->genMain();
+        xTest->outputToFile("Test2", 0);
     }
     // test for two branches with reads
     BOOST_AUTO_TEST_CASE(Test3) {
@@ -1161,7 +1163,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             xProgram* xTest = cTest->selInsr();
             //ret = xTest->run();
             //BOOST_REQUIRE(ret == result);
-            std::vector<std::string> AST = {"main:\n", "callq read_int\n", "movq %rax &x\n", "movq &x %rax\n", "jmp END\n"};
+            std::vector<std::string> AST = {"main:\n", "callq _read_int\n", "movq %rax &x\n", "movq &x %rax\n", "jmp END\n"};
             std::vector<std::string> out;
             out = xTest->emit(1);
             xTest = assign(xTest);
