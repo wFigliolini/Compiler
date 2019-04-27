@@ -45,6 +45,8 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         xTest = patch(xTest);
         f = xTest->run();
         BOOST_REQUIRE(int1 == f);
+        xTest = xTest->genMain();
+        xTest->outputToFile("Test1", 0);
     }
     BOOST_AUTO_TEST_CASE(Test2) {
         Program* pTest = new Program(NULL, new Add(new Num(7), new Num(13)));
