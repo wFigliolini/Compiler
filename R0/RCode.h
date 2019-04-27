@@ -13,6 +13,7 @@
 #include <stdexcept>
 #include <algorithm>
 #include <fstream>
+#include <set>
 #include <unistd.h>
 #include <sys/wait.h>
 
@@ -28,7 +29,8 @@ typedef std::unordered_map<std::string, strCount> envmap;
 typedef std::pair<std::string, Expr*> rcoPair;
 typedef std::unordered_map<std::string, int> localVars;
 typedef std::vector<Instr*> Blk;
-typedef std::vector<std::vector<std::string>> liveSet;
+typedef std::set<std::string> varSet;
+typedef std::vector<varSet> liveSet;
 std::string genNewVar(std::string type = "i", bool reset = 0);
 
 //X definitions
@@ -139,7 +141,27 @@ private:
 };
 class blkInfo{
 public:
-    
+    blkInfo(int size):l_(size, varSet()){};
+    varSet getIndex(int i){
+        varSet out(l_[i]);
+        return out;
+    }
+    void setIndex(unsigned int i, Instr* instr);
+    unsigned int getSetSize() const{
+        return l_.size();
+    }
+    void printSet(){
+        for(auto it1 : l_){
+            std::cout << "{ ";
+            for(auto it2 :it1){
+                std::cout << it2 << " ";
+            }
+            std::cout <<"}"<< std::endl;
+        }
+    }
+    void setSet(liveSet i){
+        l_ = i;
+    }
 private:
     liveSet l_;
 };
@@ -197,6 +219,7 @@ public:
     virtual Arg* asHA(localVars* e) = 0;
     virtual void init(std::shared_ptr<xInfo> i, std::shared_ptr<blkInfo> bi) = 0;
     virtual bool isMemRef() = 0;
+    virtual std::string ul() = 0;
 };
 class Reg: public Arg{
 public:
@@ -237,6 +260,10 @@ public:
     bool isMemRef(){
         return false;
     }
+    std::string ul(){
+        std::string out;
+        return out;
+    }
 private:
     int reg_;
     static std::vector<std::string> regNames;
@@ -265,6 +292,10 @@ public:
     }
     bool isMemRef(){
         return false;
+    }
+    std::string ul(){
+        std::string out;
+        return out;
     }
 private:
     int con_;
@@ -308,6 +339,10 @@ public:
     }
     bool isMemRef(){
         return true;
+    }
+    std::string ul(){
+        std::string out;
+        return out;
     }
 private:
     Reg* reg_;
@@ -358,6 +393,9 @@ public:
     bool isMemRef(){
         return true;
     }
+    std::string ul(){
+        return name_;
+    }
 private:
     std::string name_;
 };
@@ -376,6 +414,7 @@ public:
    virtual bool isRet(){
        return false;
    }
+   virtual varSet ul(varSet lb) = 0;
 protected:
     Arg* al_, *ar_;
     bool isControl;
@@ -415,6 +454,19 @@ public:
         }
         return out;
     }
+    varSet ul(varSet lb){
+        std::string t1, t2;
+        t1 = al_->ul();
+        t2 = ar_->ul();
+        if(t2.empty() ==false){
+            auto it = lb.find(t2);
+            if(it != lb.end()) lb.erase(it);
+        }
+        if(t1.empty() == false){
+            lb.insert(t1);
+        }
+        return lb;
+    }
 };
 class Addq: public Instr{
 public:
@@ -452,6 +504,19 @@ public:
             out.push_back(new Addq(al,ar));
         }
         return out;
+    }
+    varSet ul(varSet lb){
+        std::string t1, t2;
+        t1 = al_->ul();
+        t2 = ar_->ul();
+        /*if(t2.empty() ==false){
+            auto it = lb.find(t2);
+            if(it != lb.end()) lb.erase(it);
+        }*/
+        if(t1.empty() == false){
+            lb.insert(t1);
+        }
+        return lb;
     }
 };
 class Subq: public Instr{
@@ -491,6 +556,19 @@ public:
         }
         return out;
     }
+    varSet ul(varSet lb){
+        std::string t1, t2;
+        t1 = al_->ul();
+        t2 = ar_->ul();
+        /*if(t2.empty() ==false){
+            auto it = lb.find(t2);
+            if(it != lb.end()) lb.erase(it);
+        }*/
+        if(t1.empty() == false){
+            lb.insert(t1);
+        }
+        return lb;
+    }
 }; 
 class Jmp: public Instr{
 public:
@@ -517,6 +595,9 @@ public:
         out.push_back(this->asHI(NULL));
         return out;
     }
+    varSet ul(varSet lb){
+        return lb;
+    }
 private:
     Label* lab_;
 };
@@ -541,7 +622,6 @@ public:
         }
          */
     }
-    //should never occur
     Instr* asHI(localVars *e){
         //return END fto make compatible with headers added at end of assign
         return new Jmp(new Label("END"));
@@ -557,7 +637,9 @@ public:
     bool isRet(){
         return true;
     }
-
+    varSet ul(varSet lb){
+        return lb;
+    }
 };
 class Negq: public Instr{
 public:
@@ -583,6 +665,11 @@ public:
         Blk out;
         out.push_back(this->asHI(NULL));
         return out;
+    }
+    varSet ul(varSet lb){
+        //return lb as negq is a unary operator which reads and writes,
+        //resulting in removing then immediately re-adding the variable
+        return lb;
     }
 };
 class Callq: public Instr{
@@ -611,6 +698,9 @@ public:
         Blk out;
         out.push_back(this->asHI(NULL));
         return out;
+    }
+    varSet ul(varSet lb){
+        return lb;
     }
 private:
     Label* lab_;
@@ -642,6 +732,12 @@ public:
         out.push_back(this->asHI(NULL));
         return out;
     }
+    varSet ul(varSet lb){
+        //unary read
+        std::string t =al_->ul();
+        lb.insert(t);
+        return lb;
+    }
 };
 class Popq: public Instr{
 public:
@@ -668,6 +764,15 @@ public:
         out.push_back(this->asHI(NULL));
         return out;
     }
+    varSet ul(varSet lb){
+        std::string t =al_->ul();
+        //unary write
+        if(t.empty() == false){
+            auto it = lb.find(t);
+            lb.erase(it);
+        }
+        return lb;
+    }
 };
 //block definition
 class Block: public X{
@@ -693,7 +798,7 @@ class Block: public X{
     }
     void init(std::shared_ptr<xInfo> i){
         setInfo(i);
-        bi_ = std::make_shared<blkInfo>();
+        bi_ = std::make_shared<blkInfo>(blk_.size());
         for(auto it : blk_){
             it->setInfo(i);
             it->init(i, bi_);
@@ -719,11 +824,54 @@ class Block: public X{
         Block* out = new Block(exprs);
         return out;
     }
-    int size() const{
+    unsigned int size() const{
         return blk_.size();
     }
     void uncoverLive(){
-        
+        int last = blk_.size()-1;
+        for( int i = last; i >= 0; --i){
+            if(i == last){
+                //bi_->setSet(liveSet());
+                continue;
+            }
+            else{
+                bi_->setIndex(i, blk_[i+1]);
+            }
+        }
+    }
+    bool testLive(liveSet d){
+        varSet act, exp;
+        bool result;
+        int size1 = bi_->getSetSize(), size2 =blk_.size();
+        if(size1 != size2){
+            std::cout<< "Set size mismatch, set size = " << size1 << " Block size = " << size2 << std::endl;
+            return false;
+        }
+        for(int i = 0; i < blk_.size(); ++i){
+            act = bi_->getIndex(i);
+            exp = d[i];
+            result = (act == exp);
+            if(result == false){
+                std::cout << "testLive Failed at index i = " << i<<std::endl;
+                std::cout << "act contained: ";
+                for(auto it :act){
+                    std::cout << it << " ";
+                }
+                std::cout << std::endl;
+                std::cout << "exp contained: ";
+                for(auto it :exp){
+                    std::cout << it << " ";
+                }
+                std::cout << std::endl;
+                std::cout<< "dumping liveSet"<< std::endl;
+                bi_->printSet();
+                break;
+            }
+        }
+        return result;
+    }
+    void printSet(){
+        bi_->printSet();
     }
 private:
     Blk blk_;
@@ -835,7 +983,9 @@ class xProgram{
         return ((i_->getVC()!=0) ? true : false);
     }
     int size(std::string name) const{
-        return blks_[name]->size();
+        Block* temp= blks_[name];
+        unsigned int out = temp->size();
+        return out;
     }
     xProgram* genMain(){
         xProgram* out = this->patchP();
@@ -856,7 +1006,12 @@ class xProgram{
         }
     }
     bool testLive(liveSet d){
-        return false;
+        Block* blk = blks_["BODY"];
+        bool result = blk->testLive(d);
+        return result;
+    }
+    void printSet(std::string name){
+        blks_[name]->printSet();
     }
 private:
     void init(){

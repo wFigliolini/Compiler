@@ -171,7 +171,15 @@ xProgram* assign(xProgram* orig){
 xProgram* patch(xProgram* orig){
     return orig->patchP();
 }
-
+void blkInfo::setIndex(unsigned int i, Instr* instr){
+    varSet val, prev;
+    //return empty set if last index
+    if(i < (l_.size()-1)){
+        prev = getIndex(i+1);
+        val = instr->ul(prev);
+    }
+    l_[i] = val;
+}
 //set of register names
 std::vector<std::string> Reg::regNames = {
     "%rax", "%rbx", "%rcx",

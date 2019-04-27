@@ -1449,6 +1449,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             BOOST_REQUIRE(passed == true);
         }
         //pushpop tests
+        //causes infinite loop
         BOOST_AUTO_TEST_CASE(LIVE5){
             Blk instrSet;
                 instrSet.push_back(new Movq(new Const(5), new Ref("f")));
