@@ -38,11 +38,13 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         out = xTest->emit(1);
 /*        for(auto it : out){
             std::cout << it;
-        }
-        f = xTest->run();*/
-
+        }*/
+        f = xTest->run();
         BOOST_REQUIRE(int1 == f);
         BOOST_REQUIRE(xTest->containVar() == false);
+        xTest = patch(xTest);
+        f = xTest->run();
+        BOOST_REQUIRE(int1 == f);
     }
     BOOST_AUTO_TEST_CASE(Test2) {
         Program* pTest = new Program(NULL, new Add(new Num(7), new Num(13)));
@@ -67,6 +69,9 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         f = xTest->run();
         BOOST_REQUIRE(int2 == f);
         BOOST_REQUIRE(xTest->containVar() == false);
+        xTest = patch(xTest);
+        f = xTest->run();
+        BOOST_REQUIRE(int2 == f);
     }
     // test for two branches with reads
     BOOST_AUTO_TEST_CASE(Test3) {
@@ -92,6 +97,9 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         f = xTest->run();
         BOOST_REQUIRE(int3 == f);
         BOOST_REQUIRE(xTest->containVar() == false);
+        xTest = patch(xTest);
+        f = xTest->run();
+        BOOST_REQUIRE(int3 == f);
     }
 
     BOOST_AUTO_TEST_CASE(Test4) {
@@ -116,6 +124,9 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         f = xTest->run();
         BOOST_REQUIRE(int4 == f);
         BOOST_REQUIRE(xTest->containVar() == false);
+        xTest = patch(xTest);
+        f = xTest->run();
+        BOOST_REQUIRE(int4 == f);
     }
 
     BOOST_AUTO_TEST_CASE(Test5) {
@@ -144,6 +155,9 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         f = xTest->run();
         BOOST_REQUIRE(int5 == f);
         BOOST_REQUIRE(xTest->containVar() == false);
+        xTest = patch(xTest);
+        f = xTest->run();
+        BOOST_REQUIRE(int5 == f);
     }
 
     BOOST_AUTO_TEST_CASE(Null_Test) {
@@ -177,6 +191,9 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         f = xTest->run();
         BOOST_REQUIRE(result == f);
         BOOST_REQUIRE(xTest->containVar() == false);
+        xTest = patch(xTest);
+        f = xTest->run();
+        BOOST_REQUIRE(result == f);
         }
     //Overwrite Test Case
         BOOST_AUTO_TEST_CASE(OWCASE){
@@ -201,6 +218,9 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         f = xTest->run();
         BOOST_REQUIRE(result == f);
         BOOST_REQUIRE(xTest->containVar() == false);
+        xTest = patch(xTest);
+        f = xTest->run();
+        BOOST_REQUIRE(result == f);
         }
     //Multiple Vars
         BOOST_AUTO_TEST_CASE(MVCASE){
@@ -225,6 +245,9 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         f = xTest->run();
         BOOST_REQUIRE(result == f);
         BOOST_REQUIRE(xTest->containVar() == false);
+        xTest = patch(xTest);
+        f = xTest->run();
+        BOOST_REQUIRE(result == f);
         }
     //Expression Handling
         BOOST_AUTO_TEST_CASE(EXPHAND){
@@ -249,6 +272,9 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         f = xTest->run();
         BOOST_REQUIRE(result == f);
         BOOST_REQUIRE(xTest->containVar() == false);
+        xTest = patch(xTest);
+        f = xTest->run();
+        BOOST_REQUIRE(result == f);
         }
     //Order of Operations Test
     //Reads Will be 39,38
@@ -274,6 +300,9 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         f = xTest->run();
         BOOST_REQUIRE(result == f);
         BOOST_REQUIRE(xTest->containVar() == false);
+        xTest = patch(xTest);
+        f = xTest->run();
+        BOOST_REQUIRE(result == f);
         }
     
     //uniquify tests
@@ -308,6 +337,9 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         f = xTest->run();
         BOOST_REQUIRE(orig == f);
         BOOST_REQUIRE(xTest->containVar() == false);
+        xTest = patch(xTest);
+        f = xTest->run();
+        BOOST_REQUIRE(orig == f);
     }
     BOOST_AUTO_TEST_CASE(UNIQ2){
         Let* expr = new Let("x", new Num(16), new Add(new Var("x"), new Var("x")));
@@ -337,6 +369,9 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         f = xTest->run();
         BOOST_REQUIRE(orig == f);
         BOOST_REQUIRE(xTest->containVar() == false);
+        xTest = patch(xTest);
+        f = xTest->run();
+        BOOST_REQUIRE(orig == f);
     }
     //from textbook page 28
     BOOST_AUTO_TEST_CASE(UNIQ3){
@@ -363,6 +398,9 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         f = xTest->run();
         BOOST_REQUIRE(orig == f);
         BOOST_REQUIRE(xTest->containVar() == false);
+        xTest = patch(xTest);
+        f = xTest->run();
+        BOOST_REQUIRE(orig == f);
     }
     BOOST_AUTO_TEST_CASE(UNIQ4){
         Let* expr = new Let("x", new Let("x", new Num(4), new Add(new Var("x"), new Num(1))), new Add(new Var("x"), new Num(2)));
@@ -387,6 +425,9 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         f = xTest->run();
         BOOST_REQUIRE(orig == f);
         BOOST_REQUIRE(xTest->containVar() == false);
+        xTest = patch(xTest);
+        f = xTest->run();
+        BOOST_REQUIRE(orig == f);
     }
     //RCO Tests
     BOOST_AUTO_TEST_CASE(RCO1){
@@ -408,6 +449,9 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         f = xTest->run();
         BOOST_REQUIRE(orig == f);
         BOOST_REQUIRE(xTest->containVar() == false);
+        xTest = patch(xTest);
+        f = xTest->run();
+        BOOST_REQUIRE(orig == f);
     }
     BOOST_AUTO_TEST_CASE(RCO2){
         Expr* expr = new Add(new Num(10), new Neg(new Num(10)));
@@ -426,6 +470,9 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         f = xTest->run();
         BOOST_REQUIRE(orig == f);
         BOOST_REQUIRE(xTest->containVar() == false);
+        xTest = patch(xTest);
+        f = xTest->run();
+        BOOST_REQUIRE(orig == f);
     }
     BOOST_AUTO_TEST_CASE(RCO3){
         Expr* expr = new Add(new Add(new Num(7), new Read(1)), new Add(new Num(13), new Read(1)));
@@ -444,6 +491,9 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         f = xTest->run();
         BOOST_REQUIRE(orig == f);
         BOOST_REQUIRE(xTest->containVar() == false);
+        xTest = patch(xTest);
+        f = xTest->run();
+        BOOST_REQUIRE(orig == f);
     }
     BOOST_AUTO_TEST_CASE(RCO4){
         Expr* expr = new Neg(new Add(new Num(17), new Add(new Read(1), new Num(42))));
@@ -463,6 +513,9 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         f = xTest->run();
         BOOST_REQUIRE(orig == f);
         BOOST_REQUIRE(xTest->containVar() == false);
+        xTest = patch(xTest);
+        f = xTest->run();
+        BOOST_REQUIRE(orig == f);
     }
     BOOST_AUTO_TEST_CASE(RCO5){
         //testing for preservation of lets
@@ -485,6 +538,9 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         f = xTest->run();
         BOOST_REQUIRE(orig == f);
         BOOST_REQUIRE(xTest->containVar() == false);
+        xTest = patch(xTest);
+        f = xTest->run();
+        BOOST_REQUIRE(orig == f);
     }
     //econ Tests
 
@@ -503,6 +559,9 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         f = xTest->run();
         BOOST_REQUIRE(orig == f);
         BOOST_REQUIRE(xTest->containVar() == false);
+        xTest = patch(xTest);
+        f = xTest->run();
+        BOOST_REQUIRE(orig == f);
     }
     BOOST_AUTO_TEST_CASE(ECON2){
         Expr* expr = new Add(new Add(new Num(7), new Read(1)), new Add(new Num(13), new Read(1)));
@@ -520,6 +579,9 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         f = xTest->run();
         BOOST_REQUIRE(orig == f);
         BOOST_REQUIRE(xTest->containVar() == false);
+        xTest = patch(xTest);
+        f = xTest->run();
+        BOOST_REQUIRE(orig == f);
     }
     //Manually decompiled C Tests
     //CTest2
@@ -538,6 +600,9 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         f = xTest->run();
         BOOST_REQUIRE(orig == f);
         BOOST_REQUIRE(xTest->containVar() == false);
+        xTest = patch(xTest);
+        f = xTest->run();
+        BOOST_REQUIRE(orig == f);
     }
     //CTest5
     BOOST_AUTO_TEST_CASE(ECON4){
@@ -556,6 +621,9 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         f = xTest->run();
         BOOST_REQUIRE(orig == f);
         BOOST_REQUIRE(xTest->containVar() == false);
+        xTest = patch(xTest);
+        f = xTest->run();
+        BOOST_REQUIRE(orig == f);
     }
     BOOST_AUTO_TEST_CASE(ECON5){
         //testing for preservation of lets
@@ -573,6 +641,9 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         f = xTest->run();
         BOOST_REQUIRE(orig == f);
         BOOST_REQUIRE(xTest->containVar() == false);
+        xTest = patch(xTest);
+        f = xTest->run();
+        BOOST_REQUIRE(orig == f);
     }
     
     
@@ -608,8 +679,8 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
     // Depth 100 results in system stalling and losing the rest of the file 
     BOOST_AUTO_TEST_CASE(Mass_Test){
             int depth(10), runCount(100);
-            int optFails(0), uniqFails(0), rcoFails(0), econFails(0);
-            std::vector<int>  uniqList, optList, rcoList, econList;
+            int optFails(0), uniqFails(0), rcoFails(0), econFails(0), selFails(0), asFails(0), patchFails(0);
+            std::vector<int>  uniqList, optList, rcoList, econList, selList, asList, patchList;
             Program* pTest;
             for(int i = 0; i< runCount; ++i){
                 int result, opresult;
@@ -650,6 +721,30 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                     ++econFails;
                     result = opresult;
                 }
+                xProgram* xTest = cTest->selInsr();
+                opresult = xTest->run();
+                if (result !=opresult){
+                    //std::cout <<"Intended result: "<< result << " Uniq Result: " << opresult << std::endl;
+                    selList.push_back(opresult);
+                    ++selFails;
+                    result = opresult;
+                }
+                xTest = assign(xTest);
+                opresult = xTest->run();
+                if (result !=opresult){
+                    //std::cout <<"Intended result: "<< result << " Uniq Result: " << opresult << std::endl;
+                    asList.push_back(opresult);
+                    ++asFails;
+                    result = opresult;
+                }
+                xTest = patch(xTest);
+                opresult = xTest->run();
+                if (result !=opresult){
+                    //std::cout <<"Intended result: "<< result << " Uniq Result: " << opresult << std::endl;
+                    patchList.push_back(opresult);
+                    ++patchFails;
+                    result = opresult;
+                }
             }
             if(optFails > 0){
                 std::cout <<"Optimizer failed "<< optFails << " tests." << std::endl;
@@ -661,7 +756,16 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                 std::cout <<"Rco failed "<< rcoFails <<" tests." << std::endl;
             }
             if(econFails > 0){
-                std::cout <<"Rco failed "<< econFails <<" tests." << std::endl;
+                std::cout <<"Econ failed "<< econFails <<" tests." << std::endl;
+            }
+            if(selFails > 0){
+                std::cout <<"Select failed "<< selFails <<" tests." << std::endl;
+            }
+            if(asFails > 0){
+                std::cout <<"Assign failed "<< asFails <<" tests." << std::endl;
+            }
+            if(patchFails > 0){
+                std::cout <<"Patch failed "<< patchFails <<" tests." << std::endl;
             }
             BOOST_REQUIRE(optFails == 0 && uniqFails == 0 && rcoFails ==0 && econFails == 0);
         }

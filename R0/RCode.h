@@ -1073,7 +1073,8 @@ public:
         Blk out;
         Arg* temp = ret_->SIArg();
         out.push_back(new Movq(temp, new Reg(0)));
-        out.push_back(new Jmp(new Label("END")));
+        out.push_back(new Retq());
+        //out.push_back(new Jmp(new Label("END")));
         return out;
     }
 private:
