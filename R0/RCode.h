@@ -21,11 +21,13 @@ enum opCode { num, add, neg, rRead, ERROR = -1};
 class Expr;
 class Num;
 class CExp;
+class Instr;
 typedef std::unordered_map<std::string, Expr*> Environ;
 typedef std::pair<std::string, int> strCount;
 typedef std::unordered_map<std::string, strCount> envmap;
 typedef std::pair<std::string, Expr*> rcoPair;
 typedef std::unordered_map<std::string, int> localVars;
+typedef std::vector<Instr*> Blk;
 std::string genNewVar(std::string type = "i", bool reset = 0);
 
 //X definitions
@@ -135,6 +137,7 @@ private:
     bool done_;
 };
 
+
 class X{
 public:
     void setInfo(std::shared_ptr<xInfo> i){i_ = i;}
@@ -187,6 +190,7 @@ public:
     virtual void set(int i) = 0;
     virtual Arg* asHA(localVars* e) = 0;
     virtual void init(std::shared_ptr<xInfo> i) = 0;
+    virtual bool isMemRef() = 0;
 };
 class Reg: public Arg{
 public:
@@ -223,6 +227,9 @@ public:
     void init(std::shared_ptr<xInfo> i){
         setInfo(i);
     }
+    bool isMemRef(){
+        return false;
+    }
 private:
     int reg_;
     static std::vector<std::string> regNames;
@@ -245,6 +252,9 @@ public:
     }
     void init(std::shared_ptr<xInfo> i){
         setInfo(i);
+    }
+    bool isMemRef(){
+        return false;
     }
 private:
     int con_;
@@ -284,6 +294,9 @@ public:
     void init(std::shared_ptr<xInfo> i){
         setInfo(i);
         reg_->init(i);
+    }
+    bool isMemRef(){
+        return true;
     }
 private:
     Reg* reg_;
@@ -330,6 +343,9 @@ public:
         }
         return new DeRef(new Reg("%rsp"), offset);
     }
+    bool isMemRef(){
+        return true;
+    }
 private:
     std::string name_;
 };
@@ -344,9 +360,48 @@ public:
    virtual void interp() = 0;
    virtual void init(std::shared_ptr<xInfo> i) = 0;
    virtual Instr* asHI(localVars *e) = 0;
+   virtual Blk patchI() = 0;
+   virtual bool isRet(){
+       return false;
+   }
 protected:
     Arg* al_, *ar_;
     bool isControl;
+};
+class Movq: public Instr{
+public:
+    Movq(Arg* a1, Arg* a2): Instr(a1, a2){};
+    virtual std::string emitI(bool vars){
+        std::string output;
+        output += "movq ";
+        output += al_->emitA(vars);
+        output += " ";
+        output += ar_->emitA(vars);
+        output += "\n";
+        return output;
+    }
+    void interp(){
+        ar_->set(al_->get());
+    }
+    Instr* asHI(localVars *e){
+        return new Movq(al_->asHA(e), ar_->asHA(e));
+    }
+    void init(std::shared_ptr<xInfo> i){
+        al_->init(i);
+        ar_->init(i);
+    }
+    Blk patchI(){
+        Blk out;
+        Arg *al = al_->asHA(NULL), *ar = ar_->asHA(NULL);
+        if(al->isMemRef() && ar->isMemRef()){
+            out.push_back(new Movq(al, new Reg(0)));
+            out.push_back(new Movq(new Reg(0), ar));
+        }
+        else{
+            out.push_back(new Movq(al,ar));
+        }
+        return out;
+    }
 };
 class Addq: public Instr{
 public:
@@ -371,6 +426,18 @@ public:
     void init(std::shared_ptr<xInfo> i){
         al_->init(i);
         ar_->init(i);
+    }
+    Blk patchI(){
+        Blk out;
+        Arg *al = al_->asHA(NULL), *ar = ar_->asHA(NULL);
+        if(al->isMemRef() && ar->isMemRef()){
+            out.push_back(new Movq(al, new Reg(0)));
+            out.push_back(new Addq(new Reg(0), ar));
+        }
+        else{
+            out.push_back(new Addq(al,ar));
+        }
+        return out;
     }
 };
 class Subq: public Instr{
@@ -397,30 +464,46 @@ public:
         al_->init(i);
         ar_->init(i);
     }
-};
-class Movq: public Instr{
+    Blk patchI(){
+        Blk out;
+        Arg *al = al_->asHA(NULL), *ar = ar_->asHA(NULL);
+        if(al->isMemRef() && ar->isMemRef()){
+            out.push_back(new Movq(al, new Reg(0)));
+            out.push_back(new Subq(new Reg(0), ar));
+        }
+        else{
+            out.push_back(new Subq(al,ar));
+        }
+        return out;
+    }
+}; 
+class Jmp: public Instr{
 public:
-    Movq(Arg* a1, Arg* a2): Instr(a1, a2){};
+    Jmp(Label* lab): lab_(lab){};
     virtual std::string emitI(bool vars){
         std::string output;
-        output += "movq ";
-        output += al_->emitA(vars);
-        output += " ";
-        output += ar_->emitA(vars);
+        output += "jmp ";
+        output += lab_->emitL(vars);
         output += "\n";
         return output;
     }
     void interp(){
-        ar_->set(al_->get());
+        lab_->interp();
     }
     Instr* asHI(localVars *e){
-        return new Movq(al_->asHA(e), ar_->asHA(e));
+        return new Jmp(new Label(lab_->emitL(1)));
     }
     void init(std::shared_ptr<xInfo> i){
-        al_->init(i);
-        ar_->init(i);
+        lab_->setInfo(i);
     }
-}; 
+    Blk patchI(){
+        Blk out;
+        out.push_back(this->asHI(NULL));
+        return out;
+    }
+private:
+    Label* lab_;
+};
 class Retq: public Instr{
 public:
     Retq(): Instr(){};
@@ -444,9 +527,18 @@ public:
     }
     //should never occur
     Instr* asHI(localVars *e){
-        return new Retq();
+        //return END fto make compatible with headers added at end of assign
+        return new Jmp(new Label("END"));
     }
     void init(std::shared_ptr<xInfo> i){
+    }
+    Blk patchI(){
+        Blk out;
+        out.push_back(new Retq());
+        return out;
+    }
+    bool isRet(){
+        return true;
     }
 
 };
@@ -468,6 +560,11 @@ public:
     }
     void init(std::shared_ptr<xInfo> i){
         al_->init(i);
+    }
+    Blk patchI(){
+        Blk out;
+        out.push_back(this->asHI(NULL));
+        return out;
     }
 };
 class Callq: public Instr{
@@ -491,31 +588,15 @@ public:
     void init(std::shared_ptr<xInfo> i){
         lab_->setInfo(i);
     }
-private:
-    Label* lab_;
-};
-class Jmp: public Instr{
-public:
-    Jmp(Label* lab): lab_(lab){};
-    virtual std::string emitI(bool vars){
-        std::string output;
-        output += "jmp ";
-        output += lab_->emitL(vars);
-        output += "\n";
-        return output;
-    }
-    void interp(){
-        lab_->interp();
-    }
-    Instr* asHI(localVars *e){
-        return new Jmp(new Label(lab_->emitL(1)));
-    }
-    void init(std::shared_ptr<xInfo> i){
-        lab_->setInfo(i);
+    Blk patchI(){
+        Blk out;
+        out.push_back(this->asHI(NULL));
+        return out;
     }
 private:
     Label* lab_;
 };
+
 class Pushq: public Instr{
 public:
     Pushq(Arg* a1): Instr(a1){};
@@ -535,6 +616,11 @@ public:
     }
     void init(std::shared_ptr<xInfo> i){
         al_->init(i);
+    }
+    Blk patchI(){
+        Blk out;
+        out.push_back(this->asHI(NULL));
+        return out;
     }
 };
 class Popq: public Instr{
@@ -556,9 +642,13 @@ public:
     void init(std::shared_ptr<xInfo> i){
         al_->init(i);
     }
+    Blk patchI(){
+        Blk out;
+        out.push_back(this->asHI(NULL));
+        return out;
+    }
 };
 //block definition
-typedef std::vector<Instr*> Blk;
 class Block: public X{
     public:
     Block(){}
@@ -592,6 +682,17 @@ class Block: public X{
         for(auto it : blk_){
             Instr* temp = it->asHI(e);
             exprs.push_back(temp);
+        }
+        Block* out = new Block(exprs);
+        return out;
+    }
+    Block* patchB(){
+        Blk exprs;
+        for(auto it : blk_){
+            Blk temp = it->patchI();
+            for(auto it2 : temp){
+                exprs.push_back(it2);
+            }
         }
         Block* out = new Block(exprs);
         return out;
@@ -695,14 +796,21 @@ class xProgram{
         out->i_->setLabel("START");
         return out;
     }
-    xProgram* patch(){
-        return NULL;
+    xProgram* patchP(){
+        Block* temp;
+        xProgram* out = new xProgram();
+        for(auto [name, block]: blks_){
+            temp = block->patchB();
+            out->addBlock(name, temp);
+        }
+        out->i_->setLabel("START");
+        return out;
     }
     bool containVar(){
         return ((i_->getVC()!=0) ? true : false);
     }
-    int size(std::string name = "BODY") const{
-        return blks_.size();
+    int size(std::string name) const{
+        return blks_[name]->size();
     }
 private:
     void init(){
@@ -1610,5 +1718,5 @@ public:
 Program* pow(int x, int b = 2);
 Program* randProg(int depth);
 xProgram* assign(xProgram* orig);
-
+xProgram* patch(xProgram* orig);
 #endif

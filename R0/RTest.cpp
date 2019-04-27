@@ -4,6 +4,7 @@
 #include "RCode.h"
 
 #define BOOST_TEST_STATIC_LINK
+
 BOOST_AUTO_TEST_SUITE(R0TESTS)
     // setting up for first set of tests
 
@@ -1069,10 +1070,16 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                 instrSet.push_back(new Movq(new Const(20), new Ref("f")));
                 instrSet.push_back(new Addq(new Const(20), new Ref("f")));
                 instrSet.push_back(new Movq(new Ref("f"), new Reg("%rax")));
-                instrSet.push_back(new Jmp("END"));
+                instrSet.push_back(new Retq());
             xProgram* pTest = new xProgram(new Block(instrSet));
             orig = pTest->run();
             pTest = assign(pTest);
+            //std::vector<std::string> out;
+            /*out = pTest->emit(1);
+            for(auto it : out){
+                std::cout << it;
+            }*/
+
             f = pTest->run();
 
             BOOST_REQUIRE(orig == f);
@@ -1085,7 +1092,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                 instrSet.push_back(new Movq(new Const(20), new Ref("f")));
                 instrSet.push_back(new Addq(new Ref("f"), new Ref("f")));
                 instrSet.push_back(new Movq(new Ref("f"), new Reg("%rax")));
-                instrSet.push_back(new Jmp("END"));
+                instrSet.push_back(new Retq());
             xProgram* pTest = new xProgram(new Block(instrSet));
             orig = pTest->run();
             pTest = assign(pTest);
@@ -1106,7 +1113,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                 instrSet.push_back(new Movq(new Const(40), new Ref("f")));
                 instrSet.push_back(new Addq(new Ref("x"), new Ref("f")));
                 instrSet.push_back(new Movq(new Ref("f"), new Reg("%rax")));
-                instrSet.push_back(new Jmp("END"));
+                instrSet.push_back(new Retq());
             xProgram* pTest = new xProgram(new Block(instrSet));
             orig = pTest->run();
             pTest = assign(pTest);
@@ -1161,33 +1168,40 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                 instrSet.push_back(new Movq(new Const(40), new Ref("f")));
                 instrSet.push_back(new Addq(new Ref("x"), new Ref("f")));
                 instrSet.push_back(new Movq(new Ref("f"), new Reg("%rax")));
-                instrSet.push_back(new Jmp("END"));
+                instrSet.push_back(new Retq());
             xProgram* pTest = new xProgram(new Block(instrSet));
             orig = pTest->run();
-            origSize = pTest->size();
+            origSize = pTest->size("BODY");
             pTest = assign(pTest);
+            //std::cout << "passed assign" <<std::endl;
             pTest = patch(pTest);
+            //std::vector<std::string> out;
+            /*out = pTest->emit(1);
+            for(auto it : out){
+                std::cout << it;
+            }*/
             f = pTest->run();
-            fSize = pTest->size();
+            fSize = pTest->size("BODY");
             
             BOOST_REQUIRE(orig == f);
             //original size + number of double memory references
+            //std::cout << origSize << " " << fSize<< std::endl;
             BOOST_REQUIRE(origSize+1 == fSize);
         }
         BOOST_AUTO_TEST_CASE(PATCH2){
             int orig, f, origSize, fSize;
             std::vector<Instr*> instrSet;
                 instrSet.push_back(new Movq(new Const(20), new Ref("x")));
-                instrSet.push_back(new Movq(new Ref("x", new Ref("f")));
+                instrSet.push_back(new Movq(new Ref("x"), new Ref("f")));
                 instrSet.push_back(new Movq(new Ref("f"), new Reg("%rax")));
-                instrSet.push_back(new Jmp("END"));
+                instrSet.push_back(new Retq());
             xProgram* pTest = new xProgram(new Block(instrSet));
             orig = pTest->run();
-            origSize = pTest->size();
+            origSize = pTest->size("BODY");
             pTest = assign(pTest);
             pTest = patch(pTest);
             f = pTest->run();
-            fSize = pTest->size();
+            fSize = pTest->size("BODY");
             
             BOOST_REQUIRE(orig == f);
             BOOST_REQUIRE(origSize+1 == fSize);
@@ -1196,19 +1210,19 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         BOOST_AUTO_TEST_CASE(PATCH3){
             int orig, f, origSize, fSize;
             std::vector<Instr*> instrSet;
-                instrSet.push_back(new Movq(new Const(10), new Var("x")));
-                instrSet.push_back(new Negq(new Var("x"));
-                instrSet.push_back(new Movq(new Var("x"), new Ref("f")));
-                instrSet.push_back(new Addq(new Const(52), new Var("f")));
+                instrSet.push_back(new Movq(new Const(10), new Ref("x")));
+                instrSet.push_back(new Negq(new Ref("x")));
+                instrSet.push_back(new Movq(new Ref("x"), new Ref("f")));
+                instrSet.push_back(new Addq(new Const(52), new Ref("f")));
                 instrSet.push_back(new Movq(new Ref("f"), new Reg("%rax")));
-                instrSet.push_back(new Jmp("END"));
+                instrSet.push_back(new Retq());
             xProgram* pTest = new xProgram(new Block(instrSet));
             orig = pTest->run();
-            origSize = pTest->size();
+            origSize = pTest->size("BODY");
             pTest = assign(pTest);
             pTest = patch(pTest);
             f = pTest->run();
-            fSize = pTest->size();
+            fSize = pTest->size("BODY");
             
             BOOST_REQUIRE(orig == f);
             BOOST_REQUIRE(origSize+1 == fSize);
@@ -1226,11 +1240,11 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                 instrSet.push_back(new Retq());
             xProgram* pTest = new xProgram(new Block(instrSet));
             orig = pTest->run();
-            origSize = pTest->size();
+            origSize = pTest->size("BODY");
             pTest = assign(pTest);
             pTest = patch(pTest);
             f = pTest->run();
-            fSize = pTest->size();
+            fSize = pTest->size("BODY");
             
             BOOST_REQUIRE(orig == f);
             BOOST_REQUIRE(origSize+2 == fSize);
@@ -1245,11 +1259,11 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                 instrSet.push_back(new Retq());
             xProgram* pTest = new xProgram(new Block(instrSet));
             orig = pTest->run();
-            origSize = pTest->size();
+            origSize = pTest->size("BODY");
             pTest = assign(pTest);
             pTest = patch(pTest);
             f = pTest->run();
-            fSize = pTest->size();
+            fSize = pTest->size("BODY");
             
             BOOST_REQUIRE(orig == f);
             BOOST_REQUIRE(origSize+2 == fSize);

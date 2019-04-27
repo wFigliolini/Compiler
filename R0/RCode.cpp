@@ -169,7 +169,7 @@ xProgram* assign(xProgram* orig){
 }
 
 xProgram* patch(xProgram* orig){
-    return orig->patch();
+    return orig->patchP();
 }
 
 //set of register names
