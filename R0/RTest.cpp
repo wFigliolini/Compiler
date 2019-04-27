@@ -698,7 +698,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                     optList.push_back(opresult);
                     ++optFails;
                     //to determine if the later stages still work
-                    result = opresult;
+                    //result = opresult;
                 }
                 pTest = uniquify( pTest);
                 opresult = pTest->run();
@@ -706,7 +706,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                     //std::cout <<"Intended result: "<< result << " Uniq Result: " << opresult << std::endl;
                     uniqList.push_back(opresult);
                     ++uniqFails;
-                    result = opresult;
+                    //result = opresult;
                 }
                 pTest = rco( pTest);
                 opresult = pTest->run();
@@ -714,7 +714,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                     //std::cout <<"Intended result: "<< result << " Uniq Result: " << opresult << std::endl;
                     rcoList.push_back(opresult);
                     ++rcoFails;
-                    result = opresult;
+                    //result = opresult;
                 }
                 CProg* cTest = econ( pTest);
                 cTest->uncoverLocals();
@@ -723,7 +723,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                     //std::cout <<"Intended result: "<< result << " Uniq Result: " << opresult << std::endl;
                     econList.push_back(opresult);
                     ++econFails;
-                    result = opresult;
+                    //result = opresult;
                 }
                 xProgram* xTest = cTest->selInsr();
                 opresult = xTest->run();
@@ -731,7 +731,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                     //std::cout <<"Intended result: "<< result << " Uniq Result: " << opresult << std::endl;
                     selList.push_back(opresult);
                     ++selFails;
-                    result = opresult;
+                    //result = opresult;
                 }
                 xTest = assign(xTest);
                 opresult = xTest->run();
@@ -739,7 +739,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                     //std::cout <<"Intended result: "<< result << " Uniq Result: " << opresult << std::endl;
                     asList.push_back(opresult);
                     ++asFails;
-                    result = opresult;
+                    //result = opresult;
                 }
                 xTest = patch(xTest);
                 opresult = xTest->run();
@@ -747,7 +747,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                     //std::cout <<"Intended result: "<< result << " Uniq Result: " << opresult << std::endl;
                     patchList.push_back(opresult);
                     ++patchFails;
-                    result = opresult;
+                    //result = opresult;
                 }
             }
             if(optFails > 0){
@@ -1375,5 +1375,136 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             
             BOOST_REQUIRE(orig == f);
             BOOST_REQUIRE(origSize+2 == fSize);
+        }
+        //Mov Case
+        BOOST_AUTO_TEST_CASE(LIVE1){
+            Blk instrSet;
+                instrSet.push_back(new Movq(new Const(20), new Ref("w")));    //{w}
+                instrSet.push_back(new Movq(new Ref("w"), new Ref("x")));     //{x}
+                instrSet.push_back(new Movq(new Ref("x"), new Ref("f")));     //{f}
+                instrSet.push_back(new Movq(new Ref("f"), new Reg("%rax")));  //{0}
+                instrSet.push_back(new Retq());
+            Block* bTest = new Block(instrSet);
+            xProgram* pTest = new xProgram(bTest);
+            liveSet testData = { {"w"}, {"x"}, {"f"}, {},{}};
+            pTest->uncoverLive();
+            bool passed = pTest->testLive(testData);
+            BOOST_REQUIRE(passed == true);
+        }
+        //from class
+        BOOST_AUTO_TEST_CASE(LIVE2){
+            Blk instrSet;
+                instrSet.push_back(new Movq(new Const(1), new Ref("v")));    
+                instrSet.push_back(new Movq(new Const(46), new Ref("w")));  
+                instrSet.push_back(new Movq(new Ref("v"), new Ref("x")));  
+                instrSet.push_back(new Addq(new Const(7), new Ref("w")));      
+                instrSet.push_back(new Movq(new Ref("x"), new Ref("y")));
+                instrSet.push_back(new Addq(new Const(4), new Ref("y")));      
+                instrSet.push_back(new Movq(new Ref("x"), new Ref("z")));
+                instrSet.push_back(new Addq(new Ref("w"), new Ref("z")));
+                instrSet.push_back(new Movq(new Ref("y"), new Ref("t")));
+                instrSet.push_back(new Negq(new Ref("t")));
+                instrSet.push_back(new Movq(new Ref("z"), new Reg("%rax")));
+                instrSet.push_back(new Addq(new Ref("t"), new Reg("%rax")));
+                instrSet.push_back(new Retq());
+            Block* bTest = new Block(instrSet);
+            xProgram* pTest = new xProgram(bTest);
+            liveSet testData = { {"v"}, {"v","w"}, {"x", "w"}, {"x","w"}, {"x", "w", "y"},
+            {"x", "w", "y"}, {"w", "y","z"}, {"y","z"}, {"t", "z"}, {"t","z"}, {"t"}, {},{}
+            };
+            pTest->uncoverLive();
+            bool passed = pTest->testLive(testData);
+            BOOST_REQUIRE(passed == true);
+        }
+        //from textbook
+        BOOST_AUTO_TEST_CASE(LIVE3){
+            Blk instrSet;
+                instrSet.push_back(new Movq(new Const(5), new Ref("a")));
+                instrSet.push_back(new Movq(new Const(30), new Ref("b")));
+                instrSet.push_back(new Movq(new Ref("b"), new Ref("c")));
+                instrSet.push_back(new Movq(new Const(10), new Ref("b")));
+                instrSet.push_back(new Addq(new Ref("b"), new Ref("c")));
+                instrSet.push_back(new Addq(new Ref("a"), new Ref("c"))); 
+                instrSet.push_back(new Movq(new Ref("c"), new Reg("%rax")));  
+                instrSet.push_back(new Retq());
+            Block* bTest = new Block(instrSet);
+            xProgram* pTest = new xProgram(bTest);
+            liveSet testData = { {"a"}, {"a", "b"}, {"a", "c"}, {"a", "b", "c"},{"a", "c"},{"c"},{}, {}};
+            pTest->uncoverLive();
+            bool passed = pTest->testLive(testData);
+            BOOST_REQUIRE(passed == true);
+        }
+        //double case
+        BOOST_AUTO_TEST_CASE(LIVE4){
+            Blk instrSet;
+                instrSet.push_back(new Movq(new Const(20), new Ref("w")));    //{w}
+                instrSet.push_back(new Addq(new Ref("w"), new Ref("w")));     //{f}
+                instrSet.push_back(new Movq(new Ref("w"), new Reg("%rax")));  //{0}
+                instrSet.push_back(new Retq());
+            Block* bTest = new Block(instrSet);
+            xProgram* pTest = new xProgram(bTest);
+            liveSet testData = { {"w"}, {"w"}, {}, {}};
+            pTest->uncoverLive();
+            bool passed = pTest->testLive(testData);
+            BOOST_REQUIRE(passed == true);
+        }
+        //pushpop tests
+        BOOST_AUTO_TEST_CASE(LIVE5){
+            Blk instrSet;
+                instrSet.push_back(new Movq(new Const(5), new Ref("f")));
+                instrSet.push_back(new Pushq(new Ref("f")));
+                instrSet.push_back(new Popq(new Ref("f")));
+                instrSet.push_back(new Movq(new Ref("f"), new Reg(0)));
+                instrSet.push_back(new Retq());
+            Block* bTest = new Block(instrSet);
+            xProgram* pTest = new xProgram(bTest);
+            liveSet testData = { {"f"}, {}, {"f"},{}, {}};
+            pTest->uncoverLive();
+            bool passed = pTest->testLive(testData);
+            BOOST_REQUIRE(passed == true);
+        }
+        //add case
+        BOOST_AUTO_TEST_CASE(LIVE6){
+            Blk instrSet;
+                instrSet.push_back(new Movq(new Const(20), new Ref("a")));    //{w}
+                instrSet.push_back(new Movq(new Const(40), new Ref("b")));
+                instrSet.push_back(new Addq(new Ref("a"), new Ref("b")));     //{f}
+                instrSet.push_back(new Movq(new Ref("b"), new Reg("%rax")));  //{0}
+                instrSet.push_back(new Retq());
+            Block* bTest = new Block(instrSet);
+            xProgram* pTest = new xProgram(bTest);
+            liveSet testData = { {"a"}, {"a","b"}, { "b"}, {},{}};
+            pTest->uncoverLive();
+            bool passed = pTest->testLive(testData);
+            BOOST_REQUIRE(passed == true);
+        }
+        //sub case
+        BOOST_AUTO_TEST_CASE(LIVE7){
+            Blk instrSet;
+                instrSet.push_back(new Movq(new Const(20), new Ref("a")));    //{w}
+                instrSet.push_back(new Movq(new Const(40), new Ref("b")));
+                instrSet.push_back(new Subq(new Ref("a"), new Ref("b")));     //{f}
+                instrSet.push_back(new Movq(new Ref("b"), new Reg("%rax")));  //{0}
+                instrSet.push_back(new Retq());
+            Block* bTest = new Block(instrSet);
+            xProgram* pTest = new xProgram(bTest);
+            liveSet testData = { {"a"}, {"a","b"}, { "b"}, {},{}};
+            pTest->uncoverLive();
+            bool passed = pTest->testLive(testData);
+            BOOST_REQUIRE(passed == true);
+        }
+        //Neg Case
+        BOOST_AUTO_TEST_CASE(LIVE8){
+            Blk instrSet;
+                instrSet.push_back(new Movq(new Const(20), new Ref("a")));    //{w}
+                instrSet.push_back(new Negq(new Ref("a")));     //{f}
+                instrSet.push_back(new Movq(new Ref("a"), new Reg("%rax")));  //{0}
+                instrSet.push_back(new Retq());
+            Block* bTest = new Block(instrSet);
+            xProgram* pTest = new xProgram(bTest);
+            liveSet testData = { {"a"}, {"a"}, {},{}};
+            pTest->uncoverLive();
+            bool passed = pTest->testLive(testData);
+            BOOST_REQUIRE(passed == true);
         }
 BOOST_AUTO_TEST_SUITE_END()

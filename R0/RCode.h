@@ -28,6 +28,7 @@ typedef std::unordered_map<std::string, strCount> envmap;
 typedef std::pair<std::string, Expr*> rcoPair;
 typedef std::unordered_map<std::string, int> localVars;
 typedef std::vector<Instr*> Blk;
+typedef std::vector<std::vector<std::string>> liveSet;
 std::string genNewVar(std::string type = "i", bool reset = 0);
 
 //X definitions
@@ -136,14 +137,19 @@ private:
     int varCount_;
     bool done_;
 };
-
+class blkInfo{
+public:
+    
+private:
+    liveSet l_;
+};
 
 class X{
 public:
     void setInfo(std::shared_ptr<xInfo> i){i_ = i;}
 protected:
     std::shared_ptr<xInfo> i_;
-
+    std::shared_ptr<blkInfo> bi_;
 };
 
 class Label: public X{
@@ -189,7 +195,7 @@ public:
     virtual int get() = 0;
     virtual void set(int i) = 0;
     virtual Arg* asHA(localVars* e) = 0;
-    virtual void init(std::shared_ptr<xInfo> i) = 0;
+    virtual void init(std::shared_ptr<xInfo> i, std::shared_ptr<blkInfo> bi) = 0;
     virtual bool isMemRef() = 0;
 };
 class Reg: public Arg{
@@ -224,8 +230,9 @@ public:
     Arg* asHA(localVars* e){
         return new Reg(reg_);
     }
-    void init(std::shared_ptr<xInfo> i){
+    void init(std::shared_ptr<xInfo> i, std::shared_ptr<blkInfo> bi){
         setInfo(i);
+        bi_ = bi;
     }
     bool isMemRef(){
         return false;
@@ -252,8 +259,9 @@ public:
     Arg* asHA(localVars* e){
         return new Const(con_);
     }
-    void init(std::shared_ptr<xInfo> i){
+    void init(std::shared_ptr<xInfo> i, std::shared_ptr<blkInfo> bi){
         setInfo(i);
+        bi_ = bi;
     }
     bool isMemRef(){
         return false;
@@ -293,9 +301,10 @@ public:
     Arg* asHA(localVars* e){
         return new DeRef(new Reg(reg_->emitA(0)), offset_);
     }
-    void init(std::shared_ptr<xInfo> i){
+    void init(std::shared_ptr<xInfo> i, std::shared_ptr<blkInfo> bi){
         setInfo(i);
-        reg_->init(i);
+        bi_ = bi;
+        reg_->init(i, bi);
     }
     bool isMemRef(){
         return true;
@@ -330,8 +339,9 @@ public:
     void set(int i){
         i_->setVar(name_,i);
     }
-    void init(std::shared_ptr<xInfo> i){
+    void init(std::shared_ptr<xInfo> i, std::shared_ptr<blkInfo> bi){
         setInfo(i);
+        bi_ = bi;
         i_->initVar(name_);
     }
     Arg* asHA(localVars* e){
@@ -360,7 +370,7 @@ public:
    explicit Instr(Arg* a1, Arg* a2): al_(a1), ar_(a2){}
    virtual std::string emitI(bool vars) = 0;
    virtual void interp() = 0;
-   virtual void init(std::shared_ptr<xInfo> i) = 0;
+   virtual void init(std::shared_ptr<xInfo> i, std::shared_ptr<blkInfo> bi) = 0;
    virtual Instr* asHI(localVars *e) = 0;
    virtual Blk patchI() = 0;
    virtual bool isRet(){
@@ -388,9 +398,10 @@ public:
     Instr* asHI(localVars *e){
         return new Movq(al_->asHA(e), ar_->asHA(e));
     }
-    void init(std::shared_ptr<xInfo> i){
-        al_->init(i);
-        ar_->init(i);
+    void init(std::shared_ptr<xInfo> i, std::shared_ptr<blkInfo> bi){
+        al_->init(i, bi);
+        ar_->init(i, bi);
+        bi_ = bi;
     }
     Blk patchI(){
         Blk out;
@@ -425,9 +436,10 @@ public:
     Instr* asHI(localVars *e){
         return new Addq(al_->asHA(e), ar_->asHA(e));
     }
-    void init(std::shared_ptr<xInfo> i){
-        al_->init(i);
-        ar_->init(i);
+    void init(std::shared_ptr<xInfo> i, std::shared_ptr<blkInfo> bi){
+        al_->init(i, bi);
+        ar_->init(i, bi);
+        bi_ = bi;
     }
     Blk patchI(){
         Blk out;
@@ -462,9 +474,10 @@ public:
     Instr* asHI(localVars *e){
         return new Subq(al_->asHA(e), ar_->asHA(e));
     }
-    void init(std::shared_ptr<xInfo> i){
-        al_->init(i);
-        ar_->init(i);
+    void init(std::shared_ptr<xInfo> i, std::shared_ptr<blkInfo> bi){
+        al_->init(i,bi);
+        ar_->init(i,bi);
+        bi_ = bi;
     }
     Blk patchI(){
         Blk out;
@@ -495,7 +508,8 @@ public:
     Instr* asHI(localVars *e){
         return new Jmp(new Label(lab_->emitL(1)));
     }
-    void init(std::shared_ptr<xInfo> i){
+    void init(std::shared_ptr<xInfo> i, std::shared_ptr<blkInfo> bi){
+        bi_ = bi;
         lab_->setInfo(i);
     }
     Blk patchI(){
@@ -532,7 +546,8 @@ public:
         //return END fto make compatible with headers added at end of assign
         return new Jmp(new Label("END"));
     }
-    void init(std::shared_ptr<xInfo> i){
+    void init(std::shared_ptr<xInfo> i, std::shared_ptr<blkInfo> bi){
+        bi_ = bi;
     }
     Blk patchI(){
         Blk out;
@@ -560,8 +575,9 @@ public:
     Instr* asHI(localVars *e){
         return new Negq(al_->asHA(e));
     }
-    void init(std::shared_ptr<xInfo> i){
-        al_->init(i);
+    void init(std::shared_ptr<xInfo> i, std::shared_ptr<blkInfo> bi){
+        bi_ = bi;
+        al_->init(i,bi);
     }
     Blk patchI(){
         Blk out;
@@ -587,7 +603,8 @@ public:
     Instr* asHI(localVars *e){
         return new Callq(new Label(lab_->emitL(1)));
     }
-    void init(std::shared_ptr<xInfo> i){
+    void init(std::shared_ptr<xInfo> i, std::shared_ptr<blkInfo> bi){
+        bi_ = bi;
         lab_->setInfo(i);
     }
     Blk patchI(){
@@ -616,8 +633,9 @@ public:
     Instr* asHI(localVars *e){
         return new Pushq(al_->asHA(e));
     }
-    void init(std::shared_ptr<xInfo> i){
-        al_->init(i);
+    void init(std::shared_ptr<xInfo> i, std::shared_ptr<blkInfo> bi){
+        bi_ = bi;
+        al_->init(i,bi);
     }
     Blk patchI(){
         Blk out;
@@ -641,8 +659,9 @@ public:
     Instr* asHI(localVars *e){
         return new Popq(al_->asHA(e));
     }
-    void init(std::shared_ptr<xInfo> i){
-        al_->init(i);
+    void init(std::shared_ptr<xInfo> i, std::shared_ptr<blkInfo> bi){
+        bi_ = bi;
+        al_->init(i,bi);
     }
     Blk patchI(){
         Blk out;
@@ -674,9 +693,10 @@ class Block: public X{
     }
     void init(std::shared_ptr<xInfo> i){
         setInfo(i);
+        bi_ = std::make_shared<blkInfo>();
         for(auto it : blk_){
             it->setInfo(i);
-            it->init(i);
+            it->init(i, bi_);
         }
     }
     Block* asHB(localVars* e){
@@ -701,6 +721,9 @@ class Block: public X{
     }
     int size() const{
         return blk_.size();
+    }
+    void uncoverLive(){
+        
     }
 private:
     Blk blk_;
@@ -826,6 +849,14 @@ class xProgram{
         out->addBlock(sMain, main);
         out->i_->setLabel(sMain);
         return out;
+    }
+    void uncoverLive(){
+        for(auto [name, blk]: blks_){
+            blk->uncoverLive();
+        }
+    }
+    bool testLive(liveSet d){
+        return false;
     }
 private:
     void init(){
