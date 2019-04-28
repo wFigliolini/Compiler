@@ -35,6 +35,7 @@ typedef std::vector<varSet> liveSet;
 typedef std::string Vertex;
 typedef std::map<Vertex,std::set<Vertex>>  infrGraph;
 typedef std::pair<Vertex, Vertex> Edge;
+typedef std::map<Vertex, int> colorMap;
 std::string genNewVar(std::string type = "i", bool reset = 0);
 
 //X definitions
@@ -187,10 +188,14 @@ public:
     void addVertex(std::string a){
         graph_.insert(std::pair<Vertex, std::set<Vertex>>(a, {}));
     }
+    void genColorMap(int numColors){
+        
+    }
 private:
     liveSet l_;
     infrGraph graph_;
     varSet vars_;
+    colorMap assignments_;
 };
 
 class X{

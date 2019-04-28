@@ -1446,6 +1446,10 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                 }
             }
             BOOST_REQUIRE(result);
+            colorMap cTest = {{"t",0}, {"v",1}, {"x",2},{"w",0},{"y",0},{"z",1}};
+            pTest->genColorMaps(15);
+            colorMap cOut = pTest->getColors("BODY");
+            BOOST_REQUIRE(cTest == cOut);
 
         }
         //from textbook
@@ -1469,6 +1473,10 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             pTest->genGraphs();
             infrGraph gOut = pTest->getGraph("BODY");
             BOOST_REQUIRE(gTest == gOut);
+            colorMap cTest = {{"a",0}, {"b",1}, {"c",2}};
+            pTest->genColorMaps(15);
+            colorMap cOut = pTest->getColors("BODY");
+            BOOST_REQUIRE(cTest == cOut);
         }
         //double case
         BOOST_AUTO_TEST_CASE(LIVE4){
@@ -1487,6 +1495,10 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             pTest->genGraphs();
             infrGraph gOut = pTest->getGraph("BODY");
             BOOST_REQUIRE(gTest == gOut);
+            colorMap cTest = {{"w",0}};
+            pTest->genColorMaps(15);
+            colorMap cOut = pTest->getColors("BODY");
+            BOOST_REQUIRE(cTest == cOut);
         }
         //pushpop tests
         BOOST_AUTO_TEST_CASE(LIVE5){
@@ -1506,6 +1518,10 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             pTest->genGraphs();
             infrGraph gOut = pTest->getGraph("BODY");
             BOOST_REQUIRE(gTest == gOut);
+            colorMap cTest = {{"f",0}};
+            pTest->genColorMaps(15);
+            colorMap cOut = pTest->getColors("BODY");
+            BOOST_REQUIRE(cTest == cOut);
         }
         //add case
         BOOST_AUTO_TEST_CASE(LIVE6){
@@ -1525,6 +1541,10 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             pTest->genGraphs();
             infrGraph gOut = pTest->getGraph("BODY");
             BOOST_REQUIRE(gTest == gOut);
+            colorMap cTest = {{"a",0}, {"b",1}};
+            pTest->genColorMaps(15);
+            colorMap cOut = pTest->getColors("BODY");
+            BOOST_REQUIRE(cTest == cOut);
         }
         //sub case
         BOOST_AUTO_TEST_CASE(LIVE7){
@@ -1544,6 +1564,10 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             pTest->genGraphs();
             infrGraph gOut = pTest->getGraph("BODY");
             BOOST_REQUIRE(gTest == gOut);
+            colorMap cTest = {{"a",0}, {"b",1}};
+            pTest->genColorMaps(15);
+            colorMap cOut = pTest->getColors("BODY");
+            BOOST_REQUIRE(cTest == cOut);
         }
         //Neg Case
         BOOST_AUTO_TEST_CASE(LIVE8){
@@ -1562,5 +1586,9 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             pTest->genGraphs();
             infrGraph gOut = pTest->getGraph("BODY");
             BOOST_REQUIRE(gTest == gOut);
+            colorMap cTest = {{"a",0}}
+            pTest->genColorMaps(15);
+            colorMap cOut = pTest->getColors("BODY");
+            BOOST_REQUIRE(cTest == cOut);
         }
-BOOST_AUTO_TEST_SUITE_END()
+        TEST_SUITE_END()
