@@ -147,6 +147,7 @@ class blkInfo{
 public:
     blkInfo(int size):l_(size, varSet()){};
     varSet getIndex(int i){
+        if(i >= l_.size()) return varSet();
         varSet out(l_[i]);
         return out;
     }
@@ -179,8 +180,12 @@ public:
         infrGraph out(graph_);
         return out;
     }
-    void genGraph(){
-        
+    void addEdge(std::string a, std::string b){
+        graph_[a].insert(b);
+        graph_[b].insert(a);
+    }
+    void addVertex(std::string a){
+        graph_.insert(std::pair<Vertex, std::set<Vertex>>(a, {}));
     }
 private:
     liveSet l_;
@@ -437,6 +442,7 @@ public:
        return false;
    }
    virtual varSet ul(varSet lb) = 0;
+   virtual void genInterferences(int index) =0;
 protected:
     Arg* al_, *ar_;
     bool isControl;
@@ -489,6 +495,15 @@ public:
         }
         return lb;
     }
+    void genInterferences(int index){
+        varSet after = bi_->getIndex(index);
+        std::string s(al_->ul()),d(ar_->ul());
+        for(auto it : after){
+            if(d.empty()) break;
+            if(it == s || it == d) continue;
+            bi_->addEdge(it, d);
+        }
+    }
 };
 class Addq: public Instr{
 public:
@@ -539,6 +554,14 @@ public:
             lb.insert(t1);
         }
         return lb;
+    }
+    void genInterferences(int index){
+        varSet after = bi_->getIndex(index);
+        std::string d(ar_->ul());
+        for(auto it : after){
+            if( it == d) continue;
+            bi_->addEdge(it, d);
+        }
     }
 };
 class Subq: public Instr{
@@ -591,6 +614,14 @@ public:
         }
         return lb;
     }
+    void genInterferences(int index){
+        varSet after = bi_->getIndex(index);
+        std::string d(ar_->ul());
+        for(auto it : after){
+            if( it == d) continue;
+            bi_->addEdge(it, d);
+        }
+    }
 }; 
 class Jmp: public Instr{
 public:
@@ -619,6 +650,9 @@ public:
     }
     varSet ul(varSet lb){
         return lb;
+    }
+    void genInterferences(int index){
+        
     }
 private:
     Label* lab_;
@@ -662,6 +696,9 @@ public:
     varSet ul(varSet lb){
         return lb;
     }
+    void genInterferences(int index){
+        
+    }
 };
 class Negq: public Instr{
 public:
@@ -693,6 +730,9 @@ public:
         //resulting in removing then immediately re-adding the variable
         return lb;
     }
+    void genInterferences(int index){
+        
+    }
 };
 class Callq: public Instr{
 public:
@@ -723,6 +763,17 @@ public:
     }
     varSet ul(varSet lb){
         return lb;
+    }
+    void genInterferences(int index){
+        varSet after = bi_->getIndex(index);
+        std::vector<std::string> callerRegs = { "%rax", "%rdx", "%rcx", "%rsi", "%rdi", "%r8", "%r9", "%r10", "%r11"};
+        for(auto it : callerRegs){
+            bi_->addVertex(it);
+            for(auto it2: after){
+                if(it == it2) continue;
+                bi_->addEdge(it, it2);
+            }
+        }
     }
 private:
     Label* lab_;
@@ -760,6 +811,9 @@ public:
         lb.insert(t);
         return lb;
     }
+    void genInterferences(int index){
+        
+    }
 };
 class Popq: public Instr{
 public:
@@ -794,6 +848,14 @@ public:
             lb.erase(it);
         }
         return lb;
+    }
+    void genInterferences(int index){
+        varSet after = bi_->getIndex(index);
+        std::string d(al_->ul());
+        for(auto it: after){
+            if(it == d) continue;
+            bi_->addEdge(it, d);
+        }
     }
 };
 //block definition
@@ -903,7 +965,14 @@ class Block: public X{
         return bi_->getGraph();
     }
     void genGraph(){
-        bi_->genGraph();
+        //initialize graph vertexs
+        varSet t = bi_->getVars();
+        for(auto it : t){
+            bi_->addVertex(it);
+        }
+        for(int i = 0; i < blk_.size(); ++i){
+            blk_[i]->genInterferences(i);
+        }
     }
 private:
     Blk blk_;

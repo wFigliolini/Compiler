@@ -1394,7 +1394,18 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             infrGraph gTest = {{"w",{}},{"x",{}},{"f",{}}};
             pTest->genGraphs();
             infrGraph gOut = pTest->getGraph("BODY");
-            BOOST_REQUIRE(gTest == gOut);
+            bool result = gTest == gOut;
+            if(result == false){
+                std::cout<< "LIVE1 failed, dumping contents of gOut" << std::endl;
+                for(auto it : gOut){
+                    std::cout << it.first << ": { ";
+                    for(auto it2 : it.second){
+                        std::cout << it2 << " ";
+                    }
+                    std::cout << "}" << std::endl;
+                }
+            }
+            BOOST_REQUIRE(result);
         }
         //from class
         BOOST_AUTO_TEST_CASE(LIVE2){
@@ -1420,10 +1431,21 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             pTest->uncoverLive();
             bool passed = pTest->testLive(testData);
             BOOST_REQUIRE(passed == true);
-            infrGraph gTest = { {"v",{"w"}}, {"w",{"v","y","x","z"}},{"y",{"w","x","z"}},{"z",{"w","y","t"}},{"t",{"z"}}};
+            infrGraph gTest = { {"t",{"z"}}, {"v",{"w"}},{"x",{"w","y"}}, {"w",{"v","x","y","z"}},{"y",{"w","x","z"}},{"z",{"t","w","y"}}};
             pTest->genGraphs();
             infrGraph gOut = pTest->getGraph("BODY");
-            BOOST_REQUIRE(gTest == gOut);
+            bool result = gTest == gOut;
+            if(result == false){
+                std::cout<< "LIVE2 failed, dumping contents of gOut" << std::endl;
+                for(auto it : gOut){
+                    std::cout << it.first << ": { ";
+                    for(auto it2 : it.second){
+                        std::cout << it2 << " ";
+                    }
+                    std::cout << "}" << std::endl;
+                }
+            }
+            BOOST_REQUIRE(result);
 
         }
         //from textbook
