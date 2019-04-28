@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <fstream>
 #include <set>
+#include <map>
 #include <unistd.h>
 #include <sys/wait.h>
 
@@ -31,6 +32,9 @@ typedef std::unordered_map<std::string, int> localVars;
 typedef std::vector<Instr*> Blk;
 typedef std::set<std::string> varSet;
 typedef std::vector<varSet> liveSet;
+typedef std::string Vertex;
+typedef std::map<Vertex,std::set<Vertex>>  infrGraph;
+typedef std::pair<Vertex, Vertex> Edge;
 std::string genNewVar(std::string type = "i", bool reset = 0);
 
 //X definitions
@@ -162,8 +166,26 @@ public:
     void setSet(liveSet i){
         l_ = i;
     }
+    void genVars(){
+        for(auto it: l_){
+            vars_.insert(it.begin(), it.end());
+        }
+    }
+    varSet getVars(){
+        varSet out(vars_);
+        return out;
+    }
+    infrGraph getGraph(){
+        infrGraph out(graph_);
+        return out;
+    }
+    void genGraph(){
+        
+    }
 private:
     liveSet l_;
+    infrGraph graph_;
+    varSet vars_;
 };
 
 class X{
@@ -363,7 +385,7 @@ public:
         return output;
     }
     int get(){
-        int i;
+        int i =0;
         try{
             i = i_->getVar(name_);
         }catch(std::out_of_range &e){
@@ -838,6 +860,7 @@ class Block: public X{
                 bi_->setIndex(i, blk_[i+1]);
             }
         }
+        bi_->genVars();
     }
     bool testLive(liveSet d){
         varSet act, exp;
@@ -872,6 +895,15 @@ class Block: public X{
     }
     void printSet(){
         bi_->printSet();
+    }
+    varSet getVars(){
+        return bi_->getVars();
+    }
+    infrGraph getGraph(){
+        return bi_->getGraph();
+    }
+    void genGraph(){
+        bi_->genGraph();
     }
 private:
     Blk blk_;
@@ -1012,6 +1044,17 @@ class xProgram{
     }
     void printSet(std::string name){
         blks_[name]->printSet();
+    }
+    varSet getVars(std::string name){
+        return blks_[name]->getVars();
+    }
+    infrGraph getGraph(std::string name){
+        return blks_[name]->getGraph();
+    }
+    void genGraphs(){
+        for(auto [name, blk] : blks_){
+            blk->genGraph();
+        }
     }
 private:
     void init(){

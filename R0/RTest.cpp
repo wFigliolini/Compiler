@@ -1390,6 +1390,11 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             pTest->uncoverLive();
             bool passed = pTest->testLive(testData);
             BOOST_REQUIRE(passed == true);
+            //no edges
+            infrGraph gTest = {{"w",{}},{"x",{}},{"f",{}}};
+            pTest->genGraphs();
+            infrGraph gOut = pTest->getGraph("BODY");
+            BOOST_REQUIRE(gTest == gOut);
         }
         //from class
         BOOST_AUTO_TEST_CASE(LIVE2){
@@ -1415,6 +1420,11 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             pTest->uncoverLive();
             bool passed = pTest->testLive(testData);
             BOOST_REQUIRE(passed == true);
+            infrGraph gTest = { {"v",{"w"}}, {"w",{"v","y","x","z"}},{"y",{"w","x","z"}},{"z",{"w","y","t"}},{"t",{"z"}}};
+            pTest->genGraphs();
+            infrGraph gOut = pTest->getGraph("BODY");
+            BOOST_REQUIRE(gTest == gOut);
+
         }
         //from textbook
         BOOST_AUTO_TEST_CASE(LIVE3){
@@ -1433,6 +1443,10 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             pTest->uncoverLive();
             bool passed = pTest->testLive(testData);
             BOOST_REQUIRE(passed == true);
+            infrGraph gTest = { {"a",{"b","c"}},{"b",{"a","c"}},{"c",{"a","b"}}};
+            pTest->genGraphs();
+            infrGraph gOut = pTest->getGraph("BODY");
+            BOOST_REQUIRE(gTest == gOut);
         }
         //double case
         BOOST_AUTO_TEST_CASE(LIVE4){
@@ -1447,9 +1461,12 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             pTest->uncoverLive();
             bool passed = pTest->testLive(testData);
             BOOST_REQUIRE(passed == true);
+            infrGraph gTest = {{"w",{}}};
+            pTest->genGraphs();
+            infrGraph gOut = pTest->getGraph("BODY");
+            BOOST_REQUIRE(gTest == gOut);
         }
         //pushpop tests
-        //causes infinite loop
         BOOST_AUTO_TEST_CASE(LIVE5){
             Blk instrSet;
                 instrSet.push_back(new Movq(new Const(5), new Ref("f")));
@@ -1463,6 +1480,10 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             pTest->uncoverLive();
             bool passed = pTest->testLive(testData);
             BOOST_REQUIRE(passed == true);
+            infrGraph gTest = {{"f",{}}};
+            pTest->genGraphs();
+            infrGraph gOut = pTest->getGraph("BODY");
+            BOOST_REQUIRE(gTest == gOut);
         }
         //add case
         BOOST_AUTO_TEST_CASE(LIVE6){
@@ -1478,6 +1499,10 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             pTest->uncoverLive();
             bool passed = pTest->testLive(testData);
             BOOST_REQUIRE(passed == true);
+            infrGraph gTest = {{"a",{"b"}},{"b",{"a"}}};
+            pTest->genGraphs();
+            infrGraph gOut = pTest->getGraph("BODY");
+            BOOST_REQUIRE(gTest == gOut);
         }
         //sub case
         BOOST_AUTO_TEST_CASE(LIVE7){
@@ -1493,6 +1518,10 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             pTest->uncoverLive();
             bool passed = pTest->testLive(testData);
             BOOST_REQUIRE(passed == true);
+            infrGraph gTest = {{"a",{"b"}},{"b",{"a"}}};
+            pTest->genGraphs();
+            infrGraph gOut = pTest->getGraph("BODY");
+            BOOST_REQUIRE(gTest == gOut);
         }
         //Neg Case
         BOOST_AUTO_TEST_CASE(LIVE8){
@@ -1507,5 +1536,9 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             pTest->uncoverLive();
             bool passed = pTest->testLive(testData);
             BOOST_REQUIRE(passed == true);
+            infrGraph gTest = {{"a",{}}};
+            pTest->genGraphs();
+            infrGraph gOut = pTest->getGraph("BODY");
+            BOOST_REQUIRE(gTest == gOut);
         }
 BOOST_AUTO_TEST_SUITE_END()
