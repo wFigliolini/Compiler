@@ -15,11 +15,26 @@
 #include <fstream>
 #include <set>
 #include <map>
+#include <queue>
 #include <unistd.h>
 #include <sys/wait.h>
 
 //virtual Expression class
 enum opCode { num, add, neg, rRead, ERROR = -1};
+const std::map<std::string,int> regNames = {
+    {"%rax",0}, {"%rbx",1}, {"%rcx",2},
+    {"%rdx",3}, {"%rsi",4}, {"%rdi",5},
+    {"%rbp",6}, {"%rsp",7}, {"%r8",8},
+    {"%r9",9}, {"%r10",10}, {"%r11",11},
+    {"%r12",12}, {"%r13",13}, {"%r14",14},
+    {"%r15",15}};
+const std::map<int,std::string> regNums = {
+    {0,"%rax"}, {1,"%rbx"}, {2,"%rcx"},
+    {3,"%rdx"}, {4,"%rsi"}, {5,"%rdi"},
+    {6,"%rbp"}, {7,"%rsp"}, {8,"%r8"},
+    {9,"%r9"}, {10,"%r10"}, {11,"%r11"},
+    {12,"%r12"}, {13,"%r13"}, {14,"%r14"},
+    {15,"%r15"}};
 class Expr;
 class Num;
 class CExp;
@@ -36,8 +51,19 @@ typedef std::string Vertex;
 typedef std::map<Vertex,std::set<Vertex>>  infrGraph;
 typedef std::pair<Vertex, Vertex> Edge;
 typedef std::map<Vertex, int> colorMap;
+typedef std::pair<int*,Vertex> Sat;
+typedef std::map<Vertex, int*> satSet;
+
 std::string genNewVar(std::string type = "i", bool reset = 0);
 
+class compareClass{
+public:
+    bool operator()(const Sat a, const Sat b){
+        return (*a.first) < (*b.first);
+    }
+};
+
+typedef std::priority_queue<Sat, std::vector<Sat>, compareClass> satHeap;
 //X definitions
 typedef std::unordered_map<std::string, int> varList;
 class BlkComplete : public std::exception{
@@ -46,6 +72,10 @@ public:
       return "Used to break current Iteration on Label Change";
    }
 };
+//compare function for saturation queue
+
+
+
 //Info class
 //Handles the Stack and Registers
 class xInfo{
@@ -188,8 +218,98 @@ public:
     void addVertex(std::string a){
         graph_.insert(std::pair<Vertex, std::set<Vertex>>(a, {}));
     }
-    void genColorMap(int numColors){
+    //possibly overdone & could be simplified
+    void genColorMap(){
+        //initialize colormap
+        satHeap W;
+        satSet G;
+        for(auto it: vars_){
+            //default to -1
+            int unassigned = -1;
+            //if member is a register, assign to register
+            //should only be rax at end of block and potential calls
+            if(regNames.find(it) != regNames.end()){
+                unassigned = regNames.find(it)->second;
+            }
+            assignments_.insert(std::pair<Vertex, int>(it, unassigned));
+            if(unassigned == -1) G.insert(std::pair<std::string,int*>(it, new int(0)));
+        }
+        //initialize saturations and Heap
+        for(auto it = graph_.begin(); it != graph_.end(); ++it){
+            std::string name = it->first;
+            int* s;
+            try{
+                s = G.at(name);
+            }
+            catch(std::out_of_range &e){
+                //found a register in the interference graph
+                //registers have inherent color, and as such
+                //should not be added to the Heap or have saturation calculated
+                continue;
+            }
+            for(auto it2: it->second){
+                if(hasColor(it2)){
+                    (*s)++;
+                }
+            }
+            
+            W.push(std::pair<int*,std::string>(s, name));
+        }
+        while(W.empty() == false){
+            std::pair<int*, std::string> g = W.top();
+            std::string name = g.second;
+            //std::cout << "generating color for "<< name << " Saturation: "<< (*g.first) <<std::endl;
+            std::set<int> unavail;
+            //generate vertex's unvailable color set
+            for(auto it: graph_[name]){
+                int color = assignments_[it];
+                if(color != -1) unavail.insert(color);
+            }
+            for(int i = 0; ; i++){
+                //if i is not in the unavailible set, 
+                //use and update all adjacent nodes
+                if(unavail.find(i) == unavail.end()){
+                    assignments_[name] = i;
+                    for(auto it: graph_[name]){
+                        try{
+                            int* s = G.at(it);
+                            (*s)++;
+                        }
+                        catch(std::out_of_range &e){
+                            continue;
+                        }
+                    }
+                    //loop will terminate once a color has been found
+                    break;
+                }
+            }
+            //heap does not update until after pop,
+            //so it must be placed after updating 
+            //saturation
+            W.pop();
+        }
         
+    }
+    colorMap getColorMap(){
+        colorMap out(assignments_);
+        return out;
+    }
+    bool hasColor(Vertex v){
+        return assignments_[v] != -1;
+    }
+    void dumpColor(){
+        for(auto it :assignments_){
+            std::cout << it.first << ": " << it.second << std::endl;
+        }
+    }
+    void dumpGraph(){
+        for(auto it : graph_){
+            std::cout << it.first << ": { ";
+            for(auto it2 : it.second){
+                std::cout << it2 << " ";
+            }
+            std::cout << "}" << std::endl;
+        }
     }
 private:
     liveSet l_;
@@ -263,18 +383,16 @@ public:
         return;
     }
     explicit Reg(std::string reg){
-        auto it = std::find(regNames.begin(), regNames.end(), reg);
-        if( it == regNames.end() ){
-            std::string errorstring("Register assignment attempted to invalid register ");
-            errorstring+=reg;
-            errorstring+="\n";
-            throw std::invalid_argument(errorstring);
+        try{
+            reg_ = regNames.at(reg);
+        }catch(std::out_of_range &e){
+            throw std::invalid_argument("Register assignment attempted to nonexistant register\n");
         }
-        reg_ = std::distance(regNames.begin(), it);
         return;
     }
     const std::string emitA(bool vars){
-        return regNames[reg_];
+        std::string out = regNums[reg_];
+        return out;
     }
     int get(){
         return i_->getReg(reg_);
@@ -293,12 +411,11 @@ public:
         return false;
     }
     std::string ul(){
-        std::string out;
+        std::string out(regNums[reg_]);
         return out;
     }
 private:
     int reg_;
-    static std::vector<std::string> regNames;
 };
 
 class Const: public Arg{
@@ -979,6 +1096,18 @@ class Block: public X{
             blk_[i]->genInterferences(i);
         }
     }
+    void genColorMap(){
+        bi_->genColorMap();
+    }
+    colorMap getColorMap(){
+        return bi_->getColorMap();
+    }
+    void dumpColor(){
+        bi_->dumpColor();
+    }
+    void dumpGraph(){
+        bi_->dumpGraph();
+    }
 private:
     Blk blk_;
 };
@@ -1129,6 +1258,20 @@ class xProgram{
         for(auto [name, blk] : blks_){
             blk->genGraph();
         }
+    }
+    void genColorMaps(){
+        for(auto [name, blk] : blks_){
+            blk->genColorMap();
+        }
+    }
+    colorMap getColors(std::string name){
+        return blks_[name]->getColorMap();
+    }
+    void dumpColor(std::string name){
+        blks_[name]->dumpColor();
+    }
+    void dumpGraph(std::string name){
+        blks_[name]->dumpGraph();
     }
 private:
     void init(){

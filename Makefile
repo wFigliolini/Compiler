@@ -15,4 +15,4 @@ clean:
 	rm *.o $(PROG)
 new:
 	make clean
-	make
+	make 

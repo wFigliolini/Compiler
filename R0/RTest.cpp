@@ -1397,15 +1397,20 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             bool result = gTest == gOut;
             if(result == false){
                 std::cout<< "LIVE1 failed, dumping contents of gOut" << std::endl;
-                for(auto it : gOut){
-                    std::cout << it.first << ": { ";
-                    for(auto it2 : it.second){
-                        std::cout << it2 << " ";
-                    }
-                    std::cout << "}" << std::endl;
-                }
+                pTest->dumpGraph("BODY");
             }
             BOOST_REQUIRE(result);
+            colorMap cTest = {{"w",0}, {"x",0}, {"f",0}};
+            pTest->genColorMaps();
+            colorMap cOut = pTest->getColors("BODY");
+            bool colorResult = cTest == cOut;
+            if(colorResult == false){
+                std::cout<< "LIVE1 failed, dumping contents of cOut" << std::endl;
+                pTest->dumpColor("BODY");
+                pTest->dumpGraph("BODY");
+            }
+            BOOST_REQUIRE(colorResult);
+            //std::cout << "End LIVE1" << std::endl;
         }
         //from class
         BOOST_AUTO_TEST_CASE(LIVE2){
@@ -1431,25 +1436,24 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             pTest->uncoverLive();
             bool passed = pTest->testLive(testData);
             BOOST_REQUIRE(passed == true);
-            infrGraph gTest = { {"t",{"z"}}, {"v",{"w"}},{"x",{"w","y"}}, {"w",{"v","x","y","z"}},{"y",{"w","x","z"}},{"z",{"t","w","y"}}};
+            infrGraph gTest = { {"t",{"z", "%rax"}}, {"v",{"w"}},{"x",{"w","y"}}, {"w",{"v","x","y","z"}},{"y",{"w","x","z"}},{"z",{"t","w","y"}},{"%rax",{"t"}}};
             pTest->genGraphs();
             infrGraph gOut = pTest->getGraph("BODY");
             bool result = gTest == gOut;
             if(result == false){
                 std::cout<< "LIVE2 failed, dumping contents of gOut" << std::endl;
-                for(auto it : gOut){
-                    std::cout << it.first << ": { ";
-                    for(auto it2 : it.second){
-                        std::cout << it2 << " ";
-                    }
-                    std::cout << "}" << std::endl;
-                }
+                pTest->dumpGraph("BODY");
             }
             BOOST_REQUIRE(result);
-            colorMap cTest = {{"t",0}, {"v",1}, {"x",2},{"w",0},{"y",0},{"z",1}};
-            pTest->genColorMaps(15);
+            colorMap cTest = {{"t",1}, {"v",0}, {"x",0}, {"w",1}, {"y",2}, {"z",0},{"%rax",0}};
+            pTest->genColorMaps();
             colorMap cOut = pTest->getColors("BODY");
-            BOOST_REQUIRE(cTest == cOut);
+            bool colorResult = cTest == cOut;
+            if(colorResult == false){
+                pTest->dumpColor("BODY");
+                pTest->dumpGraph("BODY");
+            }
+            BOOST_REQUIRE(colorResult);
 
         }
         //from textbook
@@ -1472,11 +1476,22 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             infrGraph gTest = { {"a",{"b","c"}},{"b",{"a","c"}},{"c",{"a","b"}}};
             pTest->genGraphs();
             infrGraph gOut = pTest->getGraph("BODY");
-            BOOST_REQUIRE(gTest == gOut);
+            bool result = gTest == gOut;
+            if(result == false){
+                std::cout<< "LIVE3 failed, dumping contents of gOut" << std::endl;
+                pTest->dumpGraph("BODY");
+            }
+            BOOST_REQUIRE(result);
             colorMap cTest = {{"a",0}, {"b",1}, {"c",2}};
-            pTest->genColorMaps(15);
+            pTest->genColorMaps();
             colorMap cOut = pTest->getColors("BODY");
-            BOOST_REQUIRE(cTest == cOut);
+            bool colorResult = cTest == cOut;
+            if(colorResult == false){
+                std::cout<< "LIVE3 failed, dumping contents of cOut" << std::endl;
+                pTest->dumpColor("BODY");
+                pTest->dumpGraph("BODY");
+            }
+            BOOST_REQUIRE(colorResult);
         }
         //double case
         BOOST_AUTO_TEST_CASE(LIVE4){
@@ -1494,11 +1509,21 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             infrGraph gTest = {{"w",{}}};
             pTest->genGraphs();
             infrGraph gOut = pTest->getGraph("BODY");
-            BOOST_REQUIRE(gTest == gOut);
+            bool result = gTest == gOut;
+            if(result == false){
+                std::cout<< "LIVE4 failed, dumping contents of gOut" << std::endl;
+                pTest->dumpGraph("BODY");
+            }
+            BOOST_REQUIRE(result);
             colorMap cTest = {{"w",0}};
-            pTest->genColorMaps(15);
+            pTest->genColorMaps();
             colorMap cOut = pTest->getColors("BODY");
-            BOOST_REQUIRE(cTest == cOut);
+            bool colorResult = cTest == cOut;
+            if(colorResult == false){
+                pTest->dumpColor("BODY");
+                pTest->dumpGraph("BODY");
+            }
+            BOOST_REQUIRE(colorResult);
         }
         //pushpop tests
         BOOST_AUTO_TEST_CASE(LIVE5){
@@ -1517,11 +1542,22 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             infrGraph gTest = {{"f",{}}};
             pTest->genGraphs();
             infrGraph gOut = pTest->getGraph("BODY");
-            BOOST_REQUIRE(gTest == gOut);
+            bool result = gTest == gOut;
+            if(result == false){
+                std::cout<< "LIVE5 failed, dumping contents of gOut" << std::endl;
+                pTest->dumpGraph("BODY");
+            }
+            BOOST_REQUIRE(result);
             colorMap cTest = {{"f",0}};
-            pTest->genColorMaps(15);
+            pTest->genColorMaps();
             colorMap cOut = pTest->getColors("BODY");
-            BOOST_REQUIRE(cTest == cOut);
+            bool colorResult = cTest == cOut;
+            if(colorResult == false){
+                std::cout<< "LIVE5 failed, dumping contents of cOut" << std::endl;
+                pTest->dumpColor("BODY");
+                pTest->dumpGraph("BODY");
+            }
+            BOOST_REQUIRE(colorResult);
         }
         //add case
         BOOST_AUTO_TEST_CASE(LIVE6){
@@ -1540,11 +1576,22 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             infrGraph gTest = {{"a",{"b"}},{"b",{"a"}}};
             pTest->genGraphs();
             infrGraph gOut = pTest->getGraph("BODY");
-            BOOST_REQUIRE(gTest == gOut);
+            bool result = gTest == gOut;
+            if(result == false){
+                std::cout<< "LIVE6 failed, dumping contents of gOut" << std::endl;
+                pTest->dumpGraph("BODY");
+            }
+            BOOST_REQUIRE(result);
             colorMap cTest = {{"a",0}, {"b",1}};
-            pTest->genColorMaps(15);
+            pTest->genColorMaps();
             colorMap cOut = pTest->getColors("BODY");
-            BOOST_REQUIRE(cTest == cOut);
+            bool colorResult = cTest == cOut;
+            if(colorResult == false){
+                std::cout<< "LIVE6 failed, dumping contents of cOut" << std::endl;
+                pTest->dumpColor("BODY");
+                pTest->dumpGraph("BODY");
+            }
+            BOOST_REQUIRE(colorResult);
         }
         //sub case
         BOOST_AUTO_TEST_CASE(LIVE7){
@@ -1563,11 +1610,22 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             infrGraph gTest = {{"a",{"b"}},{"b",{"a"}}};
             pTest->genGraphs();
             infrGraph gOut = pTest->getGraph("BODY");
-            BOOST_REQUIRE(gTest == gOut);
+            bool result = gTest == gOut;
+            if(result == false){
+                std::cout<< "LIVE7 failed, dumping contents of gOut" << std::endl;
+                pTest->dumpGraph("BODY");
+            }
+            BOOST_REQUIRE(result);
             colorMap cTest = {{"a",0}, {"b",1}};
-            pTest->genColorMaps(15);
+            pTest->genColorMaps();
             colorMap cOut = pTest->getColors("BODY");
-            BOOST_REQUIRE(cTest == cOut);
+            bool colorResult = cTest == cOut;
+            if(colorResult == false){
+                std::cout<< "LIVE7 failed, dumping contents of cOut" << std::endl;
+                pTest->dumpColor("BODY");
+                pTest->dumpGraph("BODY");
+            }
+            BOOST_REQUIRE(colorResult);
         }
         //Neg Case
         BOOST_AUTO_TEST_CASE(LIVE8){
@@ -1585,10 +1643,21 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             infrGraph gTest = {{"a",{}}};
             pTest->genGraphs();
             infrGraph gOut = pTest->getGraph("BODY");
-            BOOST_REQUIRE(gTest == gOut);
-            colorMap cTest = {{"a",0}}
-            pTest->genColorMaps(15);
+            bool result = gTest == gOut;
+            if(result == false){
+                std::cout<< "LIVE8 failed, dumping contents of gOut" << std::endl;
+                pTest->dumpGraph("BODY");
+            }
+            BOOST_REQUIRE(result);
+            colorMap cTest = {{"a",0}};
+            pTest->genColorMaps();
             colorMap cOut = pTest->getColors("BODY");
-            BOOST_REQUIRE(cTest == cOut);
+            bool colorResult = cTest == cOut;
+            if(colorResult == false){
+                std::cout<< "LIVE8 failed, dumping contents of cOut" << std::endl;
+                pTest->dumpColor("BODY");
+                pTest->dumpGraph("BODY");
+            }
+            BOOST_REQUIRE(colorResult);
         }
-        TEST_SUITE_END()
+BOOST_AUTO_TEST_SUITE_END()
