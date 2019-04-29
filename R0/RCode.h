@@ -239,10 +239,11 @@ public:
         mov_.insert(std::pair<Vertex, std::set<Vertex>>(a, {}));
     }
     //possibly overdone & could be simplified
-    void genColorMap(){
+    void genColorMap(bool moveBias){
         //initialize colormap
         satHeap W;
         satSet G;
+        int i;
         for(auto it: vars_){
             //default to -1
             int unassigned = -1;
@@ -285,22 +286,44 @@ public:
                 int color = assignments_[it];
                 if(color != -1) unavail.insert(color);
             }
-            for(int i = 0; ; i++){
-                //if i is not in the unavailible set, 
-                //use and update all adjacent nodes
-                if(unavail.find(i) == unavail.end()){
-                    assignments_[name] = i;
-                    for(auto it: graph_[name]){
-                        try{
-                            int* s = G.at(it);
-                            (*s)++;
+            if(moveBias){
+                for( auto it : mov_[name]){
+                    i = assignments_[it];
+                    if(unavail.find(i) == unavail.end()){
+                        assignments_[name] = i;
+                        for(auto it2: graph_[name]){
+                            try{
+                                int* s = G.at(it2);
+                                (*s)++;
+                            }
+                            catch(std::out_of_range &e){
+                                continue;
+                            }
                         }
-                        catch(std::out_of_range &e){
-                            continue;
-                        }
+                        //loop will terminate once a color has been found
+                        break;
                     }
-                    //loop will terminate once a color has been found
-                    break;
+                }
+            }
+            if(moveBias == false || assignments_[name] == -1){
+                //run until color is found
+                for(i = 0; ; i++){
+                    //if i is not in the unavailible set, 
+                    //use and update all adjacent nodes
+                    if(unavail.find(i) == unavail.end()){
+                        assignments_[name] = i;
+                        for(auto it: graph_[name]){
+                            try{
+                                int* s = G.at(it);
+                                (*s)++;
+                            }
+                            catch(std::out_of_range &e){
+                                continue;
+                            }
+                        }
+                        //loop will terminate once a color has been found
+                        break;
+                    }
                 }
             }
             //heap does not update until after pop,
@@ -1170,8 +1193,8 @@ class Block: public X{
             blk_[i]->genInterferences(i);
         }
     }
-    void genColorMap(){
-        bi_->genColorMap();
+    void genColorMap(bool moveBias){
+        bi_->genColorMap(moveBias);
     }
     colorMap getColorMap(){
         return bi_->getColorMap();
@@ -1420,9 +1443,9 @@ class xProgram{
             blk->genGraph();
         }
     }
-    void genColorMaps(){
+    void genColorMaps(bool moveBias = 0){
         for(auto [name, blk] : blks_){
-            blk->genColorMap();
+            blk->genColorMap(moveBias);
         }
     }
     colorMap getColors(std::string name){

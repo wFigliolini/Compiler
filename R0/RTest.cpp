@@ -1817,7 +1817,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             result = pTest->run(); 
             pTest->uncoverLive();
             pTest->genGraphs();
-            pTest->genColorMaps();
+            pTest->genColorMaps(1);
             pTest->genEnv();
             pTest = pTest->assignRegisters();
             std::vector<std::string> out;
@@ -1845,7 +1845,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             result = pTest->run(); 
             pTest->uncoverLive();
             pTest->genGraphs();
-            pTest->genColorMaps();
+            pTest->genColorMaps(1);
             pTest->genEnv();
             pTest = pTest->assignRegisters();
             std::vector<std::string> out;
@@ -1855,9 +1855,14 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             }
             f = pTest->run();
             BOOST_REQUIRE(result == f);
+            std::cout<< std::endl;
+            std::cout<< "end BIAS2"<<std::endl;
+            std::cout<< std::endl;
         }
         BOOST_AUTO_TEST_CASE(BIASR){
-            Program* rTest = new Program(new Let("x", new Num(1), new Let("v", new Var("x"), new Add(new Num(2), new Var("v")))));
+            int result, f;
+            Program* rTest = new Program(new Let("x", new Num(1), new Let("v", new Var("x"), new Add(new Var("v"), new Num(2)))));
+            result = rTest->run();
             rTest = uniquify(rTest);
             rTest = rco(rTest);
             CProg* cTest = econ(rTest);
@@ -1865,7 +1870,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             xProgram* pTest = cTest->selInsr();
             pTest->uncoverLive();
             pTest->genGraphs();
-            pTest->genColorMaps();
+            pTest->genColorMaps(1);
             pTest->genEnv();
             pTest = pTest->assignRegisters();
             std::vector<std::string> out;
