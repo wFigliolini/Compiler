@@ -166,7 +166,12 @@ std::string genNewVar(std::string type, bool reset){
 
 xProgram* assign(xProgram* orig, bool smart){
     if(smart){
-        return orig->assignRegisters();
+        orig->uncoverLive();
+        orig->genGraphs();
+        orig->genColorMaps();
+        orig->assignRegisters();
+        return NULL;
+        //return orig->assignRegisters();
     }
     else{
         return orig->assignHomes();
@@ -184,6 +189,26 @@ void blkInfo::setIndex(unsigned int i, Instr* instr){
         val = instr->ul(prev);
     }
     l_[i] = val;
+}
+
+void blkInfo::genEnv(){
+    for(auto it = assignments_.begin(); it != assignments_.end(); ++it){
+        if(it->second > 13){
+            env_.insert(std::pair<std::string, Arg*>(it->first, new DeRef(new Reg("%rsp"), 8*(it->second-13))));
+            stackVars_++;
+            continue;
+        }
+        //9-13 map to r12-15
+        if(it->second > 9){
+            usedCalleeRegs_.insert(regAsn[it->second]);
+        }
+        env_.insert(std::pair<std::string, Arg*>(it->first, new Reg(regAsn[it->second])));
+    }
+}
+void blkInfo::printEnv(){
+    for(auto it = env_.begin(); it != env_.end(); ++it){
+        std::cout << it->first << ": " << it->second->emitA(1) << std::endl;
+    }
 }
 //set of register names
 int Label::num_ = 42;

@@ -35,10 +35,20 @@ const std::map<int,std::string> regNums = {
     {9,"%r9"}, {10,"%r10"}, {11,"%r11"},
     {12,"%r12"}, {13,"%r13"}, {14,"%r14"},
     {15,"%r15"}};
+//check which ones to be removed
+const std::map<int,std::string> regAsn = {
+    {0,"%rax"}, {1,"%rbx"}, {2,"%rcx"},
+    {3,"%rdx"}, {4,"%rsi"}, {5,"%rdi"},
+    {6,"%r8"},  {7,"%r9"}, {8,"%r10"}, 
+    {9,"%r11"}, {10,"%r12"}, {11,"%r13"},
+    {12,"%r14"},{13,"%r15"}};
 class Expr;
 class Num;
 class CExp;
 class Instr;
+class Arg;
+class Reg;
+class DeRef;
 typedef std::unordered_map<std::string, Expr*> Environ;
 typedef std::pair<std::string, int> strCount;
 typedef std::unordered_map<std::string, strCount> envmap;
@@ -53,6 +63,8 @@ typedef std::pair<Vertex, Vertex> Edge;
 typedef std::map<Vertex, int> colorMap;
 typedef std::pair<int*,Vertex> Sat;
 typedef std::map<Vertex, int*> satSet;
+typedef std::map<Vertex, Arg*> assignEnv;
+typedef std::map<Vertex, int> regMap;
 
 std::string genNewVar(std::string type = "i", bool reset = 0);
 
@@ -311,11 +323,35 @@ public:
             std::cout << "}" << std::endl;
         }
     }
+    //Vertex -> Reg/Stack
+    //push back to uCR if  r12-r15
+    //increment stackvars if color > 13
+    
+    void genEnv();
+    Arg* getArg(std::string name){
+        return env_[name];
+    }
+    assignEnv getEnv(){
+        assignEnv out(env_);
+        return out;
+    }
+    int getStackVars(){
+        int out(stackVars_);
+        return out;
+    }
+    std::set<std::string> getCalleeRegs(){
+        std::set<std::string> out(usedCalleeRegs_);
+        return out;
+    }
+    void printEnv();
 private:
     liveSet l_;
     infrGraph graph_;
     varSet vars_;
     colorMap assignments_;
+    assignEnv env_;
+    int stackVars_;
+    std::set<std::string> usedCalleeRegs_;
 };
 
 class X{
@@ -372,6 +408,7 @@ public:
     virtual void init(std::shared_ptr<xInfo> i, std::shared_ptr<blkInfo> bi) = 0;
     virtual bool isMemRef() = 0;
     virtual std::string ul() = 0;
+    virtual Arg* asRA() = 0;
 };
 class Reg: public Arg{
 public:
@@ -414,6 +451,9 @@ public:
         std::string out(regNums[reg_]);
         return out;
     }
+    Arg* asRA(){
+        return new Reg(reg_);
+    }
 private:
     int reg_;
 };
@@ -445,6 +485,9 @@ public:
     std::string ul(){
         std::string out;
         return out;
+    }
+    Arg* asRA(){
+        return new Const(con_);
     }
 private:
     int con_;
@@ -492,6 +535,9 @@ public:
     std::string ul(){
         std::string out;
         return out;
+    }
+    Arg* asRA(){
+        return new DeRef(new Reg(reg_->emitA(0)), offset_);
     }
 private:
     Reg* reg_;
@@ -545,6 +591,9 @@ public:
     std::string ul(){
         return name_;
     }
+    Arg* asRA(){
+        return bi_->getArg(name_);
+    }
 private:
     std::string name_;
 };
@@ -565,6 +614,7 @@ public:
    }
    virtual varSet ul(varSet lb) = 0;
    virtual void genInterferences(int index) =0;
+   virtual Instr* asRI() = 0;
 protected:
     Arg* al_, *ar_;
     bool isControl;
@@ -626,6 +676,9 @@ public:
             bi_->addEdge(it, d);
         }
     }
+    Instr* asRI(){
+        return new Movq(al_->asRA(), ar_->asRA());
+    }
 };
 class Addq: public Instr{
 public:
@@ -684,6 +737,9 @@ public:
             if( it == d) continue;
             bi_->addEdge(it, d);
         }
+    }
+    Instr* asRI(){
+        return new Addq(al_->asRA(), ar_->asRA());
     }
 };
 class Subq: public Instr{
@@ -744,6 +800,9 @@ public:
             bi_->addEdge(it, d);
         }
     }
+    Instr* asRI(){
+        return new Subq(al_->asRA(), ar_->asRA());
+    }
 }; 
 class Jmp: public Instr{
 public:
@@ -776,6 +835,9 @@ public:
     void genInterferences(int index){
         
     }
+    Instr* asRI(){
+        return new Jmp(new Label(lab_->emitL(1)));
+    }
 private:
     Label* lab_;
 };
@@ -789,16 +851,8 @@ public:
         return output;
     }
     void interp(){
-        //int rbp = 6, retaddr = i_->getStack(i_->getReg(rbp)-1);
-        
         i_->setResult();
-        //throw BlkComplete();
-        /*if(retaddr == 0){
-        }
-        else{
-            //i_->setReg(rbp, retaddr);
-        }
-         */
+
     }
     Instr* asHI(localVars *e){
         //return END fto make compatible with headers added at end of assign
@@ -820,6 +874,9 @@ public:
     }
     void genInterferences(int index){
         
+    }
+    Instr* asRI(){
+        return new Jmp(new Label("END"));
     }
 };
 class Negq: public Instr{
@@ -854,6 +911,9 @@ public:
     }
     void genInterferences(int index){
         
+    }
+    Instr* asRI(){
+        return new Negq(al_->asRA());
     }
 };
 class Callq: public Instr{
@@ -897,6 +957,9 @@ public:
             }
         }
     }
+    Instr* asRI(){
+        return new Callq(new Label(lab_->emitL(1)));
+    }
 private:
     Label* lab_;
 };
@@ -935,6 +998,9 @@ public:
     }
     void genInterferences(int index){
         
+    }
+    Instr* asRI(){
+        return new Pushq(al_->asRA());
     }
 };
 class Popq: public Instr{
@@ -978,6 +1044,9 @@ public:
             if(it == d) continue;
             bi_->addEdge(it, d);
         }
+    }
+    Instr* asRI(){
+        return new Popq(al_->asRA());
     }
 };
 //block definition
@@ -1108,6 +1177,62 @@ class Block: public X{
     void dumpGraph(){
         bi_->dumpGraph();
     }
+    Block* asRB(){
+        Blk exprs;
+        for(auto it : blk_){
+            Instr* temp = it->asRI();
+            exprs.push_back(temp);
+        }
+        Block* out = new Block(exprs);
+        return out;
+    }
+    int getStackVars(){
+        return bi_->getStackVars();
+    }
+    std::set<std::string> getCalleeRegs(){
+        return bi_->getCalleeRegs();
+    }
+    void genEnv(){
+        bi_->genEnv();
+    }
+    
+    bool testRegisters(assignEnv d){
+        bool result;
+        assignEnv act = bi_->getEnv();
+        Arg* a;
+        std::string gen, data, failVar;
+        for(auto it : bi_->getVars()){
+            failVar = it;
+            try{
+                a = act.at(it);
+                gen = a->emitA(1);
+            }
+            catch(std::out_of_range & e){
+                result = false;
+                break;
+            }
+            try{
+                a = d.at(it);
+                data = a->emitA(1);
+            }
+            catch(std::out_of_range & e){
+                result = false;
+                break;
+            }
+            result = (data == gen);
+            if(result == false){
+                break;
+            }
+        }
+        if(result == false){
+            std::cout << "testRegister Failed at variable = " << failVar <<std::endl;
+            std::cout << "generated arg: "<< gen<< " given: " << data<<std::endl;
+            std::cout<< "dumping assignEnv"<< std::endl;
+            bi_->printEnv();
+        }
+        return result;
+    }
+    
 private:
     Blk blk_;
 };
@@ -1235,6 +1360,28 @@ class xProgram{
         out->i_->setLabel(sMain);
         return out;
     }
+    
+    void genEnv(){
+        for(auto [name, blk]: blks_){
+            blk->genEnv();
+        }
+    }
+    xProgram* assignRegisters(){
+        Block  *temp = new Block();
+        xProgram* out = new xProgram();
+        
+        for(auto [name, block]: blks_){
+            temp = block->asRB();
+            out->addBlock(name, temp);
+        }
+        Block *start = genSmartHeader(temp->getStackVars(), temp->getCalleeRegs()), *tail = genSmartEnd(temp->getStackVars(), temp->getCalleeRegs());
+        out->addBlock("START", start);
+        out->addBlock("END", tail);
+
+        out->i_->setLabel("START");
+        return out;
+    }
+
     void uncoverLive(){
         for(auto [name, blk]: blks_){
             blk->uncoverLive();
@@ -1273,6 +1420,11 @@ class xProgram{
     void dumpGraph(std::string name){
         blks_[name]->dumpGraph();
     }
+    bool testRegisters(assignEnv d){
+        Block* blk = blks_["BODY"];
+        bool result = blk->testRegisters(d);
+        return result;
+    }
 private:
     void init(){
         i_ = std::make_shared<xInfo>();
@@ -1300,6 +1452,34 @@ private:
         if(vc % 2 == 1) vc+=1;
         vc *= 8;
         end.push_back(new Addq(new Const(vc), new Reg("%rsp")));
+        end.push_back(new Popq(new Reg("%rbp")));
+        end.push_back(new Retq());
+
+        Block* out = new Block(end);
+        return out;
+    }
+    Block* genSmartHeader(int regs, std::set<std::string> callees){
+        std::vector<Instr*> start;
+        if(regs % 2 == 1) regs+=1;
+        regs *= 8;
+        start.push_back(new Pushq(new Reg("%rbp")));
+        start.push_back(new Movq(new Reg("%rsp"), new Reg("%rbp")));
+        for(auto it:callees){
+            start.push_back(new Pushq(new Reg(it)));
+        }
+        start.push_back(new Subq(new Const(regs), new Reg("%rsp")));
+        start.push_back(new Jmp(new Label("BODY")));
+        Block* out = new Block(start);
+        return out;
+    }
+    Block* genSmartEnd(int regs, std::set<std::string> callees){
+        std::vector<Instr*> end;
+        if(regs % 2 == 1) regs+=1;
+        regs *= 8;
+        end.push_back(new Addq(new Const(regs), new Reg("%rsp")));
+        for(auto it = callees.rbegin(); it != callees.rend(); ++it){
+            end.push_back(new Popq(new Reg(*it)));
+        }
         end.push_back(new Popq(new Reg("%rbp")));
         end.push_back(new Retq());
 
@@ -2180,6 +2360,6 @@ public:
 //functions
 Program* pow(int x, int b = 2);
 Program* randProg(int depth);
-xProgram* assign(xProgram* orig);
+xProgram* assign(xProgram* orig, bool smart = 0);
 xProgram* patch(xProgram* orig);
 #endif
