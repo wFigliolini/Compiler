@@ -253,5 +253,18 @@ Blk Subq::patchI(){
     }
     return out;
 }
+
+xProgram* compile(Program* orig){
+    Program* rProg = opt(orig);
+    rProg = uniquify(rProg);
+    rProg = rco(rProg);
+    CProg* cProg = econ(rProg);
+    cProg->uncoverLocals();
+    xProgram* out = cProg->selInsr();
+    out = assign(out);
+    out = patch(out);
+    return out;
+}
+
 //set of register names
 int Label::num_ = 42;

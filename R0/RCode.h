@@ -59,6 +59,7 @@ typedef std::set<std::string> varSet;
 typedef std::vector<varSet> liveSet;
 typedef std::string Vertex;
 typedef std::map<Vertex,std::set<Vertex>>  infrGraph;
+typedef std::map<Vertex,std::set<Vertex>>  movGraph;
 typedef std::pair<Vertex, Vertex> Edge;
 typedef std::map<Vertex, int> colorMap;
 typedef std::pair<int*,Vertex> Sat;
@@ -229,8 +230,13 @@ public:
         graph_[a].insert(b);
         graph_[b].insert(a);
     }
+    void addMov(std::string a, std::string b){
+        mov_[a].insert(b);
+        mov_[b].insert(a);
+    }
     void addVertex(std::string a){
         graph_.insert(std::pair<Vertex, std::set<Vertex>>(a, {}));
+        mov_.insert(std::pair<Vertex, std::set<Vertex>>(a, {}));
     }
     //possibly overdone & could be simplified
     void genColorMap(){
@@ -325,6 +331,15 @@ public:
             std::cout << "}" << std::endl;
         }
     }
+    void dumpMov(){
+        for(auto it : mov_){
+            std::cout << it.first << ": { ";
+            for(auto it2 : it.second){
+                std::cout << it2 << " ";
+            }
+            std::cout << "}" << std::endl;
+        }
+    }
     //Vertex -> Reg/Stack
     //push back to uCR if  r12-r15
     //increment stackvars if color > 13
@@ -346,9 +361,14 @@ public:
         return out;
     }
     void printEnv();
+    movGraph getMov(){
+        movGraph out(mov_);
+        return out;
+    }
 private:
     liveSet l_;
     infrGraph graph_;
+    movGraph mov_;
     varSet vars_;
     colorMap assignments_;
     assignEnv env_;
@@ -411,6 +431,7 @@ public:
     virtual bool isMemRef() = 0;
     virtual std::string ul() = 0;
     virtual Arg* asRA() = 0;
+    virtual bool isConst() = 0;
 };
 class Reg: public Arg{
 public:
@@ -458,6 +479,9 @@ public:
     Arg* asRA(){
         return new Reg(reg_);
     }
+    bool isConst(){
+        return false;
+    }
 private:
     int reg_;
 };
@@ -492,6 +516,9 @@ public:
     }
     Arg* asRA(){
         return new Const(con_);
+    }
+    bool isConst(){
+        return true;
     }
 private:
     int con_;
@@ -542,6 +569,9 @@ public:
     }
     Arg* asRA(){
         return new DeRef(new Reg(reg_->emitA(0)), offset_);
+    }
+    bool isConst(){
+        return false;
     }
 private:
     Reg* reg_;
@@ -597,6 +627,9 @@ public:
     }
     Arg* asRA(){
         return bi_->getArg(name_);
+    }
+    bool isConst(){
+        return false;
     }
 private:
     std::string name_;
@@ -663,6 +696,7 @@ public:
     void genInterferences(int index){
         varSet after = bi_->getIndex(index);
         std::string s(al_->ul()),d(ar_->ul());
+        if(!al_->isConst() && !ar_->isConst()) bi_->addMov(s,d);
         for(auto it : after){
             if(d.empty()) break;
             if(it == s || it == d) continue;
@@ -1148,6 +1182,9 @@ class Block: public X{
     void dumpGraph(){
         bi_->dumpGraph();
     }
+    void dumpMov(){
+        bi_->dumpMov();
+    }
     Block* asRB(){
         Blk exprs;
         for(auto it : blk_){
@@ -1203,7 +1240,9 @@ class Block: public X{
         }
         return result;
     }
-    
+    movGraph getMov(){
+        return bi_->getMov();
+    }
 private:
     Blk blk_;
 };
@@ -1373,6 +1412,9 @@ class xProgram{
     infrGraph getGraph(std::string name){
         return blks_[name]->getGraph();
     }
+    movGraph getMov(std::string name){
+        return blks_[name]->getMov();
+    }
     void genGraphs(){
         for(auto [name, blk] : blks_){
             blk->genGraph();
@@ -1391,6 +1433,9 @@ class xProgram{
     }
     void dumpGraph(std::string name){
         blks_[name]->dumpGraph();
+    }
+    void dumpMov(std::string name){
+        blks_[name]->dumpMov();
     }
     bool testRegisters(assignEnv d){
         Block* blk = blks_["BODY"];
@@ -2334,4 +2379,5 @@ Program* pow(int x, int b = 2);
 Program* randProg(int depth);
 xProgram* assign(xProgram* orig);
 xProgram* patch(xProgram* orig);
+xProgram* compile(Program* orig);
 #endif

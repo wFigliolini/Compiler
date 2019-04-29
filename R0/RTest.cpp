@@ -711,7 +711,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                     optList.push_back(opresult);
                     ++optFails;
                     //to determine if the later stages still work
-                    //result = opresult;
+                    result = opresult;
                 }
                 pTest = uniquify( pTest);
                 opresult = pTest->run();
@@ -719,7 +719,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                     //std::cout <<"Intended result: "<< result << " Uniq Result: " << opresult << std::endl;
                     uniqList.push_back(opresult);
                     ++uniqFails;
-                    //result = opresult;
+                    result = opresult;
                 }
                 pTest = rco( pTest);
                 opresult = pTest->run();
@@ -727,7 +727,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                     //std::cout <<"Intended result: "<< result << " Uniq Result: " << opresult << std::endl;
                     rcoList.push_back(opresult);
                     ++rcoFails;
-                    //result = opresult;
+                    result = opresult;
                 }
                 CProg* cTest = econ( pTest);
                 cTest->uncoverLocals();
@@ -736,7 +736,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                     //std::cout <<"Intended result: "<< result << " Uniq Result: " << opresult << std::endl;
                     econList.push_back(opresult);
                     ++econFails;
-                    //result = opresult;
+                    result = opresult;
                 }
                 xProgram* xTest = cTest->selInsr();
                 opresult = xTest->run();
@@ -744,7 +744,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                     //std::cout <<"Intended result: "<< result << " Uniq Result: " << opresult << std::endl;
                     selList.push_back(opresult);
                     ++selFails;
-                    //result = opresult;
+                    result = opresult;
                 }
                 xTest = assign(xTest);
                 opresult = xTest->run();
@@ -752,7 +752,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                     //std::cout <<"Intended result: "<< result << " Uniq Result: " << opresult << std::endl;
                     asList.push_back(opresult);
                     ++asFails;
-                    //result = opresult;
+                    result = opresult;
                 }
                 xTest = patch(xTest);
                 opresult = xTest->run();
@@ -760,7 +760,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                     //std::cout <<"Intended result: "<< result << " Uniq Result: " << opresult << std::endl;
                     patchList.push_back(opresult);
                     ++patchFails;
-                    //result = opresult;
+                    result = opresult;
                 }
             }
             if(optFails > 0){
@@ -1462,14 +1462,22 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             bool passed = pTest->testLive(testData);
             BOOST_REQUIRE(passed == true);
             infrGraph gTest = { {"t",{"z", "%rax"}}, {"v",{"w"}},{"x",{"w","y"}}, {"w",{"v","x","y","z"}},{"y",{"w","x","z"}},{"z",{"t","w","y"}},{"%rax",{"t"}}};
+            movGraph mTest = { {"v", {"x"}}, {"w",{}}, {"x",{"v","y","z"}}, {"y",{"x","t"}},{"z",{"x", "%rax"}},{"t",{"y"}}, {"%rax",{"z"}}};
             pTest->genGraphs();
             infrGraph gOut = pTest->getGraph("BODY");
+            movGraph mOut = pTest->getMov("BODY");
             bool result = gTest == gOut;
+            bool movResult = mTest == mOut;
             if(result == false){
                 std::cout<< "LIVE2 failed, dumping contents of gOut" << std::endl;
                 pTest->dumpGraph("BODY");
             }
+            if(movResult == false){
+                std::cout<< "LIVE2 Mov failed, dumping contents of mOut" << std::endl;
+                pTest->dumpMov("BODY");
+            }
             BOOST_REQUIRE(result);
+            BOOST_REQUIRE(movResult);
             colorMap cTest = {{"t",1}, {"v",0}, {"x",0}, {"w",1}, {"y",2}, {"z",0},{"%rax",0}};
             pTest->genColorMaps();
             colorMap cOut = pTest->getColors("BODY");
@@ -1819,14 +1827,19 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             }
             f = pTest->run();
             BOOST_REQUIRE(result == f);
+            std::cout<< std::endl;
+            std::cout<< "end BIAS1"<<std::endl;
+            std::cout<< std::endl;
         }
         //simplify to movq(3, rax)
         BOOST_AUTO_TEST_CASE(BIAS2){
+            int result , f;
             Blk instrSet;
                 instrSet.push_back(new Movq(new Const(3), new Ref("x")));
                 instrSet.push_back(new Movq(new Ref("x"), new Ref("y")));
                 instrSet.push_back(new Movq(new Ref("y"), new Ref("z")));
                 instrSet.push_back(new Movq(new Ref("z"), new Reg(0)));
+                instrSet.push_back(new Retq());
             Block* bTest = new Block(instrSet);
             xProgram* pTest = new xProgram(bTest);
             result = pTest->run(); 
