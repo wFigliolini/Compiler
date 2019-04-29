@@ -1856,4 +1856,24 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             f = pTest->run();
             BOOST_REQUIRE(result == f);
         }
+        BOOST_AUTO_TEST_CASE(BIASR){
+            Program* rTest = new Program(new Let("x", new Num(1), new Let("v", new Var("x"), new Add(new Num(2), new Var("v")))));
+            rTest = uniquify(rTest);
+            rTest = rco(rTest);
+            CProg* cTest = econ(rTest);
+            cTest->uncoverLocals();
+            xProgram* pTest = cTest->selInsr();
+            pTest->uncoverLive();
+            pTest->genGraphs();
+            pTest->genColorMaps();
+            pTest->genEnv();
+            pTest = pTest->assignRegisters();
+            std::vector<std::string> out;
+            out = pTest->emit(1);
+            for(auto it : out){
+                std::cout << it;
+            }
+            f = pTest->run();
+            BOOST_REQUIRE(result == f);
+        }
 BOOST_AUTO_TEST_SUITE_END()
