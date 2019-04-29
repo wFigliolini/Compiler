@@ -1707,7 +1707,6 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         }
         //Neg Case
         BOOST_AUTO_TEST_CASE(LIVE8){
-            
             Blk instrSet;
                 instrSet.push_back(new Movq(new Const(20), new Ref("a")));    //{w}
                 instrSet.push_back(new Negq(new Ref("a")));     //{f}
@@ -1785,6 +1784,62 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             //bool testResult = pTest->testRegisters(data);
             //BOOST_REQUIRE(testResult == true);
             pTest = pTest->assignRegisters();
+            f = pTest->run();
+            BOOST_REQUIRE(result == f);
+        }
+        BOOST_AUTO_TEST_CASE(BIAS1){
+            int result , f;
+            Blk instrSet;
+                instrSet.push_back(new Movq(new Const(1), new Ref("v")));
+                instrSet.push_back(new Movq(new Const(46), new Ref("w")));
+                instrSet.push_back(new Movq(new Ref("v"), new Ref("x")));
+                instrSet.push_back(new Addq(new Const(7), new Ref("x")));
+                instrSet.push_back(new Movq(new Ref("x"), new Ref("y")));
+                instrSet.push_back(new Addq(new Const(4), new Ref("y")));
+                instrSet.push_back(new Movq(new Ref("x"), new Ref("z")));
+                instrSet.push_back(new Addq(new Ref("w"), new Ref("z")));
+                instrSet.push_back(new Movq(new Ref("x"), new Ref("z")));
+                instrSet.push_back(new Movq(new Ref("y"), new Ref("1i")));
+                instrSet.push_back(new Negq(new Ref("1i")));
+                instrSet.push_back(new Movq(new Ref("z"), new Reg(0)));
+                instrSet.push_back(new Addq(new Ref("1i"), new Reg(0)));
+                instrSet.push_back(new Retq);
+            Block* bTest = new Block(instrSet);
+            xProgram* pTest = new xProgram(bTest);
+            result = pTest->run(); 
+            pTest->uncoverLive();
+            pTest->genGraphs();
+            pTest->genColorMaps();
+            pTest->genEnv();
+            pTest = pTest->assignRegisters();
+            std::vector<std::string> out;
+            out = pTest->emit(1);
+            for(auto it : out){
+                std::cout << it;
+            }
+            f = pTest->run();
+            BOOST_REQUIRE(result == f);
+        }
+        //simplify to movq(3, rax)
+        BOOST_AUTO_TEST_CASE(BIAS2){
+            Blk instrSet;
+                instrSet.push_back(new Movq(new Const(3), new Ref("x")));
+                instrSet.push_back(new Movq(new Ref("x"), new Ref("y")));
+                instrSet.push_back(new Movq(new Ref("y"), new Ref("z")));
+                instrSet.push_back(new Movq(new Ref("z"), new Reg(0)));
+            Block* bTest = new Block(instrSet);
+            xProgram* pTest = new xProgram(bTest);
+            result = pTest->run(); 
+            pTest->uncoverLive();
+            pTest->genGraphs();
+            pTest->genColorMaps();
+            pTest->genEnv();
+            pTest = pTest->assignRegisters();
+            std::vector<std::string> out;
+            out = pTest->emit(1);
+            for(auto it : out){
+                std::cout << it;
+            }
             f = pTest->run();
             BOOST_REQUIRE(result == f);
         }
