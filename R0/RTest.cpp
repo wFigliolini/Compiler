@@ -41,15 +41,22 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         }*/
         f = xTest->run();
         BOOST_REQUIRE(int1 == f);
+        //std::cout << "Passed assign run" << std::endl;
         BOOST_REQUIRE(xTest->containVar() == false);
         xTest = patch(xTest);
+        out = xTest->emit(1);
+        /*for(auto it : out){
+            std::cout << it;
+        }*/
         f = xTest->run();
+        //std::cout << int1 << " " << f << std::endl;
         BOOST_REQUIRE(int1 == f);
         xTest = xTest->genMain();
         xTest->outputToFile("Test1", 0);
     }
     BOOST_AUTO_TEST_CASE(Test2) {
         Program* pTest = new Program(NULL, new Add(new Num(7), new Num(13)));
+        std::vector<std::string> out;
         int int2, final2(20), f;
         int2 = pTest->run();
         BOOST_REQUIRE(int2 == final2);
@@ -68,6 +75,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         BOOST_REQUIRE(final2 == f);
         xProgram* xTest = cTest->selInsr();
         xTest = assign(xTest);
+        out = xTest->emit(1);
         f = xTest->run();
         BOOST_REQUIRE(int2 == f);
         BOOST_REQUIRE(xTest->containVar() == false);
@@ -80,6 +88,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
     // test for two branches with reads
     BOOST_AUTO_TEST_CASE(Test3) {
         Program* pTest = new Program(NULL, new Add(new Add(new Num(7), new Read(1)), new Add(new Num(13), new Read(1))));
+        std::vector<std::string> out;
         int  int3, final3(103), f;
         int3 = pTest->run();
         BOOST_REQUIRE(int3 == final3);
@@ -98,6 +107,10 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         BOOST_REQUIRE(final3 == f);
         xProgram* xTest = cTest->selInsr();
         xTest = assign(xTest);
+        out = xTest->emit(1);
+        /*for(auto it : out){
+            std::cout << it;
+        }*/
         f = xTest->run();
         BOOST_REQUIRE(int3 == f);
         BOOST_REQUIRE(xTest->containVar() == false);
@@ -681,7 +694,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             BOOST_TEST(true);
     }
     // Depth 100 results in system stalling and losing the rest of the file 
-    BOOST_AUTO_TEST_CASE(Mass_Test){
+   BOOST_AUTO_TEST_CASE(Mass_Test){
             int depth(10), runCount(100);
             int optFails(0), uniqFails(0), rcoFails(0), econFails(0), selFails(0), asFails(0), patchFails(0);
             std::vector<int>  uniqList, optList, rcoList, econList, selList, asList, patchList;
@@ -1294,7 +1307,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             BOOST_REQUIRE(orig == f);
             //original size + number of double memory references
             //std::cout << origSize << " " << fSize<< std::endl;
-            BOOST_REQUIRE(origSize+1 == fSize);
+            BOOST_REQUIRE(origSize-1 == fSize);
         }
         BOOST_AUTO_TEST_CASE(PATCH2){
             int orig, f, origSize, fSize;
@@ -1312,7 +1325,8 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             fSize = pTest->size("BODY");
             
             BOOST_REQUIRE(orig == f);
-            BOOST_REQUIRE(origSize+1 == fSize);
+            //std::cout << origSize << " " << fSize<< std::endl;
+            BOOST_REQUIRE(origSize-2 == fSize);
         }
         //example from book, with vars added in place of derefs and regs
         BOOST_AUTO_TEST_CASE(PATCH3){
@@ -1332,8 +1346,9 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             f = pTest->run();
             fSize = pTest->size("BODY");
             
+            //std::cout << origSize << " " << fSize<< std::endl;
             BOOST_REQUIRE(orig == f);
-            BOOST_REQUIRE(origSize+1 == fSize);
+            BOOST_REQUIRE(origSize-2 == fSize);
         }
         //
         BOOST_AUTO_TEST_CASE(PATCH4){
@@ -1354,8 +1369,9 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             f = pTest->run();
             fSize = pTest->size("BODY");
             
+            //std::cout << origSize << " " << fSize<< std::endl;
             BOOST_REQUIRE(orig == f);
-            BOOST_REQUIRE(origSize+2 == fSize);
+            BOOST_REQUIRE(origSize-1 == fSize);
         }
         BOOST_AUTO_TEST_CASE(PATCH5){
             int orig, f, origSize, fSize;
@@ -1373,8 +1389,9 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             f = pTest->run();
             fSize = pTest->size("BODY");
             
+            //std::cout << origSize << " " << fSize<< std::endl;
             BOOST_REQUIRE(orig == f);
-            BOOST_REQUIRE(origSize+2 == fSize);
+            BOOST_REQUIRE(origSize-1 == fSize);
         }
         //Mov Case
         BOOST_AUTO_TEST_CASE(LIVE1){

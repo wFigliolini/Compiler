@@ -164,18 +164,15 @@ std::string genNewVar(std::string type, bool reset){
     return out;
 }
 
-xProgram* assign(xProgram* orig, bool smart){
-    if(smart){
-        orig->uncoverLive();
-        orig->genGraphs();
-        orig->genColorMaps();
-        orig->assignRegisters();
-        return NULL;
-        //return orig->assignRegisters();
-    }
-    else{
-        return orig->assignHomes();
-    }
+xProgram* assign(xProgram* orig){
+    orig->uncoverLive();
+    orig->genGraphs();
+    orig->genColorMaps();
+    orig->genEnv();
+    return orig->assignRegisters();
+}
+xProgram* assignOld(xProgram* orig){
+    return orig->assignHomes();
 }
 
 xProgram* patch(xProgram* orig){
@@ -209,6 +206,52 @@ void blkInfo::printEnv(){
     for(auto it = env_.begin(); it != env_.end(); ++it){
         std::cout << it->first << ": " << it->second->emitA(1) << std::endl;
     }
+}
+Blk Movq::patchI(){
+    Blk out;
+    Arg *al = al_->asHA(NULL), *ar = ar_->asHA(NULL);
+    if(al->isMemRef() && ar->isMemRef()){
+        out.push_back(new Pushq(new Reg(0)));
+        out.push_back(new Movq(al, new Reg(0)));
+        out.push_back(new Movq(new Reg(0), ar));
+        out.push_back(new Popq(new Reg(0)));
+    }
+    else if( al_->emitA(1) == ar_->emitA(1)){
+        //do not add to remove uneccessary
+        //movq
+    }
+    else{
+        out.push_back(new Movq(al,ar));
+    }
+    return out;
+}
+Blk Addq::patchI(){
+    Blk out;
+    Arg *al = al_->asHA(NULL), *ar = ar_->asHA(NULL);
+    if(al->isMemRef() && ar->isMemRef()){
+        out.push_back(new Pushq(new Reg(0)));
+        out.push_back(new Movq(al, new Reg(0)));
+        out.push_back(new Addq(new Reg(0), ar));
+        out.push_back(new Popq(new Reg(0)));
+    }
+    else{
+        out.push_back(new Addq(al,ar));
+    }
+    return out;
+}
+Blk Subq::patchI(){
+    Blk out;
+    Arg *al = al_->asHA(NULL), *ar = ar_->asHA(NULL);
+    if(al->isMemRef() && ar->isMemRef()){
+        out.push_back(new Pushq(new Reg(0)));
+        out.push_back(new Movq(al, new Reg(0)));
+        out.push_back(new Subq(new Reg(0), ar));
+        out.push_back(new Popq(new Reg(0)));
+    }
+    else{
+        out.push_back(new Addq(al,ar));
+    }
+    return out;
 }
 //set of register names
 int Label::num_ = 42;

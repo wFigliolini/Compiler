@@ -188,7 +188,9 @@ private:
 };
 class blkInfo{
 public:
-    blkInfo(int size):l_(size, varSet()){};
+    blkInfo(int size):l_(size, varSet()){
+        stackVars_ = 0;
+    };
     varSet getIndex(int i){
         if(i >= l_.size()) return varSet();
         varSet out(l_[i]);
@@ -423,7 +425,9 @@ public:
         try{
             reg_ = regNames.at(reg);
         }catch(std::out_of_range &e){
-            throw std::invalid_argument("Register assignment attempted to nonexistant register\n");
+            std::string err("Register assignment attempted to nonexistant register ");
+            err+= reg;
+            throw std::invalid_argument(err);
         }
         return;
     }
@@ -642,18 +646,7 @@ public:
         ar_->init(i, bi);
         bi_ = bi;
     }
-    Blk patchI(){
-        Blk out;
-        Arg *al = al_->asHA(NULL), *ar = ar_->asHA(NULL);
-        if(al->isMemRef() && ar->isMemRef()){
-            out.push_back(new Movq(al, new Reg(0)));
-            out.push_back(new Movq(new Reg(0), ar));
-        }
-        else{
-            out.push_back(new Movq(al,ar));
-        }
-        return out;
-    }
+    Blk patchI();
     varSet ul(varSet lb){
         std::string t1, t2;
         t1 = al_->ul();
@@ -705,18 +698,7 @@ public:
         ar_->init(i, bi);
         bi_ = bi;
     }
-    Blk patchI(){
-        Blk out;
-        Arg *al = al_->asHA(NULL), *ar = ar_->asHA(NULL);
-        if(al->isMemRef() && ar->isMemRef()){
-            out.push_back(new Movq(al, new Reg(0)));
-            out.push_back(new Addq(new Reg(0), ar));
-        }
-        else{
-            out.push_back(new Addq(al,ar));
-        }
-        return out;
-    }
+    Blk patchI();
     varSet ul(varSet lb){
         std::string t1, t2;
         t1 = al_->ul();
@@ -767,18 +749,7 @@ public:
         ar_->init(i,bi);
         bi_ = bi;
     }
-    Blk patchI(){
-        Blk out;
-        Arg *al = al_->asHA(NULL), *ar = ar_->asHA(NULL);
-        if(al->isMemRef() && ar->isMemRef()){
-            out.push_back(new Movq(al, new Reg(0)));
-            out.push_back(new Subq(new Reg(0), ar));
-        }
-        else{
-            out.push_back(new Subq(al,ar));
-        }
-        return out;
-    }
+    Blk patchI();
     varSet ul(varSet lb){
         std::string t1, t2;
         t1 = al_->ul();
@@ -1338,6 +1309,7 @@ class xProgram{
         }
         out->i_->setLabel("START");
         return out;
+        
     }
     bool containVar(){
         return ((i_->getVC()!=0) ? true : false);
@@ -2360,6 +2332,6 @@ public:
 //functions
 Program* pow(int x, int b = 2);
 Program* randProg(int depth);
-xProgram* assign(xProgram* orig, bool smart = 0);
+xProgram* assign(xProgram* orig);
 xProgram* patch(xProgram* orig);
 #endif
