@@ -164,8 +164,13 @@ std::string genNewVar(std::string type, bool reset){
     return out;
 }
 
-xProgram* assign(xProgram* orig){
-    return orig->assignHomes();
+xProgram* assign(xProgram* orig, bool smart){
+    if(smart){
+        return orig->assignRegisters();
+    }
+    else{
+        return orig->assignHomes();
+    }
 }
 
 xProgram* patch(xProgram* orig){
