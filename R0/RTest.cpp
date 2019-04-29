@@ -1410,7 +1410,15 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                 pTest->dumpGraph("BODY");
             }
             BOOST_REQUIRE(colorResult);
-            //std::cout << "End LIVE1" << std::endl;
+            assignEnv rTestData = {{"f",new Reg(0)}};
+            int r, f;
+            pTest->genEnv();
+            bool testResult = pTest->testRegisters(rTestData);
+            BOOST_REQUIRE(testResult == true);
+            r = pTest->run();
+            pTest = pTest->assignRegisters();
+            f = pTest->run();
+            BOOST_REQUIRE(r == f);
         }
         //from class
         BOOST_AUTO_TEST_CASE(LIVE2){
@@ -1454,7 +1462,15 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                 pTest->dumpGraph("BODY");
             }
             BOOST_REQUIRE(colorResult);
-
+            assignEnv rTestData = {{"t",new Reg(1)},{"v",new Reg(0)},{"x",new Reg(0)},{"w",new Reg(1)}, {"y",new Reg(2)}, {"z",new Reg(0)}, {"%rax",new Reg(0)}};
+            int r, f;
+            pTest->genEnv();
+            bool testResult = pTest->testRegisters(rTestData);
+            BOOST_REQUIRE(testResult == true);
+            r = pTest->run();
+            pTest = pTest->assignRegisters();
+            f = pTest->run();
+            BOOST_REQUIRE(r == f);
         }
         //from textbook
         BOOST_AUTO_TEST_CASE(LIVE3){
@@ -1492,6 +1508,15 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                 pTest->dumpGraph("BODY");
             }
             BOOST_REQUIRE(colorResult);
+            assignEnv rTestData = {{"a",new Reg(0)}, {"b",new Reg(1)}, {"c",new Reg(2)}};
+            int r, f;
+            pTest->genEnv();
+            bool testResult = pTest->testRegisters(rTestData);
+            BOOST_REQUIRE(testResult == true);
+            r = pTest->run();
+            pTest = pTest->assignRegisters();
+            f = pTest->run();
+            BOOST_REQUIRE(r == f);
         }
         //double case
         BOOST_AUTO_TEST_CASE(LIVE4){
@@ -1524,6 +1549,15 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                 pTest->dumpGraph("BODY");
             }
             BOOST_REQUIRE(colorResult);
+            assignEnv rTestData = {{"w",new Reg(0)}};
+            int r, f;
+            pTest->genEnv();
+            bool testResult = pTest->testRegisters(rTestData);
+            BOOST_REQUIRE(testResult == true);
+            r = pTest->run();
+            pTest = pTest->assignRegisters();
+            f = pTest->run();
+            BOOST_REQUIRE(r == f);
         }
         //pushpop tests
         BOOST_AUTO_TEST_CASE(LIVE5){
@@ -1558,6 +1592,15 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                 pTest->dumpGraph("BODY");
             }
             BOOST_REQUIRE(colorResult);
+            assignEnv rTestData = {{"f",new Reg(0)}};
+            int r, f;
+            pTest->genEnv();
+            bool testResult = pTest->testRegisters(rTestData);
+            BOOST_REQUIRE(testResult == true);
+            r = pTest->run();
+            pTest = pTest->assignRegisters();
+            f = pTest->run();
+            BOOST_REQUIRE(r == f);
         }
         //add case
         BOOST_AUTO_TEST_CASE(LIVE6){
@@ -1592,6 +1635,15 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                 pTest->dumpGraph("BODY");
             }
             BOOST_REQUIRE(colorResult);
+            assignEnv rTestData = {{"a",new Reg(0)}, {"a",new Reg(1)}};
+            int r, f;
+            pTest->genEnv();
+            bool testResult = pTest->testRegisters(rTestData);
+            BOOST_REQUIRE(testResult == true);
+            r = pTest->run();
+            pTest = pTest->assignRegisters();
+            f = pTest->run();
+            BOOST_REQUIRE(r == f);
         }
         //sub case
         BOOST_AUTO_TEST_CASE(LIVE7){
@@ -1626,9 +1678,19 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                 pTest->dumpGraph("BODY");
             }
             BOOST_REQUIRE(colorResult);
+            assignEnv rTestData = {{"a",new Reg(0)}, {"a",new Reg(1)}};
+            int r, f;
+            pTest->genEnv();
+            bool testResult = pTest->testRegisters(rTestData);
+            BOOST_REQUIRE(testResult == true);
+            r = pTest->run();
+            pTest = pTest->assignRegisters();
+            f = pTest->run();
+            BOOST_REQUIRE(r == f);
         }
         //Neg Case
         BOOST_AUTO_TEST_CASE(LIVE8){
+            
             Blk instrSet;
                 instrSet.push_back(new Movq(new Const(20), new Ref("a")));    //{w}
                 instrSet.push_back(new Negq(new Ref("a")));     //{f}
@@ -1659,5 +1721,52 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                 pTest->dumpGraph("BODY");
             }
             BOOST_REQUIRE(colorResult);
+            assignEnv rTestData = {{"a",new Reg(0)}};
+            int r, f;
+            pTest->genEnv();
+            bool testResult = pTest->testRegisters(rTestData);
+            BOOST_REQUIRE(testResult == true);
+            r = pTest->run();
+            pTest = pTest->assignRegisters();
+            f = pTest->run();
+            BOOST_REQUIRE(r == f);
+        }
+        //overflow into stack
+        BOOST_AUTO_TEST_CASE(LIVE9){
+            Blk instrSet;
+            int result , f;
+            assignEnv data;
+            for(int i = 'a'; i <= 'z'; ++i){
+                std::string s;
+                s += static_cast<char>(i);
+                instrSet.push_back(new Movq(new Const(i), new Ref(s)));
+                if( i-'a' < 14){
+                    data.insert(data.end(), std::pair<Vertex, Arg*>(s, new Reg(i-'a')));
+                }
+                else{
+                    data.insert(data.end(), std::pair<Vertex, Arg*>(s, new DeRef(new Reg("%rsp"),(i-'a'-13))));
+                }
+            }
+            for(int i = 'z'; i > 'a'; --i){
+                std::string s1, s2;
+                s1 += static_cast<char>(i);
+                s2 += static_cast<char>(i-1);
+                instrSet.push_back(new Addq(new Ref(s1), new Ref(s2)));
+            }
+            instrSet.push_back(new Movq(new Ref("a"), new Reg(0)));
+            instrSet.push_back(new Retq());
+
+            Block* bTest = new Block(instrSet);
+            xProgram* pTest = new xProgram(bTest);
+            result = pTest->run(); 
+            pTest->uncoverLive();
+            pTest->genGraphs();
+            pTest->genColorMaps();
+            pTest->genEnv();
+            bool testResult = pTest->testRegisters(data);
+            BOOST_REQUIRE(testResult == true);
+            pTest = pTest->assignRegisters();
+            f = pTest->run();
+            BOOST_REQUIRE(result == f);
         }
 BOOST_AUTO_TEST_SUITE_END()
