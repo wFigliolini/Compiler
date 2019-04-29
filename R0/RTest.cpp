@@ -1417,7 +1417,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                 pTest->dumpGraph("BODY");
             }
             BOOST_REQUIRE(result);
-            colorMap cTest = {{"w",0}, {"x",0}, {"f",0}};
+            colorMap cTest = {{"%rax",0},{"w",0}, {"x",0}, {"f",0}};
             pTest->genColorMaps();
             colorMap cOut = pTest->getColors("BODY");
             bool colorResult = cTest == cOut;
@@ -1523,7 +1523,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                 pTest->dumpGraph("BODY");
             }
             BOOST_REQUIRE(result);
-            colorMap cTest = {{"a",0}, {"b",1}, {"c",2}};
+            colorMap cTest = {{"%rax",0},{"a",0}, {"b",1}, {"c",2}};
             pTest->genColorMaps();
             colorMap cOut = pTest->getColors("BODY");
             bool colorResult = cTest == cOut;
@@ -1565,7 +1565,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                 pTest->dumpGraph("BODY");
             }
             BOOST_REQUIRE(result);
-            colorMap cTest = {{"w",0}};
+            colorMap cTest = {{"%rax",0},{"w",0}};
             pTest->genColorMaps();
             colorMap cOut = pTest->getColors("BODY");
             bool colorResult = cTest == cOut;
@@ -1607,7 +1607,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                 pTest->dumpGraph("BODY");
             }
             BOOST_REQUIRE(result);
-            colorMap cTest = {{"f",0}};
+            colorMap cTest = {{"%rax",0},{"f",0}};
             pTest->genColorMaps();
             colorMap cOut = pTest->getColors("BODY");
             bool colorResult = cTest == cOut;
@@ -1650,7 +1650,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                 pTest->dumpGraph("BODY");
             }
             BOOST_REQUIRE(result);
-            colorMap cTest = {{"a",0}, {"b",1}};
+            colorMap cTest = {{"%rax",0},{"a",0}, {"b",1}};
             pTest->genColorMaps();
             colorMap cOut = pTest->getColors("BODY");
             bool colorResult = cTest == cOut;
@@ -1693,7 +1693,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                 pTest->dumpGraph("BODY");
             }
             BOOST_REQUIRE(result);
-            colorMap cTest = {{"a",0}, {"b",1}};
+            colorMap cTest = {{"%rax",0},{"a",0}, {"b",1}};
             pTest->genColorMaps();
             colorMap cOut = pTest->getColors("BODY");
             bool colorResult = cTest == cOut;
@@ -1735,7 +1735,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                 pTest->dumpGraph("BODY");
             }
             BOOST_REQUIRE(result);
-            colorMap cTest = {{"a",0}};
+            colorMap cTest = {{"%rax",0},{"a",0}};
             pTest->genColorMaps();
             colorMap cOut = pTest->getColors("BODY");
             bool colorResult = cTest == cOut;
@@ -1822,14 +1822,14 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             pTest = pTest->assignRegisters();
             std::vector<std::string> out;
             out = pTest->emit(1);
-            for(auto it : out){
+            /*for(auto it : out){
                 std::cout << it;
-            }
+            }*/
             f = pTest->run();
             BOOST_REQUIRE(result == f);
-            std::cout<< std::endl;
+            /*std::cout<< std::endl;
             std::cout<< "end BIAS1"<<std::endl;
-            std::cout<< std::endl;
+            std::cout<< std::endl;*/
         }
         //simplify to movq(3, rax)
         BOOST_AUTO_TEST_CASE(BIAS2){
@@ -1850,14 +1850,14 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             pTest = pTest->assignRegisters();
             std::vector<std::string> out;
             out = pTest->emit(1);
-            for(auto it : out){
+            /*for(auto it : out){
                 std::cout << it;
-            }
+            }*/
             f = pTest->run();
             BOOST_REQUIRE(result == f);
-            std::cout<< std::endl;
+            /*std::cout<< std::endl;
             std::cout<< "end BIAS2"<<std::endl;
-            std::cout<< std::endl;
+            std::cout<< std::endl;*/
         }
         BOOST_AUTO_TEST_CASE(BIASR){
             int result, f;
@@ -1875,9 +1875,9 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             pTest = pTest->assignRegisters();
             std::vector<std::string> out;
             out = pTest->emit(1);
-            for(auto it : out){
+            /*for(auto it : out){
                 std::cout << it;
-            }
+            }*/
             f = pTest->run();
             BOOST_REQUIRE(result == f);
         }

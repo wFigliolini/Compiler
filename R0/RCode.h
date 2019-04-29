@@ -1443,7 +1443,7 @@ class xProgram{
             blk->genGraph();
         }
     }
-    void genColorMaps(bool moveBias = 0){
+    void genColorMaps(bool moveBias = 1){
         for(auto [name, blk] : blks_){
             blk->genColorMap(moveBias);
         }
