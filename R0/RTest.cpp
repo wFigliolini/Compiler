@@ -1874,4 +1874,95 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             f = pTest->run();
             BOOST_REQUIRE(result == f);
         }
+        // Subtraction Test
+        BOOST_AUTO_TEST_CASE(R2Test1){
+            int f, result(42);
+            Program* pTest = new Program(Sub(new Num(52), new Num(10)));
+            f = pTest->run();
+            bool interpTest = f== result;
+            BOOST_REQUIRE(interpTest);
+            std::string AST("(+52 (-10))"), ASTOut = pTest->print();
+            bool ASTTest =  AST == ASTOut;
+            BOOST_REQUIRE(ASTTest);
+        }
+        //if Test
+        BOOST_AUTO_TEST_CASE(R2Test2){
+            int f, result(false);
+            Program* pTest = new Program(new If(new Cmp("==", Sub(new Num(52), new Num(10)), new Num(43)), new Bool(true), new Bool(false)));
+            f = pTest->run();
+            bool interpTest = f == result;
+            BOOST_REQUIRE(interpTest);
+        }
+        //OR
+        BOOST_AUTO_TEST_CASE(R2Test3){
+            int f, result(false);
+            Program* pTest = new Program(Or( new Cmp("==", Sub(new Num(52), new Num(10)), new Num(43)), new Cmp(">", Sub(new Num(52), new Num(10)), new Num(43))));
+            f = pTest->run();
+            bool interpTest = f== result;
+            BOOST_REQUIRE(interpTest);
+        }
+        //And
+        BOOST_AUTO_TEST_CASE(R2Test4){
+            int f, result(true);
+            Program* pTest = new Program(And( new Cmp("==", Sub(new Num(52), new Num(10)), new Num(42)), new Cmp("<", Sub(new Num(52), new Num(10)), new Num(43))));
+            f = pTest->run();
+            bool interpTest = f== result;
+            BOOST_REQUIRE(interpTest);
+        }
+        //Not
+        BOOST_AUTO_TEST_CASE(R2Test5){
+            int f, result(true);
+            Program* pTest = new Program(new Not(new Cmp("==", Sub(new Num(52), new Num(10)))));
+            f = pTest->run();
+            bool interpTest = f== result;
+            BOOST_REQUIRE(interpTest);
+        }
+        //conditionals
+        BOOST_AUTO_TEST_CASE(R2Test6){
+            int f, result(true);
+            Program* pTest = new Program(new Let("x", new Read(1), new If(new Cmp("<", new Var("x"), new Num(100)), new Bool(true), new Bool(false)));
+            f = pTest->run();
+            bool interpTest = f== result;
+            BOOST_REQUIRE(interpTest);
+        }
+        //conditional Let
+        BOOST_AUTO_TEST_CASE(R2Test7){
+            int f, result(100);
+            Program* pTest = new Program(new Let("x", new If(new Cmp("<", new Num(42), new Num(100)), new Num(100), new Num(42)), new Var("x"));
+            f = pTest->run();
+            bool interpTest = f == result;
+            BOOST_REQUIRE(interpTest);
+        }
+        // And Short Circuit
+        BOOST_AUTO_TEST_CASE(R2Test8){
+            int f, result(false);
+            Program* pTest = new Program(And(new Bool(false), new Cmp("==", new Read(0), new Num(42))));
+            f = pTest->run();
+            bool interpTest = f== result;
+            BOOST_REQUIRE(interpTest);
+        }
+        //Or Short Circuit
+        BOOST_AUTO_TEST_CASE(R2Test9){
+            int f, result(true);
+            Program* pTest = new Program(Or(new Bool(true), new Cmp("==", new Read(0), new Num(42))));
+            f = pTest->run();
+            bool interpTest = f== result;
+            BOOST_REQUIRE(interpTest);
+        }
+        //raw compare
+        BOOST_AUTO_TEST_CASE(R2Test10){
+            int f, result(42);
+            Program* pTest = new Program(new Cmp(">", new Num(32), new Num(42)));
+            f = pTest->run();
+            bool interpTest = f== result;
+            BOOST_REQUIRE(interpTest);
+        }
+        //Xor
+        BOOST_AUTO_TEST_CASE(R2Test11){
+            int f, result(false);
+            Program* pTest = new Program(Xor(new Bool(true), new Bool(true)));
+            f = pTest->run();
+            bool interpTest = f== result;
+            BOOST_REQUIRE(interpTest);
+        }
 BOOST_AUTO_TEST_SUITE_END()

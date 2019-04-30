@@ -285,6 +285,9 @@ Expr* Or(Expr* l, Expr* r){
 Expr* Sub(Expr* l, Expr* r){
     return new Add(l, new Neg(r));
 }
+Expr* Xor(Expr* l, Expr* r){
+    return new Or(And(l, new Not(r)), And(new Not(l), r);
+}
 //set of register names
 int Label::num_ = 42;
 int Read::num_ = 42;

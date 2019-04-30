@@ -2561,6 +2561,7 @@ private:
 Expr* And(Expr* l, Expr* r);
 Expr* Or(Expr* l, Expr* r);
 Expr* Sub(Expr* l, Expr* r);
+Expr* Xor(Expr* l, Expr* r);
 
 
 //temp Info class
