@@ -2346,7 +2346,14 @@ public:
         ty_ = "Bool";    
     };
     std::string AST(){
-        return std::string();
+        std::string out;
+        if(value_){
+            out+="#t";
+        }
+        else{
+            out+="#f";
+        }
+        return out;
     }
     bool containVar(std::string name){
         return false;
@@ -2383,7 +2390,11 @@ public:
         ty_ = "Bool";  
     };
     std::string AST(){
-        return std::string();
+        std::string out;
+        out += "(! ";
+        out += e1_->AST();
+        out +=")";
+        return out;
     }
     bool containVar(std::string name){
         return false;
@@ -2426,7 +2437,15 @@ public:
         }
     };
     std::string AST(){
-        return std::string();
+        std::string out;
+        out += "(";
+        out += cmp_;
+        out += " ";
+        out += e1_->AST();
+        out +=" ";
+        out += e2_->AST();
+        out+= ")";
+        return out;
     }
     bool containVar(std::string name){
         return false;
@@ -2464,7 +2483,15 @@ class If : public Expr{
 public:
     If(Expr* op, Expr* tr, Expr* fa): Expr(tr,fa), b_(op){};
     std::string AST(){
-        return std::string();
+        std::string out;
+        out += "(if ";
+        out += b_->AST();
+        out += "\n";
+        out += e1_->AST();
+        out +="\n else \n";
+        out += e2_->AST();
+        out+= ")";
+        return out;
     }
     bool containVar(std::string name){
         return false;
