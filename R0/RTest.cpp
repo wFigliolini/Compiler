@@ -91,19 +91,26 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         std::vector<std::string> out;
         int  int3, final3(103), f;
         int3 = pTest->run();
+        //std::cout << int3 << std::endl;
         BOOST_REQUIRE(int3 == final3);
         pTest = opt(pTest);
         int3 = pTest->run();
+        //std::cout << int3 << std::endl;
         BOOST_REQUIRE(int3 == final3);
         pTest = uniquify(pTest);
         int3 = pTest->run();
+        //std::cout << int3 << std::endl;
         BOOST_REQUIRE(int3 == final3);
         pTest = rco(pTest);
         int3 = pTest->run();
+        //std::cout << int3 << std::endl;
         BOOST_REQUIRE(int3 == final3);
+        //std::cout << pTest->print()<< std::endl;
         CProg* cTest = econ(pTest);
+        //std::cout << cTest->AST()<< std::endl;
         cTest->uncoverLocals();
         f = cTest->run();
+        //std::cout <<"econ: "<<  f << std::endl;
         BOOST_REQUIRE(final3 == f);
         xProgram* xTest = cTest->selInsr();
         xTest = assign(xTest);
@@ -112,10 +119,12 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             std::cout << it;
         }*/
         f = xTest->run();
+        //std::cout << f << std::endl;
         BOOST_REQUIRE(int3 == f);
         BOOST_REQUIRE(xTest->containVar() == false);
         xTest = patch(xTest);
         f = xTest->run();
+        //std::cout << f << std::endl;
         BOOST_REQUIRE(int3 == f);
     }
 

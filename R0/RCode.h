@@ -20,7 +20,6 @@
 #include <sys/wait.h>
 
 //virtual Expression class
-enum opCode { num, add, neg, rRead, ERROR = -1};
 const std::map<std::string,int> regNames = {
     {"%rax",0}, {"%rbx",1}, {"%rcx",2},
     {"%rdx",3}, {"%rsi",4}, {"%rdi",5},
@@ -42,8 +41,14 @@ const std::map<int,std::string> regAsn = {
     {6,"%r8"},  {7,"%r9"}, {8,"%r10"}, 
     {9,"%r11"}, {10,"%r12"}, {11,"%r13"},
     {12,"%r14"},{13,"%r15"}};
+const std::set<std::string> cmpOps = {
+    "<", "<=", "==", ">=", ">"
+};
+const std::set<std::string> ty = {
+    "S64", "Bool"
+};
 class Expr;
-class Num;
+class Type;
 class CExp;
 class Instr;
 class Arg;
@@ -76,6 +81,8 @@ public:
     }
 };
 
+Type* numAdd(Type* const l, Type* const r);
+Type* numNeg(Type* const l);
 typedef std::priority_queue<Sat, std::vector<Sat>, compareClass> satHeap;
 //X definitions
 typedef std::unordered_map<std::string, int> varList;
@@ -1641,7 +1648,6 @@ public:
 private:
     CArg* ar_, *al_;
 };
-namespace{
 class CRead: public CExp{
 public:
     explicit CRead():auto_(false), i_(NULL){};
@@ -1677,8 +1683,6 @@ private:
     static int n_;
     int* i_;
 };
-int CRead::n_ = 42;
-}
 class CNeg: public CExp{
 public:
     explicit CNeg(CArg* a): a_(a){};
@@ -1865,7 +1869,7 @@ private:
    CTailTable instr_;
    CInfo i_;
 };
-
+class Type;
 class Expr {
 public:
     //standard constructors
@@ -1874,7 +1878,7 @@ public:
     explicit Expr(Expr* n1, Expr* n2):e1_(n1), e2_(n2){}
     //clone function to handle copies
     auto clone() const { return std::unique_ptr<Expr>(cloneImpl()); };
-    virtual Num* inter(Environ env) = 0;
+    virtual Type* inter(Environ env) = 0;
     virtual std::string AST() = 0;
     virtual Expr* optE(Environ env) = 0;
     virtual bool isPure(Environ env) = 0;
@@ -1886,38 +1890,44 @@ public:
 protected:
     virtual Expr* cloneImpl() const = 0;
     std::unique_ptr<Expr> e1_, e2_;
-    opCode op_;
-    static int varCount;
+    std::string ty_;
 private:
 
 };
+class Type : public Expr{
+public:
+    std::string getType(){
+        return ty_;
+    }
+    int getValue(){
+        return value_;
+    }
+    void setValue(int i){
+        value_ = i;
+    }
+protected:
 
+    int value_;
+};
 //int class
-class Num : public Expr {
+class Num : public Type {
 public:
     explicit Num(int n) {
-        i_ = n;
-        op_= num;
+        value_ = n;
+        ty_ = "S64";  
     };
     explicit Num(Num* n) {
-        i_ = n->i_;
-        op_= n->op_;
+        value_ = n->value_;
+        ty_ = "S64";  
     };
-    friend Num* numAdd(Num* const l, Num* const r){
-        Num* out = new Num(0);
-        out->i_ = l->i_ + r->i_;
-        return out;
-    }
-    friend Num* numNeg(Num* const l){
-        Num* i = new Num(-l->i_);
-        return i;
-    }
+    friend Type* numAdd(Type* const l, Type* const r);
+    friend Type* numNeg(Type* const l);
     int output(){
-        return i_;
+        return value_;
     }
-    Num* inter(Environ env) { return this; };
+    Type* inter(Environ env) { return this; };
     std::string AST()  {
-        std::string str = std::to_string(i_);
+        std::string str = std::to_string(value_);
         return str;
     }
     Expr* uniquify(envmap* env){
@@ -1929,28 +1939,28 @@ public:
     std::vector<rcoPair> rco(envmap env){
         std::vector<rcoPair> out;
         std::string s;
-        out.push_back(rcoPair(s, new Num(i_)));
+        out.push_back(rcoPair(s, new Num(value_)));
         return out;
     }
     CTail* econTail(){
         return new CRet(this->econAssign());
     }
     CArg* econAssign() override{
-        return new CNum(i_);
+        return new CNum(value_);
     }
 protected:
     Num* cloneImpl() const override {
-        return new Num(i_);
+        return new Num(value_);
     }
 private:
-    void seti(int i){i_=i;};
-    int i_;
+    void seti(int i){value_=i;};
+
 };
 
 class Var:public Expr{
 public:
     Var(std::string name):name_(name){};
-    Num* inter(Environ env){
+    Type* inter(Environ env){
         Expr* container;
         try{
             container = env.at(name_);
@@ -1959,7 +1969,7 @@ public:
             std::cerr << "Attemted to read undefined var " << name_ << std::endl;
             throw std::runtime_error("Undefined var read");
         }
-        Num* result = container->inter(env);
+        Type* result = container->inter(env);
         return result;
     }
     std::string AST() {
@@ -2019,10 +2029,10 @@ private:
 class Add : public Expr {
 public:
     explicit Add(Expr* n1, Expr* n2):Expr(n1, n2) {
-        op_ = add;
+        ty_ = "S64";  
     }
-    Num* inter(Environ env) {
-        Num *i, *j;
+    Type* inter(Environ env) {
+        Type *i, *j;
         i = e1_->inter(env);
         j = e2_->inter(env);
         i = numAdd(i,j);
@@ -2042,7 +2052,7 @@ public:
         e1_.reset(e1->optE(env));
         e2_.reset(e2->optE(env));
         if(isPure(env)){
-            return new Num(inter(env));
+            return new Num(inter(env)->getValue());
         }
         else{
             return this;
@@ -2099,10 +2109,10 @@ private:
 class Neg : public Expr {
 public:
     explicit Neg(Expr* n): Expr(n) {
-        op_ = neg;
+        ty_ = "S64";  
     }
-    Num* inter(Environ env) {
-        Num* i;
+    Type* inter(Environ env) {
+        Type* i;
         i = e1_->inter(env);
         i = numNeg(i);
         return i;
@@ -2121,7 +2131,7 @@ public:
         Expr* e = e1_.release();
         e1_.reset(e->optE(env));
         if(isPure(env)){
-            return new Num(inter(env));
+            return new Num(inter(env)->getValue());
         }
         else{
             return this;
@@ -2164,11 +2174,12 @@ private:
 };
 
 // Read class
-namespace{
 class Read : public Expr {
 public:
-    explicit Read(bool mode = 0):mode_(mode) {op_ = rRead;};
-    Num* inter(Environ env) {
+    explicit Read(bool mode = 0):mode_(mode) {
+        ty_ = "S64";      
+    };
+    Type* inter(Environ env) {
         int i;
         if (mode_) {
             i = num_;
@@ -2209,15 +2220,14 @@ private:
     bool mode_;
     static int num_;
 };
-int Read::num_ = 42;
-}
+
 
 class Let: public Expr{
 public:
     Let(std::string var, Expr* exp, Expr* body): Expr(exp, body), var_(var){}
-    Num* inter(Environ env){
+    Type* inter(Environ env){
         env[var_] = e1_->inter(env);
-        Num* out;
+        Type* out;
         out = e2_->inter(env);
         return out;
     }
@@ -2247,7 +2257,7 @@ public:
         e2 = e2->optE(env);
         e2_.reset(e2);
         if(isPure(env)){
-            return new Num(inter(env));
+            return new Num(inter(env)->getValue());
         }
         if(containVar(var_)){
             return this;
@@ -2328,6 +2338,169 @@ private:
     std::string var_;
 };
 
+//R2 Definitions
+class Bool : public Type{
+public:
+    Bool(bool v){
+        value_ = v;
+        ty_ = "Bool";    
+    };
+    std::string AST(){
+        return std::string();
+    }
+    bool containVar(std::string name){
+        return false;
+    }
+    CExp* econAssign(){
+        return NULL;
+    }
+    CTail* econTail(){
+        return NULL;
+    }
+    Type* inter(Environ env){
+        return NULL;
+    }
+    bool isPure(Environ env){
+        return true;
+    }
+    Expr* optE(Environ env){
+        return NULL;
+    }
+    std::vector<rcoPair> rco(envmap env){
+        return std::vector<rcoPair>();
+    }
+    Expr* uniquify(envmap* env){
+        return NULL;
+    }
+protected:
+    Expr* cloneImpl() const{
+        return new Bool(value_);
+    }
+};
+class Not : public Expr{
+public:
+    Not(Expr* l): Expr(l){
+        ty_ = "Bool";  
+    };
+    std::string AST(){
+        return std::string();
+    }
+    bool containVar(std::string name){
+        return false;
+    }
+    CExp* econAssign(){
+        return NULL;
+    }
+    CTail* econTail(){
+        return NULL;
+    }
+    Type* inter(Environ env){
+        return NULL;
+    }
+    bool isPure(Environ env){
+        return true;
+    }
+    Expr* optE(Environ env){
+        return NULL;
+    }
+    std::vector<rcoPair> rco(envmap env){
+        return std::vector<rcoPair>();
+    }
+    Expr* uniquify(envmap* env){
+        return NULL;
+    }
+protected:
+    Expr* cloneImpl() const{
+        return new Not(e1_->clone().release());
+    }
+};
+//type determined at runtime
+class Cmp : public Expr{
+public:
+    Cmp(std::string cmp, Expr* l, Expr* r): Expr(l, r){
+        if(cmpOps.find(cmp) != cmpOps.end()) cmp_ = cmp;
+        else{
+            std::string err("Invalid Comparison Operator ");
+            err+=cmp;
+            throw std::invalid_argument(err);
+        }
+    };
+    std::string AST(){
+        return std::string();
+    }
+    bool containVar(std::string name){
+        return false;
+    }
+    CExp* econAssign(){
+        return NULL;
+    }
+    CTail* econTail(){
+        return NULL;
+    }
+    Type* inter(Environ env){
+        return NULL;
+    }
+    bool isPure(Environ env){
+        return true;
+    }
+    Expr* optE(Environ env){
+        return NULL;
+    }
+    std::vector<rcoPair> rco(envmap env){
+        return std::vector<rcoPair>();
+    }
+    Expr* uniquify(envmap* env){
+        return NULL;
+    }
+protected:
+    Expr* cloneImpl() const{
+        return new Cmp(cmp_, e1_->clone().release(), e2_->clone().release());
+    }
+private:
+    std::string cmp_;
+};
+//type determined at runtime
+class If : public Expr{
+public:
+    If(Expr* op, Expr* tr, Expr* fa): Expr(tr,fa), b_(op){};
+    std::string AST(){
+        return std::string();
+    }
+    bool containVar(std::string name){
+        return false;
+    }
+    CExp* econAssign(){
+        return NULL;
+    }
+    CTail* econTail(){
+        return NULL;
+    }
+    Type* inter(Environ env){
+        return NULL;
+    }
+    bool isPure(Environ env){
+        return true;
+    }
+    Expr* optE(Environ env){
+        return NULL;
+    }
+    std::vector<rcoPair> rco(envmap env){
+        return std::vector<rcoPair>();
+    }
+    Expr* uniquify(envmap* env){
+        return NULL;
+    }
+protected:
+    Expr* cloneImpl() const{
+        return new If(b_->clone().release(), e1_->clone().release(), e2_->clone().release());
+    }
+private:
+    std::unique_ptr<Expr> b_;
+};
+//simplifiable functions
+Expr* And(Expr* l, Expr* r);
+Expr* Or(Expr* l, Expr* r);
+Expr* Sub(Expr* l, Expr* r);
 
 
 //temp Info class

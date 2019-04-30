@@ -265,6 +265,27 @@ xProgram* compile(Program* orig){
     out = patch(out);
     return out;
 }
-
+ Type* numAdd(Type* const l, Type* const r){
+    Type* out = new Num(0);
+    if(l->getType() != "S64") throw std::invalid_argument("l is not of type s64");
+    if(r->getType() != "S64") throw std::invalid_argument("r is not of type s64");
+    out->setValue(l->getValue() + r->getValue());
+    return out;
+}
+Type* numNeg(Type* const l){
+    Type* i = new Num(-l->getValue());
+    return i;
+}
+Expr* And(Expr* l, Expr* r){
+    return new If(l, new Bool(true), r);
+}
+Expr* Or(Expr* l, Expr* r){
+    return new If(l, r, new Bool(false));
+}
+Expr* Sub(Expr* l, Expr* r){
+    return new Add(l, new Neg(r));
+}
 //set of register names
 int Label::num_ = 42;
+int Read::num_ = 42;
+int CRead::n_ = 42;
