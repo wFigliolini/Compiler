@@ -47,9 +47,7 @@ const std::map<std::string,int> cmpOps = {
 const std::map<int,std::string> cmpOut = {
     {0, "<"}, {1,"<="}, {2,"=="}, {3,">="}, {4,">"}
 };
-const std::set<std::string> ty = {
-    "S64", "Bool"
-};
+enum ty {S64, BOOL};
 class Expr;
 class Type;
 class CExp;
@@ -74,7 +72,7 @@ typedef std::pair<int*,Vertex> Sat;
 typedef std::map<Vertex, int*> satSet;
 typedef std::map<Vertex, Arg*> assignEnv;
 typedef std::map<Vertex, int> regMap;
-
+typedef std::unordered_map<std::string, ty> TCEnv;
 std::string genNewVar(std::string type = "i", bool reset = 0);
 
 class compareClass{
@@ -1926,18 +1924,15 @@ public:
     virtual std::vector<rcoPair> rco(envmap env) = 0;
     virtual CTail* econTail() = 0;
     virtual CExp* econAssign() = 0;
+    virtual ty typeCheck(TCEnv e) = 0;
 protected:
     virtual Expr* cloneImpl() const = 0;
     std::unique_ptr<Expr> e1_, e2_;
-    std::string ty_;
 private:
 
 };
 class Type : public Expr{
 public:
-    std::string getType(){
-        return ty_;
-    }
     int getValue(){
         return value_;
     }
@@ -1953,11 +1948,9 @@ class Num : public Type {
 public:
     explicit Num(int n) {
         value_ = n;
-        ty_ = "S64";  
     };
     explicit Num(Num* n) {
         value_ = n->value_;
-        ty_ = "S64";  
     };
     friend Type* numAdd(Type* const l, Type* const r);
     friend Type* numNeg(Type* const l);
@@ -1987,10 +1980,14 @@ public:
     CArg* econAssign() override{
         return new CNum(value_);
     }
+    ty typeCheck(TCEnv e){
+        return S64;
+    }
 protected:
     Num* cloneImpl() const override {
         return new Num(value_);
     }
+    
 private:
     void seti(int i){value_=i;};
 
@@ -1998,7 +1995,8 @@ private:
 
 class Var:public Expr{
 public:
-    Var(std::string name):name_(name){};
+    Var(std::string name):name_(name){
+    };
     Type* inter(Environ env){
         Expr* container;
         try{
@@ -2055,6 +2053,9 @@ public:
     CArg* econAssign() override{
         return new CVar(name_);
     }
+    ty typeCheck(TCEnv e){
+        return e[name_];
+    }
 protected:
     Var* cloneImpl() const override {
         return new Var(name_);
@@ -2068,7 +2069,6 @@ private:
 class Add : public Expr {
 public:
     explicit Add(Expr* n1, Expr* n2):Expr(n1, n2) {
-        ty_ = "S64";  
     }
     Type* inter(Environ env) {
         Type *i, *j;
@@ -2137,6 +2137,14 @@ public:
         c2 = e2_->econAssign();
         return new CAdd(c1, c2);
     }
+    ty typeCheck(TCEnv e){
+        ty l,r;
+        l = e1_->typeCheck(e);
+        r = e2_->typeCheck(e);
+        if(l != S64) throw std::runtime_error("l is wrong type in add");
+        if(r != S64) throw std::runtime_error("r is wrong type in add");
+        return l;
+    }
 protected:
     Add* cloneImpl() const override {
         return new Add((e1_->clone().release()), (e2_->clone().release()));
@@ -2148,7 +2156,7 @@ private:
 class Neg : public Expr {
 public:
     explicit Neg(Expr* n): Expr(n) {
-        ty_ = "S64";  
+
     }
     Type* inter(Environ env) {
         Type* i;
@@ -2205,6 +2213,12 @@ public:
         c1 = e1_->econAssign();
         return new CNeg(c1);
     }
+    ty typeCheck(TCEnv e){
+        ty l;
+        l = e1_->typeCheck(e);
+        if(l != S64) throw std::runtime_error("l is wrong type in neg");
+        return l;
+    }
 protected:
     Neg* cloneImpl() const override {
             return new Neg((e1_->clone().release()));
@@ -2215,8 +2229,7 @@ private:
 // Read class
 class Read : public Expr {
 public:
-    explicit Read(bool mode = 0):mode_(mode) {
-        ty_ = "S64";      
+    explicit Read(bool mode = 0):mode_(mode) { 
     };
     Type* inter(Environ env) {
         int i;
@@ -2252,6 +2265,9 @@ public:
     }
     CExp* econAssign(){
         return new CRead(mode_);
+    }
+    ty typeCheck(TCEnv e){
+        return S64;
     }
 protected:
     Read* cloneImpl() const override { return new Read(mode_);};
@@ -2292,7 +2308,12 @@ public:
         Expr* e2 = e2_.release();
         e1 = e1->optE(env);
         e1_.reset(e1);
-        env[var_] = e1;
+        try{
+            env.at(var_) = e1;
+        }
+        catch(std::out_of_range &e){
+            env.insert(std::pair<std::string, Expr*>(var_, e1));
+        }
         e2 = e2->optE(env);
         e2_.reset(e2);
         if(isPure(env)){
@@ -2369,6 +2390,18 @@ public:
         throw std::runtime_error("RCO Pass Failed, Let used in Assignment");
         return NULL;
     }
+    ty typeCheck(TCEnv e){
+        ty l,r;
+        l = e1_->typeCheck(e);
+        try{
+            e.at(var_) = l;
+        }
+        catch(std::out_of_range &ex){
+            e.insert(std::pair<std::string, ty>(var_, l));
+        }
+        r = e2_->typeCheck(e);
+        return r;
+    }
 protected:
     Let* cloneImpl() const override {
         return new Let(var_,(e1_->clone().release()), (e2_->clone().release()));
@@ -2381,8 +2414,7 @@ private:
 class Bool : public Type{
 public:
     Bool(bool v){
-        value_ = v;
-        ty_ = "Bool";    
+        value_ = v;   
     };
     std::string AST(){
         std::string out;
@@ -2418,6 +2450,9 @@ public:
     Expr* uniquify(envmap* env){
         return NULL;
     }
+    ty typeCheck(TCEnv e){
+        return BOOL;
+    }
 protected:
     Expr* cloneImpl() const{
         return new Bool(value_);
@@ -2426,7 +2461,6 @@ protected:
 class Not : public Expr{
 public:
     Not(Expr* l): Expr(l){
-        ty_ = "Bool";  
     };
     std::string AST(){
         std::string out;
@@ -2460,6 +2494,12 @@ public:
     }
     Expr* uniquify(envmap* env){
         return NULL;
+    }
+    ty typeCheck(TCEnv e){
+        ty l;
+        l = e1_->typeCheck(e);
+        if(l != BOOL) throw std::runtime_error("l is wrong type in Not");
+        return l;
     }
 protected:
     Expr* cloneImpl() const{
@@ -2539,6 +2579,14 @@ public:
     Expr* uniquify(envmap* env){
         return NULL;
     }
+    ty typeCheck(TCEnv e){
+        ty l,r;
+        l = e1_->typeCheck(e);
+        r = e2_->typeCheck(e);
+        if(l != S64) throw std::runtime_error("l is wrong type in Cmp");
+        if(r != S64) throw std::runtime_error("r is wrong type in Cmp");
+        return l;
+    }
 protected:
     Expr* cloneImpl() const{
         return new Cmp(cmpOut[cmp_], e1_->clone().release(), e2_->clone().release());
@@ -2587,6 +2635,13 @@ public:
     }
     Expr* uniquify(envmap* env){
         return NULL;
+    }
+    ty typeCheck(TCEnv e){
+        ty l,r;
+        l = e1_->typeCheck(e);
+        r = e2_->typeCheck(e);
+        if(l != r) throw std::runtime_error("l is different type from r");
+        return l;
     }
 protected:
     Expr* cloneImpl() const{
@@ -2657,6 +2712,10 @@ public:
         else{
             return NULL;
         }
+    }
+    void typeCheck(){
+        TCEnv e;
+        e_->typeCheck(e);
     }
     friend Program* uniquify(Program* orig);
     friend Program* rco(Program* orig);

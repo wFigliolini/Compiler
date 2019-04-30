@@ -267,8 +267,6 @@ xProgram* compile(Program* orig){
 }
  Type* numAdd(Type* const l, Type* const r){
     Type* out = new Num(0);
-    if(l->getType() != "S64") throw std::invalid_argument("l is not of type s64");
-    if(r->getType() != "S64") throw std::invalid_argument("r is not of type s64");
     out->setValue(l->getValue() + r->getValue());
     return out;
 }
@@ -277,14 +275,10 @@ Type* numNeg(Type* const l){
     return i;
 }
 Type* boolAnd(Type* const l, Type* const r){
-    if(l->getType() != "Bool") throw std::invalid_argument("l is not of type s64");
-    if(r->getType() != "Bool") throw std::invalid_argument("r is not of type s64");
     Type* out = new Bool(l->getValue() && r->getValue());
     return out;
 }
 Type* boolOr(Type* const l, Type* const r){
-    if(l->getType() != "Bool") throw std::invalid_argument("l is not of type s64");
-    if(r->getType() != "Bool") throw std::invalid_argument("r is not of type s64");
     Type* out = new Bool(l->getValue() || r->getValue());
     return out;
 }
