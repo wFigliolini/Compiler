@@ -41,8 +41,11 @@ const std::map<int,std::string> regAsn = {
     {6,"%r8"},  {7,"%r9"}, {8,"%r10"}, 
     {9,"%r11"}, {10,"%r12"}, {11,"%r13"},
     {12,"%r14"},{13,"%r15"}};
-const std::set<std::string> cmpOps = {
-    "<", "<=", "==", ">=", ">"
+const std::map<std::string,int> cmpOps = {
+    {"<",0}, {"<=",1}, {"==",2}, {">=",3}, {">",4}
+};
+const std::map<int,std::string> cmpOut = {
+    {0, "<"}, {1,"<="}, {2,"=="}, {3,">="}, {4,">"}
 };
 const std::set<std::string> ty = {
     "S64", "Bool"
@@ -83,6 +86,9 @@ public:
 
 Type* numAdd(Type* const l, Type* const r);
 Type* numNeg(Type* const l);
+Type* boolAnd(Type* const l, Type* const r);
+Type* boolOr(Type* const l, Type* const r);
+Type* boolNot(Type* const l);
 typedef std::priority_queue<Sat, std::vector<Sat>, compareClass> satHeap;
 //X definitions
 typedef std::unordered_map<std::string, int> varList;
@@ -2398,7 +2404,7 @@ public:
         return NULL;
     }
     Type* inter(Environ env){
-        return NULL;
+        return this;
     }
     bool isPure(Environ env){
         return true;
@@ -2439,7 +2445,9 @@ public:
         return NULL;
     }
     Type* inter(Environ env){
-        return NULL;
+        Type* out = e1_->inter(env);
+        out = boolNot(out);
+        return out;
     }
     bool isPure(Environ env){
         return true;
@@ -2462,8 +2470,10 @@ protected:
 class Cmp : public Expr{
 public:
     Cmp(std::string cmp, Expr* l, Expr* r): Expr(l, r){
-        if(cmpOps.find(cmp) != cmpOps.end()) cmp_ = cmp;
-        else{
+        try{
+            cmp_ = cmpOps.at(cmp);
+        }
+        catch(std::out_of_range &e){
             std::string err("Invalid Comparison Operator ");
             err+=cmp;
             throw std::invalid_argument(err);
@@ -2472,7 +2482,7 @@ public:
     std::string AST(){
         std::string out;
         out += "(";
-        out += cmp_;
+        out += cmpOut[cmp_];
         out += " ";
         out += e1_->AST();
         out +=" ";
@@ -2490,7 +2500,32 @@ public:
         return NULL;
     }
     Type* inter(Environ env){
-        return NULL;
+        Type* l = e1_->inter(env);
+        Type* r = e2_->inter(env);
+        switch(cmp_){
+            //l
+            case 0:
+                return new Bool(l->getValue() < r->getValue());
+                break;
+            //le
+            case 1:
+                return new Bool(l->getValue() <= r->getValue());
+                break;
+            //e
+            case 2:
+                return new Bool(l->getValue() == r->getValue());
+                break;
+            //ge
+            case 3:
+                return new Bool(l->getValue() >= r->getValue());
+                break;
+            //g
+            case 4:
+                return new Bool(l->getValue() > r->getValue());
+                break;
+            default:
+                throw std::invalid_argument("cmp initialization failed, non accepted comparator");
+        }
     }
     bool isPure(Environ env){
         return true;
@@ -2506,10 +2541,10 @@ public:
     }
 protected:
     Expr* cloneImpl() const{
-        return new Cmp(cmp_, e1_->clone().release(), e2_->clone().release());
+        return new Cmp(cmpOut[cmp_], e1_->clone().release(), e2_->clone().release());
     }
 private:
-    std::string cmp_;
+    int cmp_;
 };
 //type determined at runtime
 class If : public Expr{
@@ -2536,7 +2571,10 @@ public:
         return NULL;
     }
     Type* inter(Environ env){
-        return NULL;
+        if(b_->inter(env)->getValue() == true){
+            return e1_->inter(env);
+        }
+        return e2_->inter(env);
     }
     bool isPure(Environ env){
         return true;

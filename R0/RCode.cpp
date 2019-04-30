@@ -276,17 +276,34 @@ Type* numNeg(Type* const l){
     Type* i = new Num(-l->getValue());
     return i;
 }
-Expr* And(Expr* l, Expr* r){
+Type* boolAnd(Type* const l, Type* const r){
+    if(l->getType() != "Bool") throw std::invalid_argument("l is not of type s64");
+    if(r->getType() != "Bool") throw std::invalid_argument("r is not of type s64");
+    Type* out = new Bool(l->getValue() && r->getValue());
+    return out;
+}
+Type* boolOr(Type* const l, Type* const r){
+    if(l->getType() != "Bool") throw std::invalid_argument("l is not of type s64");
+    if(r->getType() != "Bool") throw std::invalid_argument("r is not of type s64");
+    Type* out = new Bool(l->getValue() || r->getValue());
+    return out;
+}
+Type* boolNot(Type* const l){
+    Type* out = new Bool(!l->getValue());
+    return out;
+}
+
+Expr* Or(Expr* l, Expr* r){
     return new If(l, new Bool(true), r);
 }
-Expr* Or(Expr* l, Expr* r){
+Expr* And(Expr* l, Expr* r){
     return new If(l, r, new Bool(false));
 }
 Expr* Sub(Expr* l, Expr* r){
     return new Add(l, new Neg(r));
 }
 Expr* Xor(Expr* l, Expr* r){
-    return new Or(And(l, new Not(r)), And(new Not(l), r);
+    return Or(And(l, new Not(r)), And(new Not(l), r));
 }
 //set of register names
 int Label::num_ = 42;

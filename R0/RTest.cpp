@@ -1911,16 +1911,17 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         }
         //Not
         BOOST_AUTO_TEST_CASE(R2Test5){
-            int f, result(true);
-            Program* pTest = new Program(new Not(new Cmp("==", Sub(new Num(52), new Num(10)))));
+            int f, result(false);
+            Program* pTest = new Program(new Not(new Cmp("==", Sub(new Num(52), new Num(10)), new Num(42))));
             f = pTest->run();
             bool interpTest = f== result;
+            std::cout << f << std::endl;
             BOOST_REQUIRE(interpTest);
         }
         //conditionals
         BOOST_AUTO_TEST_CASE(R2Test6){
             int f, result(true);
-            Program* pTest = new Program(new Let("x", new Read(1), new If(new Cmp("<", new Var("x"), new Num(100)), new Bool(true), new Bool(false)));
+            Program* pTest = new Program(new Let("x", new Read(1), new If(new Cmp("<", new Var("x"), new Num(100)), new Bool(true), new Bool(false))));
             f = pTest->run();
             bool interpTest = f== result;
             BOOST_REQUIRE(interpTest);
@@ -1928,7 +1929,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         //conditional Let
         BOOST_AUTO_TEST_CASE(R2Test7){
             int f, result(100);
-            Program* pTest = new Program(new Let("x", new If(new Cmp("<", new Num(42), new Num(100)), new Num(100), new Num(42)), new Var("x"));
+            Program* pTest = new Program(new Let("x", new If(new Cmp("<", new Num(42), new Num(100)), new Num(100), new Num(42)), new Var("x")));
             f = pTest->run();
             bool interpTest = f == result;
             BOOST_REQUIRE(interpTest);
@@ -1951,7 +1952,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         }
         //raw compare
         BOOST_AUTO_TEST_CASE(R2Test10){
-            int f, result(42);
+            int f, result(false);
             Program* pTest = new Program(new Cmp(">", new Num(32), new Num(42)));
             f = pTest->run();
             bool interpTest = f== result;
