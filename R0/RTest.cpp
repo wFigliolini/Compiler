@@ -1966,4 +1966,41 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             bool interpTest = f== result;
             BOOST_REQUIRE(interpTest);
         }
+        //Type Check Cases
+        BOOST_AUTO_TEST_CASE(TC1){
+            Program* pTest = new Program(new Add(new Bool(true), new Bool(false)));
+            BOOST_REQUIRE_THROW(pTest->run(), std::runtime_error);
+        }
+        //also serves as test for if condition
+        BOOST_AUTO_TEST_CASE(TC2){
+            Program* pTest = new Program(And( new Num(1), new Num(0)));
+            BOOST_REQUIRE_THROW(pTest->run(), std::runtime_error);
+        }
+        BOOST_AUTO_TEST_CASE(TC3){
+            Program* pTest = new Neg(new Bool(true));
+            BOOST_REQUIRE_THROW(pTest->run(), std::runtime_error);
+        }
+        BOOST_AUTO_TEST_CASE(TC4){
+            Program* pTest = new Not(new Num(1));
+            BOOST_REQUIRE_THROW(pTest->run(), std::runtime_error);
+        }
+        //variable cases
+        BOOST_AUTO_TEST_CASE(TC5){
+            Program* pTest = new Let("x", new Bool(true), new Add(new Var("x"), new Var("x")));
+            BOOST_REQUIRE_THROW(pTest->run(), std::runtime_error);
+        }
+        BOOST_AUTO_TEST_CASE(TC6){
+            Program* pTest = new Let("x", new Num(1), Or(new Var("x"), new Var("x")));
+            BOOST_REQUIRE_THROW(pTest->run(), std::runtime_error);
+        }
+        //Compare Test
+        BOOST_AUTO_TEST_CASE(TC7){
+            Program* pTest = new Cmp(new Bool(true), new Bool(false));
+            BOOST_REQUIRE_THROW(pTest->run(), std::runtime_error);
+        }
+        //if case
+        BOOST_AUTO_TEST_CASE(TC8){
+            Program* pTest = new If(new Bool(true), new Bool(false), new Num(42));
+            BOOST_REQUIRE_THROW(pTest->run(), std::runtime_error);
+        }
 BOOST_AUTO_TEST_SUITE_END()
