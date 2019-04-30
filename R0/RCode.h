@@ -221,8 +221,10 @@ public:
         l_ = i;
     }
     void genVars(){
-        for(auto it: l_){
-            vars_.insert(it.begin(), it.end());
+        if(vars_.empty()){
+            for(auto it: l_){
+                vars_.insert(it.begin(), it.end());
+            }
         }
     }
     varSet getVars(){
@@ -394,6 +396,17 @@ public:
     movGraph getMov(){
         movGraph out(mov_);
         return out;
+    }
+    int getColor(std::string name){
+        return assignments_[name];
+    }
+    void dumpVars(){
+        for(auto it :vars_){
+            std::cout << it<< std::endl;
+        }
+    }
+    void setVars(varSet v){
+        vars_ = v;
     }
 private:
     liveSet l_;
@@ -656,7 +669,17 @@ public:
         return name_;
     }
     Arg* asRA(){
-        return bi_->getArg(name_);
+        Arg* out;
+        if(bi_->getArg(name_) != NULL) out = bi_->getArg(name_);
+        else{
+            std::string err("Arg ");
+            err+= name_;
+            err += " has been assigned to NULL. Dumping colors:\n";
+            bi_->dumpColor();
+            bi_->dumpVars();
+            throw std::runtime_error(err);
+        }
+        return out;
     }
     bool isConst(){
         return false;
@@ -705,9 +728,10 @@ public:
         return new Movq(al_->asHA(e), ar_->asHA(e));
     }
     void init(std::shared_ptr<xInfo> i, std::shared_ptr<blkInfo> bi){
+        bi_ = bi;
         al_->init(i, bi);
         ar_->init(i, bi);
-        bi_ = bi;
+
     }
     Blk patchI();
     varSet ul(varSet lb){
@@ -758,9 +782,10 @@ public:
         return new Addq(al_->asHA(e), ar_->asHA(e));
     }
     void init(std::shared_ptr<xInfo> i, std::shared_ptr<blkInfo> bi){
+        bi_ = bi;
         al_->init(i, bi);
         ar_->init(i, bi);
-        bi_ = bi;
+
     }
     Blk patchI();
     varSet ul(varSet lb){
@@ -809,9 +834,10 @@ public:
         return new Subq(al_->asHA(e), ar_->asHA(e));
     }
     void init(std::shared_ptr<xInfo> i, std::shared_ptr<blkInfo> bi){
+        bi_ = bi;
         al_->init(i,bi);
         ar_->init(i,bi);
-        bi_ = bi;
+
     }
     Blk patchI();
     varSet ul(varSet lb){
@@ -1138,7 +1164,7 @@ class Block: public X{
         return blk_.size();
     }
     void uncoverLive(){
-        int last = blk_.size()-1;
+        int last = blk_.size();
         for( int i = last; i >= 0; --i){
             if(i == last){
                 //bi_->setSet(liveSet());
@@ -1272,6 +1298,9 @@ class Block: public X{
     }
     movGraph getMov(){
         return bi_->getMov();
+    }
+    void setVars(std::set<std::string> var){
+        bi_->setVars(var);
     }
 private:
     Blk blk_;
@@ -1471,6 +1500,9 @@ class xProgram{
         Block* blk = blks_["BODY"];
         bool result = blk->testRegisters(d);
         return result;
+    }
+    void setVars(std::set<std::string> var){
+        blks_["BODY"]->setVars(var);
     }
 private:
     void init(){
@@ -1735,7 +1767,7 @@ class CTail{
 public:
     virtual std::string AST() = 0;
     virtual int interp(CEnv* e) = 0;
-    virtual std::vector<std::string> getVars() = 0;
+    virtual std::set<std::string> getVars() = 0;
     virtual Blk SITail() = 0;
 };
 class CRet: public CTail{
@@ -1751,8 +1783,8 @@ public:
     int interp(CEnv* e){
         return ret_->interp(e);
     }
-    std::vector<std::string> getVars(){
-        std::vector<std::string> v;
+    std::set<std::string> getVars(){
+        std::set<std::string> v;
         return v;
     }
     Blk SITail(){
@@ -1782,10 +1814,10 @@ public:
         stmt_->interp(e);
         return tail_->interp(e);
     }
-    std::vector<std::string> getVars(){
-        std::vector<std::string> v;
+    std::set<std::string> getVars(){
+        std::set<std::string> v;
         v = tail_->getVars();
-        v.push_back(stmt_->getVar());
+        v.insert(stmt_->getVar());
         return v;
     }
     Blk SITail(){
@@ -1801,10 +1833,10 @@ private:
 typedef std::unordered_map<std::string,CTail*> CTailTable;
 class CInfo{
 public:
-    std::vector<std::string> vars(){ return vars_;}
-    void setVars(std::vector<std::string> s){ vars_ = s;}
+    std::set<std::string> vars(){ return vars_;}
+    void setVars(std::set<std::string> s){ vars_ = s;}
 private:
-    std::vector<std::string> vars_;
+    std::set<std::string> vars_;
 };
 class CProg{
 public:
@@ -1841,11 +1873,11 @@ public:
         return i;
     }
     void uncoverLocals(){
-        std::vector<std::string> temp;
+        std::set<std::string> temp;
         for(auto [name, l] : instr_){
-            std::vector<std::string> local;
+            std::set<std::string> local;
             local = l->getVars();
-            temp.insert(temp.end(), local.begin(), local.end());
+            temp.insert(local.begin(), local.end());
         }
         i_.setVars(temp);
     }
@@ -1862,6 +1894,7 @@ public:
                 out->addBlock(it->first, bl);
             }
         }
+        out->setVars(i_.vars());
         //initialize vars
         return out;
     }
@@ -2600,7 +2633,7 @@ public:
 //functions
 Program* pow(int x, int b = 2);
 Program* randProg(int depth);
-xProgram* assign(xProgram* orig);
+xProgram* assign(xProgram* orig, bool moveBias = 1);
 xProgram* patch(xProgram* orig);
 xProgram* compile(Program* orig);
 #endif

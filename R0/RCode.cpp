@@ -164,10 +164,10 @@ std::string genNewVar(std::string type, bool reset){
     return out;
 }
 
-xProgram* assign(xProgram* orig){
+xProgram* assign(xProgram* orig, bool moveBias){
     orig->uncoverLive();
     orig->genGraphs();
-    orig->genColorMaps();
+    orig->genColorMaps(moveBias);
     orig->genEnv();
     return orig->assignRegisters();
 }
