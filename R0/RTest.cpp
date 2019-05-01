@@ -682,8 +682,8 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             Program* pTest = randProg(0);
             //std::cout <<" run prog" << std::endl;
             pTest->run();
-            Program* pOpt = opt(pTest);
-            pOpt->run();
+            //Program* pOpt = opt(pTest);
+            //pOpt->run();
             //BOOST_REQUIRE( pTest->run()-1 == pOpt->run());
             //std::cout << "program generated, result: "<< result << std::endl;
             BOOST_TEST(true);
@@ -693,12 +693,12 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
     
     BOOST_AUTO_TEST_CASE(Depth10){
             //int result;
-            //std::cout << "generating program of depth 10 ";
             Program* pTest = randProg(10);
-            Program* pOpt = opt(pTest);
+            //Program* pOpt = opt(pTest);
             //BOOST_REQUIRE( pTest->run() == pOpt->run());
+            //std::cout << pTest->print();
             pTest->run();
-            pOpt->run();
+            //pOpt->run();
             //std::cout << "program generated, result: " << result << std::endl;
             BOOST_TEST(true);
     }
@@ -713,11 +713,10 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                 int result, opresult;
                 pTest = randProg(depth);
                 result = pTest->run();
-                if(Opt){
+                /*if(Opt){
                     pTest = opt( pTest);
                     opresult = pTest->run();
                     if (result !=opresult){
-                        
                         //std::cout <<"Intended result: "<< result << " Opt Result: " << opresult << std::endl; 
                         optList.push_back(opresult);
                         ++optFails;
@@ -773,7 +772,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                     patchList.push_back(opresult);
                     ++patchFails;
                     result = opresult;
-                }
+                }*/
             }
             if(optFails > 0){
                 std::cout <<"Optimizer failed "<< optFails << " tests." << std::endl;

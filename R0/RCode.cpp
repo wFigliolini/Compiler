@@ -22,16 +22,17 @@ Program* pow(int x, int b ){
  //choiceGen to determine path
  //numGen to determine num values
  
- std::mt19937 choiceGen, numGen, stringGen;
+ std::mt19937 choiceGen, numGen, stringGen, typeGen, cmpGen;
  
  //associated distributions
  
- std::uniform_int_distribution<int> choiceDis(0,2), numDis(0,1024), stringDis(0,61);
+ std::uniform_int_distribution<int> choiceDis(0,2), numDis(0,1024), stringDis(0,61), typeDis(0,1), cmpDis(0,4);
 
 typedef std::vector<std::string> vars;
-std::string randString(int len);
- 
-Expr* randExpr(int depth, vars env){
+typedef std::vector<vars> typeVars;
+std::string randString(int len = 10);
+Expr* randBoolExpr(int depth, typeVars env);
+Expr* randArithExpr(int depth, typeVars env){
     int choice =  choiceDis(choiceGen);
     //std::cout << "choice: " << choice << std::endl;
     if(depth <= 0){
@@ -45,14 +46,14 @@ Expr* randExpr(int depth, vars env){
         }else{
             int i(numDis(numGen));
             //generate var
-            if(env.empty()) {
+            if(env[0].empty()) {
                 //fallback if no lets is to act as a number
                 //will result in uneven distributions prior to first let, after should have 33% chance of any 
                 return new Num(0);
             }
             else{
                 //use i to randomly select from set of vars
-                std::string out = env[i%env.size()];
+                std::string out = env[0][i%env[0].size()];
                 return new Var(out);
             }
             
@@ -61,21 +62,77 @@ Expr* randExpr(int depth, vars env){
     else{
         int nextDepth= depth-1 ;
         if( choice == 0 ){
-            return new Neg( randExpr(nextDepth, env) );
+            return new Neg( randArithExpr(nextDepth, env) );
         }
         else if(choice == 1){
-            return new Add( randExpr(nextDepth, env), randExpr(nextDepth, env) );
+            return new Add( randArithExpr(nextDepth, env), randArithExpr(nextDepth, env) );
         }
         else{
             //generate let
-            std::string name = randString(10);
-            vars env2(env);
-            env2.push_back(name);
-            return new Let(name, randExpr(nextDepth, env), randExpr(nextDepth,env2)); 
+            int i = typeDis(typeGen);
+            std::string name = randString();
+            typeVars env2(env);
+            env2[0].push_back(name);
+            Expr* r;
+                r = randArithExpr(nextDepth, env2);
+            return new Let(name, randArithExpr(nextDepth, env), r);  
         }
     }
 }
 
+Expr* randBoolExpr(int depth, typeVars env){
+    int choice =  choiceDis(choiceGen);
+    //std::cout << "choice: " << choice << std::endl;
+    if(depth <= 0){
+        if( choice < 2 ){
+            return new Bool(choice);
+        }
+        else{
+            int i(numDis(numGen));
+            //generate var
+            if(env[1].empty()) {
+                //fallback if no lets is to act as a number
+                //will result in uneven distributions prior to first let, after should have 33% chance of any 
+                return new Bool(choice);
+            }
+            else{
+                //use i to randomly select from set of vars
+                std::string out = env[1][i%env[1].size()];
+                return new Var(out);
+            }
+        }
+    }
+    else{
+        int nextDepth= depth-1 ;
+        if( choice == 0 ){
+            int i = cmpDis(cmpGen);
+            std::string cmpType = cmpOut[i];
+            return new Cmp(cmpType,  randArithExpr(nextDepth, env),  randArithExpr(nextDepth, env));
+        }
+        else if(choice == 1){
+            //If statement
+            int i = typeDis(typeGen);
+            Expr* l,*r;
+            //can result in type mismatch if uncommented
+            //l = randArithExpr(nextDepth, env);
+            //r = randArithExpr(nextDepth, env);
+            l = randBoolExpr(nextDepth, env);
+            r = randBoolExpr(nextDepth, env);
+
+            return new If(randBoolExpr(nextDepth, env), l,r);
+        }
+        else{
+            //generate let
+            std::string name = randString();
+            int i = typeDis(typeGen);
+            typeVars env2(env);
+            env2[1].push_back(name);
+            Expr* r;
+                r = randBoolExpr(nextDepth, env2);
+            return new Let(name, randBoolExpr(nextDepth, env), r); 
+        }
+    }
+}
 std::string randString(int len){
     int randNum;
     std::string result;
@@ -86,12 +143,19 @@ std::string randString(int len){
     }
     return result;
 }
-
 Program* randProg(int depth){
-    vars env;
-    Expr* val = randExpr(depth, env);
+    typeVars env(2, vars());
+    Expr* val;
+    int i = typeDis(typeGen);
+    if(i){
+        val = randBoolExpr(depth, env);
+    }
+    else{
+        val = randArithExpr(depth, env);
+    }
     Program* ret = new Program(NULL, val);
     //std::cout << "returning prog" << std::endl;
+    //std::cout << ret->print();
     return ret;
 }
 

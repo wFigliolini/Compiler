@@ -47,7 +47,7 @@ const std::map<std::string,int> cmpOps = {
 const std::map<int,std::string> cmpOut = {
     {0, "<"}, {1,"<="}, {2,"=="}, {3,">="}, {4,">"}
 };
-enum ty {S64, BOOL};
+enum ty {S64, BOOL, UNINIT = -1};
 class Expr;
 class Type;
 class CExp;
@@ -1928,6 +1928,7 @@ public:
 protected:
     virtual Expr* cloneImpl() const = 0;
     std::unique_ptr<Expr> e1_, e2_;
+    ty type_;
 private:
 
 };
@@ -1948,6 +1949,7 @@ class Num : public Type {
 public:
     explicit Num(int n) {
         value_ = n;
+        type_ = S64;
     };
     explicit Num(Num* n) {
         value_ = n->value_;
@@ -1981,7 +1983,7 @@ public:
         return new CNum(value_);
     }
     ty typeCheck(TCEnv e){
-        return S64;
+        return type_;
     }
 protected:
     Num* cloneImpl() const override {
@@ -1996,6 +1998,7 @@ private:
 class Var:public Expr{
 public:
     Var(std::string name):name_(name){
+        type_ =-1;
     };
     Type* inter(Environ env){
         Expr* container;
@@ -2069,6 +2072,7 @@ private:
 class Add : public Expr {
 public:
     explicit Add(Expr* n1, Expr* n2):Expr(n1, n2) {
+        type_ = S64;
     }
     Type* inter(Environ env) {
         Type *i, *j;
@@ -2141,8 +2145,8 @@ public:
         ty l,r;
         l = e1_->typeCheck(e);
         r = e2_->typeCheck(e);
-        if(l != S64) throw std::runtime_error("l is wrong type in add");
-        if(r != S64) throw std::runtime_error("r is wrong type in add");
+        if(l != type_) throw std::runtime_error("l is wrong type in add");
+        if(r != type_) throw std::runtime_error("r is wrong type in add");
         return l;
     }
 protected:
@@ -2156,7 +2160,7 @@ private:
 class Neg : public Expr {
 public:
     explicit Neg(Expr* n): Expr(n) {
-
+        type_ = S64;
     }
     Type* inter(Environ env) {
         Type* i;
@@ -2216,7 +2220,7 @@ public:
     ty typeCheck(TCEnv e){
         ty l;
         l = e1_->typeCheck(e);
-        if(l != S64) throw std::runtime_error("l is wrong type in neg");
+        if(l != type_) throw std::runtime_error("l is wrong type in neg");
         return l;
     }
 protected:
@@ -2229,7 +2233,8 @@ private:
 // Read class
 class Read : public Expr {
 public:
-    explicit Read(bool mode = 0):mode_(mode) { 
+    explicit Read(bool mode = 0):mode_(mode) {
+        type_ = S64; 
     };
     Type* inter(Environ env) {
         int i;
@@ -2267,7 +2272,7 @@ public:
         return new CRead(mode_);
     }
     ty typeCheck(TCEnv e){
-        return S64;
+        return type_;
     }
 protected:
     Read* cloneImpl() const override { return new Read(mode_);};
@@ -2279,7 +2284,9 @@ private:
 
 class Let: public Expr{
 public:
-    Let(std::string var, Expr* exp, Expr* body): Expr(exp, body), var_(var){}
+    Let(std::string var, Expr* exp, Expr* body): Expr(exp, body), var_(var){
+        type_ = -1;
+    }
     Type* inter(Environ env){
         env[var_] = e1_->inter(env);
         Type* out;
@@ -2400,6 +2407,7 @@ public:
             e.insert(std::pair<std::string, ty>(var_, l));
         }
         r = e2_->typeCheck(e);
+        type_ = r;
         return r;
     }
 protected:
@@ -2414,7 +2422,8 @@ private:
 class Bool : public Type{
 public:
     Bool(bool v){
-        value_ = v;   
+        value_ = v;
+        type_ = BOOL;
     };
     std::string AST(){
         std::string out;
@@ -2451,7 +2460,7 @@ public:
         return NULL;
     }
     ty typeCheck(TCEnv e){
-        return BOOL;
+        return type_;
     }
 protected:
     Expr* cloneImpl() const{
@@ -2461,6 +2470,7 @@ protected:
 class Not : public Expr{
 public:
     Not(Expr* l): Expr(l){
+        type_ = BOOL;
     };
     std::string AST(){
         std::string out;
@@ -2498,7 +2508,7 @@ public:
     ty typeCheck(TCEnv e){
         ty l;
         l = e1_->typeCheck(e);
-        if(l != BOOL) throw std::runtime_error("l is wrong type in Not");
+        if(l != type_) throw std::runtime_error("l is wrong type in Not");
         return l;
     }
 protected:
@@ -2510,6 +2520,7 @@ protected:
 class Cmp : public Expr{
 public:
     Cmp(std::string cmp, Expr* l, Expr* r): Expr(l, r){
+        type_ = BOOL;
         try{
             cmp_ = cmpOps.at(cmp);
         }
@@ -2585,7 +2596,7 @@ public:
         r = e2_->typeCheck(e);
         if(l != S64) throw std::runtime_error("l is wrong type in Cmp");
         if(r != S64) throw std::runtime_error("r is wrong type in Cmp");
-        return l;
+        return type_;
     }
 protected:
     Expr* cloneImpl() const{
@@ -2597,7 +2608,9 @@ private:
 //type determined at runtime
 class If : public Expr{
 public:
-    If(Expr* op, Expr* tr, Expr* fa): Expr(tr,fa), b_(op){};
+    If(Expr* op, Expr* tr, Expr* fa): Expr(tr,fa), b_(op){
+        type_ = -1;
+    };
     std::string AST(){
         std::string out;
         out += "(if ";
@@ -2641,6 +2654,7 @@ public:
         l = e1_->typeCheck(e);
         r = e2_->typeCheck(e);
         if(l != r) throw std::runtime_error("l is different type from r");
+        type_ = l;
         return l;
     }
 protected:
@@ -2687,6 +2701,14 @@ public:
     int run() {
         Num* out;
         Environ env;
+        TCEnv tce;
+        try{
+            e_->typeCheck(tce);
+        }
+        catch(std::runtime_error &e){
+            //std::cerr << "type mismatch in program" << std::endl;
+            throw e;
+        }
         try{
             out = e_->inter(env);
         }
