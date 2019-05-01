@@ -2002,4 +2002,25 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             Program* pTest = new Program(new If(new Bool(true), new Bool(false), new Num(42)));
             BOOST_REQUIRE_THROW(pTest->typeCheck(), std::runtime_error);
         }
+        BOOST_AUTO_TEST_CASE(R2OPT1){
+            std::string AST("#t"), out;
+            Program* pTest = new Program(new Not(new Not(new Read(1))));
+            pTest = opt(pTest);
+            out = pTest->print();
+            BOOST_REQUIRE(out == AST);
+        }
+        BOOST_AUTO_TEST_CASE(R2OPT2){
+            std::string AST("(if \n(Read)\n #f\n else \n #t)"), out;
+            Program* pTest = new Program(new If(new Not(new Read(1)),new Bool(true), new Bool(false) ));
+            pTest = opt(pTest);
+            out = pTest->print();
+            BOOST_REQUIRE(out == AST);
+        }
+        BOOST_AUTO_TEST_CASE(R2OPT3){
+            std::string AST("1"), out;
+            Program* pTest = new Program(new If(new Bool(true), new Num(1), new Read(1)));
+            pTest = opt(pTest);
+            out = pTest->print();
+            BOOST_REQUIRE(out == AST);
+        }
 BOOST_AUTO_TEST_SUITE_END()
