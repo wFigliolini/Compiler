@@ -1925,6 +1925,22 @@ public:
     virtual CTail* econTail() = 0;
     virtual CExp* econAssign() = 0;
     virtual ty typeCheck(TCEnv e) = 0;
+    bool operator== (const Expr* rhs){ return AST() == rhs->AST(); }
+    virtual bool isNot(){
+        return false;
+    }
+    virtual bool isNeg(){
+        return false;
+    }
+    virtual bool isBool(){
+        return false;
+    }
+    virtual Expr* removeNestedUnary(){
+        return this;
+    }
+    Expr* getE1(){
+        return e1_.release();
+    }
 protected:
     virtual Expr* cloneImpl() const = 0;
     std::unique_ptr<Expr> e1_, e2_;
@@ -2180,6 +2196,9 @@ public:
     bool containVar(std::string name){ return e1_->containVar(name);}
     Expr* optE(Environ env){
         Expr* e = e1_.release();
+        if(e->isNeg()){
+            e = e->getE1();
+        }
         e1_.reset(e->optE(env));
         if(isPure(env)){
             return new Num(inter(env)->getValue());
@@ -2222,6 +2241,16 @@ public:
         l = e1_->typeCheck(e);
         if(l != type_) throw std::runtime_error("l is wrong type in neg");
         return l;
+    }
+    bool isNeg(){
+        return true;
+    }
+    Expr* removeNestedUnary(){
+        Expr* e = this;
+        if(e1_->isNeg()){
+            e = e1_.release();
+        }
+        return e;
     }
 protected:
     Neg* cloneImpl() const override {
@@ -2494,10 +2523,16 @@ public:
         return out;
     }
     bool isPure(Environ env){
-        return true;
+        return e1_->isPure(env);
     }
     Expr* optE(Environ env){
-        return NULL;
+        Expr* e =e1_.release();
+        if(e->isNot()){
+            e = e->getE1();
+            return e->optE(env);
+        }        
+        e1_.reset(e->optE(env));
+        return this;
     }
     std::vector<rcoPair> rco(envmap env){
         return std::vector<rcoPair>();
@@ -2510,6 +2545,16 @@ public:
         l = e1_->typeCheck(e);
         if(l != type_) throw std::runtime_error("l is wrong type in Not");
         return l;
+    }
+    bool isNot(){
+        return true;
+    }
+    Expr* removeNestedUnary(){
+        Expr* e = this;
+        if(e1_->isNot()){
+            e = getE1();
+        }
+        return e;
     }
 protected:
     Expr* cloneImpl() const{
@@ -2578,11 +2623,15 @@ public:
                 throw std::invalid_argument("cmp initialization failed, non accepted comparator");
         }
     }
-    bool isPure(Environ env){
-        return true;
-    }
+    bool isPure(Environ env) { return e1_->isPure(env) && e2_->isPure(env); }
     Expr* optE(Environ env){
-        return NULL;
+        if(isPure(env)){
+            return new Bool(inter(env)->getValue());
+        }
+        Expr* e1 = e1_.release(), *e2 = e2_.release();
+        e1_.reset(e1->optE(env));
+        e2_.reset(e2->optE(env));
+        return this;
     }
     std::vector<rcoPair> rco(envmap env){
         return std::vector<rcoPair>();
@@ -2623,7 +2672,11 @@ public:
         return out;
     }
     bool containVar(std::string name){
-        return false;
+        bool v = false;
+        v = b_->containVar(name);
+        v = v || e1_->containVar(name);
+        v = v || e2_->containVar(name);
+        return v;
     }
     CExp* econAssign(){
         return NULL;
@@ -2637,11 +2690,33 @@ public:
         }
         return e2_->inter(env);
     }
-    bool isPure(Environ env){
-        return true;
-    }
+    bool isPure(Environ env) { return b_->isPure(env) && e1_->isPure(env) && e2_->isPure(env); }
     Expr* optE(Environ env){
-        return NULL;
+        //if b is a not, reverse the order of results
+        if(b_->isNot()){
+            b_.reset(b_->getE1());
+            Expr* temp = e2_.release();
+            e2_.reset(e1_.release());
+            e1_.reset(temp);
+        }
+        // if b_ is solvable, inline the correct block
+        if(b_->isPure(env)){
+            Bool* temp = b_->inter(env);
+            Expr* e;
+            if(temp->getValue()){
+                e = e1_->optE(env);
+                return e;
+            }else{
+                e = e2_->optE(env);
+                return e;
+            }
+        }
+        //else, optimize all contained blocks
+        Expr* e1 = e1_.release(), *e2 = e2_.release(), *b = b_.release();
+        b_.reset(b->optE(env));
+        e1_.reset(e1->optE(env));
+        e2_.reset(e2->optE(env));
+        return this;
     }
     std::vector<rcoPair> rco(envmap env){
         return std::vector<rcoPair>();

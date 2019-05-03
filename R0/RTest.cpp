@@ -2004,17 +2004,31 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
         }
         BOOST_AUTO_TEST_CASE(R2OPT1){
             std::string AST("#t"), out;
-            Program* pTest = new Program(new Not(new Not(new Read(1))));
+            Program* pTest = new Program(new Not(new Not(new Bool(true))));
             pTest = opt(pTest);
             out = pTest->print();
-            BOOST_REQUIRE(out == AST);
+            bool result = out == AST;
+            if(result == false){
+                std::cout << "Desired AST:" << std::endl;
+                std::cout << AST << std::endl;
+                std::cout << "Output:" << std::endl;
+                std::cout << out << std::endl;
+            }
+            BOOST_REQUIRE(result);
         }
         BOOST_AUTO_TEST_CASE(R2OPT2){
-            std::string AST("(if \n(Read)\n #f\n else \n #t)"), out;
+            std::string AST("(if (Read)\n#f\n else \n#t)"), out;
             Program* pTest = new Program(new If(new Not(new Read(1)),new Bool(true), new Bool(false) ));
             pTest = opt(pTest);
             out = pTest->print();
-            BOOST_REQUIRE(out == AST);
+            bool result = out == AST;
+            if(result == false){
+                std::cout << "Desired AST:" << std::endl;
+                std::cout << AST << std::endl;
+                std::cout << "Output:" << std::endl;
+                std::cout << out << std::endl;
+            }
+            BOOST_REQUIRE(result);
         }
         BOOST_AUTO_TEST_CASE(R2OPT3){
             std::string AST("1"), out;
