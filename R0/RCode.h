@@ -2195,10 +2195,11 @@ public:
     }
     bool containVar(std::string name){ return e1_->containVar(name);}
     Expr* optE(Environ env){
-        Expr* e = e1_.release();
+        Expr* e =e1_.release();
         if(e->isNeg()){
             e = e->getE1();
-        }
+            return e->optE(env);
+        }        
         e1_.reset(e->optE(env));
         if(isPure(env)){
             return new Num(inter(env)->getValue());
@@ -2480,7 +2481,7 @@ public:
         return true;
     }
     Expr* optE(Environ env){
-        return NULL;
+        return this;
     }
     std::vector<rcoPair> rco(envmap env){
         return std::vector<rcoPair>();
@@ -2781,7 +2782,8 @@ public:
             e_->typeCheck(tce);
         }
         catch(std::runtime_error &e){
-            //std::cerr << "type mismatch in program" << std::endl;
+            std::cerr << "type mismatch in program, dumping AST" << std::endl;
+            std::cerr << e_->AST();
             throw e;
         }
         try{

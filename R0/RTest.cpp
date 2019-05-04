@@ -708,12 +708,12 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             int optFails(0), uniqFails(0), rcoFails(0), econFails(0), selFails(0), asFails(0), patchFails(0);
             std::vector<int>  uniqList, optList, rcoList, econList, selList, asList, patchList;
             Program* pTest;
-            bool Opt(false);
+            bool Opt(true);
             for(int i = 0; i< runCount; ++i){
                 int result, opresult;
                 pTest = randProg(depth);
                 result = pTest->run();
-                /*if(Opt){
+                if(Opt){
                     pTest = opt( pTest);
                     opresult = pTest->run();
                     if (result !=opresult){
@@ -724,7 +724,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
                         result = opresult;
                     }
                 }
-                pTest = uniquify( pTest);
+                /*pTest = uniquify( pTest);
                 opresult = pTest->run();
                 if (result !=opresult){
                     //std::cout <<"Intended result: "<< result << " Uniq Result: " << opresult << std::endl;
@@ -810,9 +810,8 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
     BOOST_AUTO_TEST_CASE(OPT2){
             Program* pTest = new Program(NULL, new Neg(new Neg(new Num(7))));
             Program* pOpt = opt(pTest);
+            //std::cout <<"input: "<< pTest->print() << " output: "<< pOpt->print() << std::endl;
             BOOST_REQUIRE( pTest->run() == pOpt->run());
-        //std::cout <<"input: "<< pTest->print() << " output: "<< pOpt->print() << std::endl;
-        //BOOST_REQUIRE( pTest->print() == pOpt->print());
     }
     //Addition with read
     BOOST_AUTO_TEST_CASE(OPT3){
