@@ -2487,7 +2487,7 @@ public:
         return std::vector<rcoPair>();
     }
     Expr* uniquify(envmap* env){
-        return NULL;
+        return this;
     }
     ty typeCheck(TCEnv e){
         return type_;
@@ -2533,13 +2533,20 @@ public:
             return e->optE(env);
         }        
         e1_.reset(e->optE(env));
-        return this;
+        if(isPure(env)){
+            return new Num(inter(env)->getValue());
+        }
+        else{
+            return this;
+        }
     }
     std::vector<rcoPair> rco(envmap env){
         return std::vector<rcoPair>();
     }
     Expr* uniquify(envmap* env){
-        return NULL;
+        Expr *e1 =e1_.release();
+        e1_.reset(e1->uniquify(env));
+        return this;
     }
     ty typeCheck(TCEnv e){
         ty l;
@@ -2638,7 +2645,10 @@ public:
         return std::vector<rcoPair>();
     }
     Expr* uniquify(envmap* env){
-        return NULL;
+        Expr *e1 =e1_.release(), *e2 = e2_.release();
+        e1_.reset(e1->uniquify(env));  e2_.reset(e2->uniquify(env));
+
+        return this;
     }
     ty typeCheck(TCEnv e){
         ty l,r;
@@ -2723,13 +2733,25 @@ public:
         return std::vector<rcoPair>();
     }
     Expr* uniquify(envmap* env){
-        return NULL;
+        Expr *e1 =e1_.release(), *e2 = e2_.release(), *b = b_.release();
+        e1_.reset(e1->uniquify(env));  e2_.reset(e2->uniquify(env));
+        b_.reset(b->uniquify(env));
+        return this;
     }
     ty typeCheck(TCEnv e){
         ty l,r;
         l = e1_->typeCheck(e);
         r = e2_->typeCheck(e);
-        if(l != r) throw std::runtime_error("l is different type from r");
+        if(l != r){
+            std::cerr << AST() << std::endl;
+            std::string err("l is different type from r\n AST:\n");
+            err +=  "L type: ";
+            err += l;
+            err +=  " R type: ";
+            err += r;
+            
+            throw std::runtime_error(err);
+        }
         type_ = l;
         return l;
     }
@@ -2782,8 +2804,8 @@ public:
             e_->typeCheck(tce);
         }
         catch(std::runtime_error &e){
-            std::cerr << "type mismatch in program, dumping AST" << std::endl;
-            std::cerr << e_->AST();
+            //std::cerr << "type mismatch in program, dumping AST" << std::endl;
+            //std::cerr << e_->AST();
             throw e;
         }
         try{

@@ -2036,4 +2036,16 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             out = pTest->print();
             BOOST_REQUIRE(out == AST);
         }
+        BOOST_AUTO_TEST_CASE(R2UNIQ1){
+            Expr* expr = And( new Let("x", new Bool(true), new Var("x") ),
+                                 new Let("x", new Bool(false), 
+                                 new Let("x", Or(new Bool(false), new Var("x")), 
+                                 Xor(new Var("x"), new Var("x")))));
+            int orig, f;
+            Program* pTest = new Program(expr);
+            orig =  pTest->run();
+            Program* pFinal = uniquify(pTest);
+            f = pFinal->run();
+            BOOST_REQUIRE(orig == f);
+        }
 BOOST_AUTO_TEST_SUITE_END()
