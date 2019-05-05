@@ -1650,6 +1650,9 @@ public:
 private:
     std::string n_;
 };
+class CBool : public CArg{
+    
+};
 class CAdd: public CExp{
 public:
     explicit CAdd(CArg* ar, CArg* al):ar_(ar), al_(al){};
@@ -1743,6 +1746,12 @@ public:
 private:
     CArg* a_;
 };
+class CNot: public CExp{
+    
+};
+class CCmp: public CExp{
+    
+};
 class CStat{
 public:
     explicit CStat(std::string n, CExp* e):name_(n), e_(e){};
@@ -1833,6 +1842,12 @@ public:
 private:
     CStat* stmt_;
     CTail* tail_;
+};
+class CGoto :public CTail{
+    
+};
+class CGotoIf :public CTail{
+    
 };
 typedef std::unordered_map<std::string,CTail*> CTailTable;
 class CInfo{
@@ -2534,7 +2549,7 @@ public:
         }        
         e1_.reset(e->optE(env));
         if(isPure(env)){
-            return new Num(inter(env)->getValue());
+            return new Bool(inter(env)->getValue());
         }
         else{
             return this;
