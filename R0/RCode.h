@@ -1747,10 +1747,43 @@ private:
     CArg* a_;
 };
 class CNot: public CExp{
-    
+    explicit CNot(CArg* a): a_(a){};
+    std::string AST(){
+        std::string out;
+        out += "(Not ";
+        out += a_->AST();
+        out +=")\n";
+        return out;
+    }
+    int interp(CEnv* e){
+        return 0;
+    }
+    Blk SIExp(std::string dest){
+        return Blk();
+    }
+private:
+    CArg* a_;
 };
 class CCmp: public CExp{
-    
+        explicit CAdd(CArg* ar, CArg* al):ar_(ar), al_(al){};
+    std::string AST(){
+        std::string out;
+        out += "(+ ";
+        out += ar_->AST();
+        out += " ";
+        out += al_->AST();
+        out +=")\n";
+        return out;
+    }
+    int interp(CEnv* e){
+        return 0;
+    }
+    Blk SIExp(std::string dest){
+        Blk out;
+        return out
+    }
+private:
+    CArg* ar_, *al_;
 };
 class CStat{
 public:
