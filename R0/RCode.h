@@ -1761,6 +1761,7 @@ private:
     CArg* a_;
 };
 class CNot: public CExp{
+public:
     explicit CNot(CArg* a): a_(a){};
     std::string AST(){
         std::string out;

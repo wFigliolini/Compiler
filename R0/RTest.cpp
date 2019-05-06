@@ -2048,4 +2048,54 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             f = pFinal->run();
             BOOST_REQUIRE(orig == f);
         }
-BOOST_AUTO_TEST_SUITE_END()
+        // basic case for goto
+        BOOST_AUTO_TEST_CASE(C1Test1){
+            CSeq* lMain = new CSeq(new CStat("x",  new CNum(5)),  new CGoto(new CLabel("END")));
+            CRet* lEnd = new CRet(new CVar("x"));
+            CProg* cTest = new CProg(lMain);
+            cTest->addTail("END",  lEnd);
+            int f = cTest->run();
+            BOOST_REQUIRE(f ==  5);
+        }
+        // gotif case
+        BOOST_AUTO_TEST_CASE(C1Test2){
+            CSeq* lMain = new CSeq(new CStat("x",  new CNum(5)),  new CGotoIf(new CCmp(">",  new CNum(5),  new CNum(6)),  new CLabel("T1"),  new CLabel("F1")));
+            CRet* lT1 = new CRet(new CBool(true));
+            CRet* lF1 = new CRet(new CBool(false));
+            CProg* cTest = new CProg(lMain);
+            cTest->addTail("T1",  lT1);
+            cTest->addTail("F1",  lF1);
+            int f = cTest->run();
+            BOOST_REQUIRE(f ==  6);
+        }
+        BOOST_AUTO_TEST_CASE(C1Test2){
+            CSeq* lMain = new CSeq(new CStat("x",  new CNum(5)),  new CGotoIf(new CCmp(">",  new CNum(5),  new CNum(6)),  new CLabel("T1"),  new CLabel("F1")));
+            CRet* lT1 = new CRet(new CBool(true));
+            CRet* lF1 = new CRet(new CBool(false));
+            CProg* cTest = new CProg(lMain);
+            cTest->addTail("T1",  lT1);
+            cTest->addTail("F1",  lF1);
+            int f = cTest->run();
+            BOOST_REQUIRE(f ==  6);
+        }
+        // to Test if only one branch is executed
+        BOOST_AUTO_TEST_CASE(C1Test3){
+            CSeq* lMain = new CSeq(new CStat("x",  new CNum(5)),  new CGotoIf(new CCmp(">",  new CNum(5),  new CNum(6)),  new CLabel("T1"),  new CLabel("F1")));
+            CSeq* lT1 = new CSeq(new CStat("x",  new CRead(0)),  new CRet(new CVar("x")));
+            CRet* lF1 = new CRet(new CNum(6));
+            CProg* cTest = new CProg(lMain);
+            cTest->addTail("T1",  lT1);
+            cTest->addTail("F1",  lF1);
+            int f = cTest->run();
+            BOOST_REQUIRE(f ==  6);
+        }
+        // Not Test
+        BOOST_AUTO_TEST_CASE(C1Test4) {
+            CSeq* lMain = new CSeq(new CStat("x",  new CCmp(">",  new CNum(5),  new CNum(6))),  
+                          new CSeq(new CStat("f",  new CNot(new CVar("x"))), 
+                          new CRet(new CVar("f"))));
+            CProg* cTest = new CProg(lMain);
+            int f = cTest->run();
+            BOOST_REQUIRE(f ==  true);
+        }
+BOOST_AUTO_TEST_SUITE_END
