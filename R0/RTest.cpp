@@ -2066,20 +2066,28 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             cTest->addTail("T1",  lT1);
             cTest->addTail("F1",  lF1);
             int f = cTest->run();
-            BOOST_REQUIRE(f ==  6);
+            bool initResult = f ==  false;
+            if (initResult ==  false) {
+                std::cout <<  f << std::endl;
+            }
+            BOOST_REQUIRE(initResult);
         }
-        BOOST_AUTO_TEST_CASE(C1Test2){
-            CSeq* lMain = new CSeq(new CStat("x",  new CNum(5)),  new CGotoIf(new CCmp(">",  new CNum(5),  new CNum(6)),  new CLabel("T1"),  new CLabel("F1")));
+        BOOST_AUTO_TEST_CASE(C1Test3){
+            CSeq* lMain = new CSeq(new CStat("x",  new CNum(5)),  new CGotoIf(new CCmp("<",  new CNum(5),  new CNum(6)),  new CLabel("T1"),  new CLabel("F1")));
             CRet* lT1 = new CRet(new CBool(true));
             CRet* lF1 = new CRet(new CBool(false));
             CProg* cTest = new CProg(lMain);
             cTest->addTail("T1",  lT1);
             cTest->addTail("F1",  lF1);
             int f = cTest->run();
-            BOOST_REQUIRE(f ==  6);
+            bool initResult = f ==  true;
+            if (initResult ==  false) {
+                std::cout <<  f << std::endl;
+            }
+            BOOST_REQUIRE(initResult);
         }
         // to Test if only one branch is executed
-        BOOST_AUTO_TEST_CASE(C1Test3){
+        BOOST_AUTO_TEST_CASE(C1Test4){
             CSeq* lMain = new CSeq(new CStat("x",  new CNum(5)),  new CGotoIf(new CCmp(">",  new CNum(5),  new CNum(6)),  new CLabel("T1"),  new CLabel("F1")));
             CSeq* lT1 = new CSeq(new CStat("x",  new CRead(0)),  new CRet(new CVar("x")));
             CRet* lF1 = new CRet(new CNum(6));
@@ -2087,10 +2095,14 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             cTest->addTail("T1",  lT1);
             cTest->addTail("F1",  lF1);
             int f = cTest->run();
-            BOOST_REQUIRE(f ==  6);
+            bool initResult = f ==  6;
+            if (initResult ==  false) {
+                std::cout <<  f << std::endl;
+            }
+            BOOST_REQUIRE(initResult);
         }
         // Not Test
-        BOOST_AUTO_TEST_CASE(C1Test4) {
+        BOOST_AUTO_TEST_CASE(C1Test5) {
             CSeq* lMain = new CSeq(new CStat("x",  new CCmp(">",  new CNum(5),  new CNum(6))),  
                           new CSeq(new CStat("f",  new CNot(new CVar("x"))), 
                           new CRet(new CVar("f"))));
@@ -2098,4 +2110,4 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             int f = cTest->run();
             BOOST_REQUIRE(f ==  true);
         }
-BOOST_AUTO_TEST_SUITE_END
+BOOST_AUTO_TEST_SUITE_END()

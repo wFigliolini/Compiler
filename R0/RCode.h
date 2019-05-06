@@ -1650,6 +1650,7 @@ private:
     std::string n_;
 };
 class CBool : public CArg{
+public:
     explicit CBool(bool i): b_(i){};
     std::string AST(){
         if(b_){
@@ -1771,7 +1772,7 @@ public:
         return out;
     }
     int interp(CEnv* e){
-        return 0;
+        return !a_->interp(e);
     }
     Blk SIExp(std::string dest){
         return Blk();
@@ -1801,14 +1802,30 @@ public:
         return out;
     }
     int interp(CEnv* e){
-        return 0;
+        int l,r;
+        l = ar_->interp(e);
+        r = al_->interp(e);
+        switch(cmp_){
+            case 0:
+                return l < r;
+            case 1:
+                return l <= r;
+            case 2:
+                return l == r;
+            case 3:
+                return l >= r;
+            case 4:
+                return l > r;
+            default:
+                throw std::invalid_argument("CCmp recieved non accepted comparator");
+        }
     }
     Blk SIExp(std::string dest){
         Blk out;
         return out;
     }
 private:
-    std::string cmp_;
+    int cmp_;
     CArg* ar_, *al_;
 };
 class CStat{
@@ -1835,10 +1852,12 @@ private:
     std::string name_;
     CExp* e_;
 };
+class CTail;
+typedef std::unordered_map<std::string,CTail*> CTailTable;
 class CTail{
 public:
     virtual std::string AST() = 0;
-    virtual int interp(CEnv* e) = 0;
+    virtual int interp(CEnv* e, CTailTable* t) = 0;
     virtual std::set<std::string> getVars() = 0;
     virtual Blk SITail() = 0;
 };
@@ -1852,7 +1871,7 @@ public:
         out +=")\n";
         return out;
     }
-    int interp(CEnv* e){
+    int interp(CEnv* e, CTailTable* t){
         return ret_->interp(e);
     }
     std::set<std::string> getVars(){
@@ -1882,9 +1901,9 @@ public:
         out += ")\n";
         return out;
     }
-    int interp(CEnv* e){
+    int interp(CEnv* e, CTailTable* t){
         stmt_->interp(e);
-        return tail_->interp(e);
+        return tail_->interp(e, t);
     }
     std::set<std::string> getVars(){
         std::set<std::string> v;
@@ -1903,6 +1922,7 @@ private:
     CTail* tail_;
 };
 class CGoto :public CTail{
+public:
     explicit CGoto(CLabel* l):label_(l){};
     std::string AST(){
         std::string out;
@@ -1911,10 +1931,22 @@ class CGoto :public CTail{
         out += ")\n";
         return out;
     }
+    int interp(CEnv* e, CTailTable* t){
+        return (*t)[label_->AST()]->interp(e, t);
+    }
+    std::set<std::string> getVars(){
+        std::set<std::string> out;
+        return out;
+    }
+    Blk SITail(){
+        Blk out;
+        return out;
+    }
 private:
     CLabel* label_;
 };
 class CGotoIf :public CTail{
+public:
     explicit CGotoIf(CCmp* c, CLabel* lt, CLabel* lf):cmp_(c),lTrue_(lt), lFalse_(lf){};
     std::string AST(){
         std::string out;
@@ -1927,11 +1959,24 @@ class CGotoIf :public CTail{
         out += "\n)\n";
         return out;
     }
+    int interp(CEnv* e, CTailTable* t){
+        if(cmp_->interp(e))
+            return (*t)[lTrue_->AST()]->interp(e, t);
+        else
+            return (*t)[lFalse_->AST()]->interp(e, t);
+    }
+    std::set<std::string> getVars(){
+        std::set<std::string> out;
+        return out;
+    }
+    Blk SITail(){
+        Blk out;
+        return out;
+    }
 private:
     CCmp* cmp_;
     CLabel* lTrue_, *lFalse_;
 };
-typedef std::unordered_map<std::string,CTail*> CTailTable;
 class CInfo{
 public:
     std::set<std::string> vars(){ return vars_;}
@@ -1968,7 +2013,7 @@ public:
             std::cerr << "Main not defined" << std::endl;
             throw std::runtime_error("Main Not Defined");
         }
-        i = t->interp(e);
+        i = t->interp(e, &instr_);
         CRead* temp = new CRead();
         temp->reset();
         return i;
