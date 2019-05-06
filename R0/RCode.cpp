@@ -116,8 +116,8 @@ Expr* randBoolExpr(int depth, typeVars env){
             //can result in type mismatch if uncommented
             //l = randArithExpr(nextDepth, env);
             //r = randArithExpr(nextDepth, env);
-            l = randBoolExpr(nextDepth, env);
-            r = randBoolExpr(nextDepth, env);
+            l = randArithExpr(nextDepth, env);
+            r = randArithExpr(nextDepth, env);
 
             return new If(randBoolExpr(nextDepth, env), l,r);
         }
