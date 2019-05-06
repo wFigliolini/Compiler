@@ -47,6 +47,9 @@ const std::map<std::string,int> cmpOps = {
 const std::map<int,std::string> cmpOut = {
     {0, "<"}, {1,"<="}, {2,"=="}, {3,">="}, {4,">"}
 };
+const std::map<int,std::string> xCmpOut = {
+    {0, "l"}, {1,"le"}, {2,"e"}, {3,"ge"}, {4,"g"}
+};
 enum ty {S64, BOOL, UNINIT = -1};
 class Expr;
 class Type;
@@ -692,6 +695,39 @@ private:
     std::string name_;
 };
 
+class ByteReg: public Arg{
+public:
+    ByteReg(){};
+   const std::string emitA(bool vars){
+       
+   }
+    int get(){
+        
+    }
+    void set(int i){
+        
+    }
+    Arg* asHA(localVars* e){
+        
+    }
+    void init(std::shared_ptr<xInfo> i, std::shared_ptr<blkInfo> bi){
+        setInfo(i);
+        bi_ = bi;
+    }
+    bool isMemRef(){
+        return false;
+    }
+    std::string ul(){
+        
+    }
+    Arg* asRA(){
+        
+    }
+    bool isConst(){
+        return false;
+    }
+};
+
 //instructions
 class Instr: public X{
 public:
@@ -1112,6 +1148,181 @@ public:
     Instr* asRI(){
         return new Popq(al_->asRA());
     }
+};
+class Xorq: public Instr{
+public:
+    Xorq(Arg* a1, Arg* a2): Instr(a1, a2){};
+   std::string emitI(bool vars){
+       
+   }
+   void interp(){
+       
+   }
+   void init(std::shared_ptr<xInfo> i, std::shared_ptr<blkInfo> bi){
+        bi_ = bi;
+        al_->init(i, bi);
+        ar_->init(i, bi);
+   }
+   Instr* asHI(localVars *e){
+       
+   }
+   Blk patchI(){
+       
+   }
+   varSet ul(varSet lb){
+       
+   }
+   void genInterferences(int index){
+       
+   }
+   Instr* asRI(){
+       
+   }
+};
+class Cmpq: public Instr{
+public:
+    Cmpq(Arg* a1, Arg* a2): Instr(a1, a2){};
+   std::string emitI(bool vars){
+       
+   }
+   void interp(){
+       
+   }
+   void init(std::shared_ptr<xInfo> i, std::shared_ptr<blkInfo> bi){
+        bi_ = bi;
+        al_->init(i, bi);
+        ar_->init(i, bi);
+   }
+   Instr* asHI(localVars *e){
+       
+   }
+   Blk patchI(){
+       
+   }
+   varSet ul(varSet lb){
+       
+   }
+   void genInterferences(int index){
+       
+   }
+   Instr* asRI(){
+       
+   }
+};
+class Setq: public Instr{
+public:
+    Setq(std::string cc,Arg* a1): Instr(a1){
+        try{
+            cc_ = cmpOps.at(cc);
+        }
+        catch(std::out_of_range &e){
+            std::string err("Invalid Comparison Operator ");
+            err+=cc;
+            throw std::invalid_argument(err);
+        }
+    };
+    Setq(int cc,Arg* a1): Instr(a1), cc_(cc){};
+   std::string emitI(bool vars){
+       
+   }
+   void interp(){
+       
+   }
+   void init(std::shared_ptr<xInfo> i, std::shared_ptr<blkInfo> bi){
+        bi_ = bi;
+        al_->init(i, bi);
+        ar_->init(i, bi);
+   }
+   Instr* asHI(localVars *e){
+       
+   }
+   Blk patchI(){
+       
+   }
+   varSet ul(varSet lb){
+       
+   }
+   void genInterferences(int index){
+       
+   }
+   Instr* asRI(){
+       
+   }
+private:
+    int cc_;
+};
+class Movzbq: public Instr{
+public:
+    Movzbq(Arg* a1, Arg* a2): Instr(a1, a2){};
+   std::string emitI(bool vars){
+       
+   }
+   void interp(){
+       
+   }
+   void init(std::shared_ptr<xInfo> i, std::shared_ptr<blkInfo> bi){
+        bi_ = bi;
+        al_->init(i, bi);
+        ar_->init(i, bi);
+   }
+   Instr* asHI(localVars *e){
+       
+   }
+   Blk patchI(){
+       
+   }
+   varSet ul(varSet lb){
+       
+   }
+   void genInterferences(int index){
+       
+   }
+   Instr* asRI(){
+       
+   }
+};
+class JmpIf: public Instr{
+public:
+    JmpIf(std::string cc,Label* l):l_(l) {
+        try{
+            cc_ = cmpOps.at(cc);
+        }
+        catch(std::out_of_range &e){
+            std::string err("Invalid Comparison Operator ");
+            err+=cc;
+            throw std::invalid_argument(err);
+        }
+    };
+    JmpIf(int cc,Label* l):cc_(cc), l_(l){};
+   std::string emitI(bool vars){
+       
+   }
+   void interp(){
+       
+   }
+   void init(std::shared_ptr<xInfo> i, std::shared_ptr<blkInfo> bi){
+        bi_ = bi;
+        al_->init(i, bi);
+        ar_->init(i, bi);
+   }
+   Instr* asHI(localVars *e){
+       
+   }
+   Blk patchI(){
+       
+   }
+   varSet ul(varSet lb){
+       
+   }
+   void genInterferences(int index){
+       
+   }
+   Instr* asRI(){
+       
+   }
+private:
+    int cc_;
+    Label* l_;
 };
 //block definition
 class Block: public X{
@@ -2885,13 +3096,8 @@ public:
         l = e1_->typeCheck(e);
         r = e2_->typeCheck(e);
         if(l != r){
-            std::cerr << AST() << std::endl;
-            std::string err("l is different type from r\n AST:\n");
-            err +=  "L type: ";
-            err += l;
-            err +=  " R type: ";
-            err += r;
-            
+            //std::cerr << AST() << std::endl;
+            std::string err("l is different type from r");
             throw std::runtime_error(err);
         }
         type_ = l;
