@@ -1028,7 +1028,6 @@ public:
 private:
     Label* lab_;
 };
-
 class Pushq: public Instr{
 public:
     Pushq(Arg* a1): Instr(a1){};
@@ -1651,7 +1650,22 @@ private:
     std::string n_;
 };
 class CBool : public CArg{
-    
+    explicit CBool(bool i): b_(i){};
+    std::string AST(){
+        if(b_){
+            return "true";
+        }
+        return "false";
+    }
+    int interp(CEnv* e){
+        return b_;
+    }
+    Arg* SIArg(){
+        return NULL;
+    }
+
+private:
+    bool b_;
 };
 class CAdd: public CExp{
 public:
@@ -1765,7 +1779,17 @@ private:
     CArg* a_;
 };
 class CCmp: public CExp{
-        explicit CAdd(CArg* ar, CArg* al):ar_(ar), al_(al){};
+public:
+    explicit CCmp(std::string cmp,CArg* ar, CArg* al):ar_(ar), al_(al){
+        try{
+            cmp_ = cmpOps.at(cmp);
+        }
+        catch(std::out_of_range &e){
+            std::string err("Invalid Comparison Operator ");
+            err+=cmp;
+            throw std::invalid_argument(err);
+        }
+    };
     std::string AST(){
         std::string out;
         out += "(+ ";
@@ -1780,9 +1804,10 @@ class CCmp: public CExp{
     }
     Blk SIExp(std::string dest){
         Blk out;
-        return out
+        return out;
     }
 private:
+    std::string cmp_;
     CArg* ar_, *al_;
 };
 class CStat{
@@ -1877,10 +1902,33 @@ private:
     CTail* tail_;
 };
 class CGoto :public CTail{
-    
+    explicit CGoto(CLabel* l):label_(l){};
+    std::string AST(){
+        std::string out;
+        out+= "(goto ";
+        out+= label_->AST();
+        out += ")\n";
+        return out;
+    }
+private:
+    CLabel* label_;
 };
 class CGotoIf :public CTail{
-    
+    explicit CGotoIf(CCmp* c, CLabel* lt, CLabel* lf):cmp_(c),lTrue_(lt), lFalse_(lf){};
+    std::string AST(){
+        std::string out;
+        out+= "(if ";
+        out+= cmp_->AST();
+        out+= "\n";
+        out += lTrue_->AST();
+        out+= "\nelse\n";
+        out += lFalse_->AST();
+        out += "\n)\n";
+        return out;
+    }
+private:
+    CCmp* cmp_;
+    CLabel* lTrue_, *lFalse_;
 };
 typedef std::unordered_map<std::string,CTail*> CTailTable;
 class CInfo{
