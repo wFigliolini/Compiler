@@ -2102,7 +2102,7 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             BOOST_REQUIRE(initResult);
         }
         // Not Test
-        BOOST_AUTO_TEST_CASE(C1Test5) {
+        BOOST_AUTO_TEST_CASE(C1Test5){
             CSeq* lMain = new CSeq(new CStat("x",  new CCmp(">",  new CNum(5),  new CNum(6))),  
                           new CSeq(new CStat("f",  new CNot(new CVar("x"))), 
                           new CRet(new CVar("f"))));
@@ -2110,4 +2110,85 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             int f = cTest->run();
             BOOST_REQUIRE(f ==  true);
         }
+        // manually compiled version fo C1 Tests
+        // C1 Test 1 is unneeded,  as it was tested in LabelTest
+        BOOST_AUTO_TEST_CASE(X1Test1){
+            std::vector<Instr*> instrSet,  trueSet,  falseSet;
+            instrSet.push_back( new Movq( new Const(5), new Ref("x")));
+            instrSet.push_back( new Cmpq( new Const(6),  new Ref("x")));
+            instrSet.push_back( new JmpIf( ">",  new Label("T1")));
+            instrSet.push_back( new Jmp( new Label("F1")));
+            trueSet.push_back(new Movq(new Const(1),  new Reg(0)));
+            trueSet.push_back(new Retq());
+            falseSet.push_back(new Movq(new Const(0),  new Reg(0)));
+            falseSet.push_back(new Retq());
+            Block* main = new Block(instrSet),*T1 = new Block(trueSet), *F1 = new Block(falseSet);
+            xProgram* xTest = new xProgram(main);
+            xTest->addBlock("T1",  T1);
+            xTest->addBlock("F1",  F1);
+            int f = xTest->run();
+            bool initResult = f ==  false;
+            if (initResult ==  false) {
+                std::cout << f << std::endl;
+            }
+            BOOST_REQUIRE(initResult);
+        }
+        BOOST_AUTO_TEST_CASE(X1Test2){
+            std::vector<Instr*> instrSet,  trueSet,  falseSet;
+            instrSet.push_back( new Movq( new Const(5), new Ref("x")));
+            instrSet.push_back( new Cmpq( new Const(6),  new Ref("x")));
+            instrSet.push_back( new JmpIf( "<",  new Label("T1")));
+            instrSet.push_back( new Jmp( new Label("F1")));
+            trueSet.push_back(new Movq(new Const(1),  new Reg(0)));
+            trueSet.push_back(new Retq());
+            falseSet.push_back(new Movq(new Const(0),  new Reg(0)));
+            falseSet.push_back(new Retq());
+            Block* main = new Block(instrSet),*T1 = new Block(trueSet), *F1 = new Block(falseSet);
+            xProgram* xTest = new xProgram(main);
+            xTest->addBlock("T1",  T1);
+            xTest->addBlock("F1",  F1);
+            int f = xTest->run();
+            bool initResult = f ==  true;
+            if (initResult ==  false) {
+                std::cout << f << std::endl;
+            }
+            BOOST_REQUIRE(initResult);
+        }
+        BOOST_AUTO_TEST_CASE(X1Test3){
+            std::vector<Instr*> instrSet,  trueSet,  falseSet;
+            instrSet.push_back( new Movq( new Const(5), new Ref("x")));
+            instrSet.push_back( new Cmpq( new Const(6),  new Ref("x")));
+            instrSet.push_back( new JmpIf( ">",  new Label("T1")));
+            instrSet.push_back( new Jmp( new Label("F1")));
+            trueSet.push_back(new Callq(new Label("_read_int")));
+            trueSet.push_back(new Retq());
+            falseSet.push_back(new Movq(new Const(6),  new Reg(0)));
+            falseSet.push_back(new Retq());
+            Block* main = new Block(instrSet),*T1 = new Block(trueSet), *F1 = new Block(falseSet);
+            xProgram* xTest = new xProgram(main);
+            xTest->addBlock("T1",  T1);
+            xTest->addBlock("F1",  F1);
+            int f = xTest->run();
+            bool initResult = f ==  6;
+            if (initResult ==  false) {
+                std::cout << f << std::endl;
+            }
+            BOOST_REQUIRE(initResult);
+        }
+        // Not test
+        BOOST_AUTO_TEST_CASE(X1Test4){
+            std::vector<Instr*> instrSet;
+            instrSet.push_back(new Movq(new Const(1),  new Reg(0)));
+            instrSet.push_back(new Xorq(new Const(1),  new Reg(0)));
+            instrSet.push_back(new Retq());
+            Block* main = new Block(instrSet);
+            xProgram* xTest = new xProgram(main);
+            int f = xTest->run();
+            bool initResult = f == 0;
+            if (initResult ==  false) {
+                std::cout << f << std::endl;
+            }
+            BOOST_REQUIRE(initResult);
+        }
+        
 BOOST_AUTO_TEST_SUITE_END()
