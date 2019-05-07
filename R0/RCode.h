@@ -34,6 +34,20 @@ const std::map<int,std::string> regNums = {
     {9,"%r9"}, {10,"%r10"}, {11,"%r11"},
     {12,"%r12"}, {13,"%r13"}, {14,"%r14"},
     {15,"%r15"}};
+    const std::map<std::string,int> byteRegNames = {
+    {"%rl",0}, {"%bl",1}, {"\%cl",2},
+    {"\%dl",3}, {"\%sil",4}, {"\%dil",5},
+    {"%bpl",6}, {"\%spl",7}, {"%r8b",8},
+    {"%r9b",9}, {"%r10b",10}, {"%r11b",11},
+    {"%r12b",12}, {"%r13b",13}, {"%r14b",14},
+    {"%r15b",15}};
+const std::map<int,std::string> byteRegNums = {
+    {0,"\%al"}, {1,"%bl"}, {2,"\%cl"},
+    {3,"\%dl"}, {4,"\%sil"}, {5,"\%dil"},
+    {6,"%bpl"}, {7,"\%spl"}, {8,"%r8b"},
+    {9,"%r9b"}, {10,"%r10b"}, {11,"%r11b"},
+    {12,"%r12b"}, {13,"%r13b"}, {14,"%r14b"},
+    {15,"%r15b"}};
 //check which ones to be removed
 const std::map<int,std::string> regAsn = {
     {0,"%rax"}, {1,"%rbx"}, {2,"%rcx"},
@@ -503,7 +517,7 @@ public:
         return;
     }
     const std::string emitA(bool vars){
-        std::string out = regNums[reg_];
+        std::string out = regNums.at(reg_);
         return out;
     }
     int get(){
@@ -523,7 +537,7 @@ public:
         return false;
     }
     std::string ul(){
-        std::string out(regNums[reg_]);
+        std::string out(regNums.at([reg_));
         return out;
     }
     Arg* asRA(){
@@ -697,9 +711,24 @@ private:
 
 class ByteReg: public Arg{
 public:
-    ByteReg(){};
+    explicit ByteReg(int reg){
+        if( reg > 15 || reg < 0 ){
+            throw std::invalid_argument("Register assignment attempted outside of range 0->15\n");
+        }
+        reg_ = reg;
+    }
+    explicit ByteReg(std::string reg){
+        try{
+            reg_ = byteRegNames.at(reg);
+        }catch(std::out_of_range &e){
+            std::string err("Register assignment attempted to nonexistant register ");
+            err+= reg;
+            throw std::invalid_argument(err);
+        }
+    }
    const std::string emitA(bool vars){
-       
+        std::string out = byteRegNums.at(reg_);
+        return out;
    }
     int get(){
         
@@ -726,6 +755,8 @@ public:
     bool isConst(){
         return false;
     }
+private:
+    int reg_;
 };
 
 //instructions
@@ -1153,7 +1184,13 @@ class Xorq: public Instr{
 public:
     Xorq(Arg* a1, Arg* a2): Instr(a1, a2){};
    std::string emitI(bool vars){
-       
+        std::string output;
+        output += "xorq ";
+        output += al_->emitA(vars);
+        output += ", ";
+        output += ar_->emitA(vars);
+        output += "\n";
+        return output;
    }
    void interp(){
        
@@ -1183,7 +1220,13 @@ class Cmpq: public Instr{
 public:
     Cmpq(Arg* a1, Arg* a2): Instr(a1, a2){};
    std::string emitI(bool vars){
-       
+        std::string output;
+        output += "cmpq ";
+        output += al_->emitA(vars);
+        output += ", ";
+        output += ar_->emitA(vars);
+        output += "\n";
+        return output;
    }
    void interp(){
        
@@ -1223,7 +1266,13 @@ public:
     };
     Setq(int cc,Arg* a1): Instr(a1), cc_(cc){};
    std::string emitI(bool vars){
-       
+        std::string output;
+        output += "cmp";
+        output += xCmpOut.at(cc_);
+        output += " ";
+        output += al_->emitA(vars);
+        output += "\n";
+        return output;
    }
    void interp(){
        
@@ -1255,7 +1304,13 @@ class Movzbq: public Instr{
 public:
     Movzbq(Arg* a1, Arg* a2): Instr(a1, a2){};
    std::string emitI(bool vars){
-       
+        std::string output;
+        output += "movzbq ";
+        output += al_->emitA(vars);
+        output += ", ";
+        output += ar_->emitA(vars);
+        output += "\n";
+        return output;
    }
    void interp(){
        
@@ -1295,15 +1350,20 @@ public:
     };
     JmpIf(int cc,Label* l):cc_(cc), l_(l){};
    std::string emitI(bool vars){
-       
+        std::string output;
+        output += "jmp";
+        output += xCmpOut.at(cc_);
+        output += " ";
+        output += l_->emitL(vars);
+        output += "\n";
+        return output;
    }
    void interp(){
        
    }
    void init(std::shared_ptr<xInfo> i, std::shared_ptr<blkInfo> bi){
         bi_ = bi;
-        al_->init(i, bi);
-        ar_->init(i, bi);
+        l_->init(i, bi);
    }
    Instr* asHI(localVars *e){
        
