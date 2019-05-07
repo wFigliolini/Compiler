@@ -26,35 +26,40 @@ const std::map<std::string,int> regNames = {
     {"%rbp",6}, {"%rsp",7}, {"%r8",8},
     {"%r9",9}, {"%r10",10}, {"%r11",11},
     {"%r12",12}, {"%r13",13}, {"%r14",14},
-    {"%r15",15}};
+    {"%r15",15}
+};
 const std::map<int,std::string> regNums = {
     {0,"%rax"}, {1,"%rbx"}, {2,"%rcx"},
     {3,"%rdx"}, {4,"%rsi"}, {5,"%rdi"},
     {6,"%rbp"}, {7,"%rsp"}, {8,"%r8"},
     {9,"%r9"}, {10,"%r10"}, {11,"%r11"},
     {12,"%r12"}, {13,"%r13"}, {14,"%r14"},
-    {15,"%r15"}};
-    const std::map<std::string,int> byteRegNames = {
+    {15,"%r15"}
+};
+const std::map<std::string,int> byteRegNames = {
     {"%rl",0}, {"%bl",1}, {"\%cl",2},
     {"\%dl",3}, {"\%sil",4}, {"\%dil",5},
     {"%bpl",6}, {"\%spl",7}, {"%r8b",8},
     {"%r9b",9}, {"%r10b",10}, {"%r11b",11},
     {"%r12b",12}, {"%r13b",13}, {"%r14b",14},
-    {"%r15b",15}};
+    {"%r15b",15}
+};
 const std::map<int,std::string> byteRegNums = {
     {0,"\%al"}, {1,"%bl"}, {2,"\%cl"},
     {3,"\%dl"}, {4,"\%sil"}, {5,"\%dil"},
     {6,"%bpl"}, {7,"\%spl"}, {8,"%r8b"},
     {9,"%r9b"}, {10,"%r10b"}, {11,"%r11b"},
     {12,"%r12b"}, {13,"%r13b"}, {14,"%r14b"},
-    {15,"%r15b"}};
+    {15,"%r15b"}
+};
 //check which ones to be removed
 const std::map<int,std::string> regAsn = {
     {0,"%rax"}, {1,"%rbx"}, {2,"%rcx"},
     {3,"%rdx"}, {4,"%rsi"}, {5,"%rdi"},
     {6,"%r8"},  {7,"%r9"}, {8,"%r10"}, 
     {9,"%r11"}, {10,"%r12"}, {11,"%r13"},
-    {12,"%r14"},{13,"%r15"}};
+    {12,"%r14"},{13,"%r15"}
+};
 const std::map<std::string,int> cmpOps = {
     {"<",0}, {"<=",1}, {"==",2}, {">=",3}, {">",4}
 };
@@ -121,7 +126,7 @@ public:
 //Handles the Stack and Registers
 class xInfo{
 public:
-    xInfo():regs_(16,0), stack_(1024,0),result_(0),varCount_(0), done_(false){};
+    xInfo():regs_(16,0), stack_(1024,0),result_(0),varCount_(0), done_(false), n_(false), z_(false){};
     void setLabel(std::string s){
         currLabel_ = s;
     }
@@ -206,6 +211,18 @@ public:
         }
     }
     void destroyVar(){ --varCount_;}
+    void setZ(bool b){
+        z_ = b;
+    }
+    void setN(bool b){
+        n_ = b;
+    }
+    bool getZ(){
+        return z_;
+    }
+    bool getN(){
+        return n_;
+    }
 private:
     std::vector<int> regs_;
     std::vector<int> stack_;
@@ -214,6 +231,7 @@ private:
     int result_;
     int varCount_;
     bool done_;
+    bool n_, z_;
 };
 class blkInfo{
 public:
@@ -537,7 +555,7 @@ public:
         return false;
     }
     std::string ul(){
-        std::string out(regNums.at([reg_));
+        std::string out(regNums.at(reg_));
         return out;
     }
     Arg* asRA(){
@@ -549,7 +567,6 @@ public:
 private:
     int reg_;
 };
-
 class Const: public Arg{
 public:
     explicit Const( int con ):con_(con){};
@@ -587,7 +604,6 @@ public:
 private:
     int con_;
 };
-
 class DeRef: public Arg{
 public:
     explicit DeRef(Reg* reg):reg_(reg), offset_(0){};
@@ -641,7 +657,6 @@ private:
     Reg* reg_;
     int offset_;
 };
-
 class Ref: public Arg{
 public:
     explicit Ref(std::string n):name_(n){};
@@ -708,7 +723,6 @@ public:
 private:
     std::string name_;
 };
-
 class ByteReg: public Arg{
 public:
     explicit ByteReg(int reg){
@@ -731,13 +745,17 @@ public:
         return out;
    }
     int get(){
-        
+        int out = i_->getReg(reg_);
+        out = out & 0xFF;
+        return out;
     }
     void set(int i){
-        
+        int in = i;
+        in = in & 0xFF;
+        i_->setReg(reg_,in);
     }
     Arg* asHA(localVars* e){
-        
+        return NULL;
     }
     void init(std::shared_ptr<xInfo> i, std::shared_ptr<blkInfo> bi){
         setInfo(i);
@@ -747,10 +765,11 @@ public:
         return false;
     }
     std::string ul(){
-        
+        std::string out = byteRegNums.at(reg_);
+        return out;
     }
     Arg* asRA(){
-        
+        return NULL;
     }
     bool isConst(){
         return false;
@@ -758,7 +777,6 @@ public:
 private:
     int reg_;
 };
-
 //instructions
 class Instr: public X{
 public:
@@ -1193,7 +1211,7 @@ public:
         return output;
    }
    void interp(){
-       
+       ar_->set(al_->get() ^ ar_->get());
    }
    void init(std::shared_ptr<xInfo> i, std::shared_ptr<blkInfo> bi){
         bi_ = bi;
@@ -1229,7 +1247,17 @@ public:
         return output;
    }
    void interp(){
-       
+       int r;
+       bool n(false), z(false);
+       r = ar_->get() - al_->get();
+       if(r < 0){
+           n = true;
+       }
+       else if(r == 0){
+           z = true;
+       }
+        i_->setN(n);
+        i_->setZ(z);
    }
    void init(std::shared_ptr<xInfo> i, std::shared_ptr<blkInfo> bi){
         bi_ = bi;
@@ -1237,10 +1265,11 @@ public:
         ar_->init(i, bi);
    }
    Instr* asHI(localVars *e){
-       
+       return NULL;
    }
    Blk patchI(){
-       
+       Blk out;
+       return out;
    }
    varSet ul(varSet lb){
        
@@ -1249,7 +1278,7 @@ public:
        
    }
    Instr* asRI(){
-       
+       return NULL;
    }
 };
 class Setq: public Instr{
@@ -1275,7 +1304,25 @@ public:
         return output;
    }
    void interp(){
-       
+       bool out;
+       switch(cc_){
+            case 0:
+                out = i_->getN();
+               break;
+            case 1:
+                out = i_->getN() || i_->getZ();
+               break;
+            case 2:
+                out = i_->getZ();
+               break;
+            case 3:
+                out = !i_->getN();
+               break;
+            case 4:
+                out = !i_->getN() && !i_->getZ();
+               break;
+       }
+       al_->set(out);
    }
    void init(std::shared_ptr<xInfo> i, std::shared_ptr<blkInfo> bi){
         bi_ = bi;
@@ -1283,7 +1330,7 @@ public:
         ar_->init(i, bi);
    }
    Instr* asHI(localVars *e){
-       
+       return NULL;
    }
    Blk patchI(){
        
@@ -1295,7 +1342,7 @@ public:
        
    }
    Instr* asRI(){
-       
+       return NULL;
    }
 private:
     int cc_;
@@ -1313,7 +1360,7 @@ public:
         return output;
    }
    void interp(){
-       
+        ar_->set(al_->get());
    }
    void init(std::shared_ptr<xInfo> i, std::shared_ptr<blkInfo> bi){
         bi_ = bi;
@@ -1359,11 +1406,31 @@ public:
         return output;
    }
    void interp(){
-       
+        bool out;
+       switch(cc_){
+            case 0:
+                out = i_->getN();
+               break;
+            case 1:
+                out = i_->getN() || i_->getZ();
+               break;
+            case 2:
+                out = i_->getZ();
+               break;
+            case 3:
+                out = !i_->getN();
+               break;
+            case 4:
+                out = !i_->getN() && !i_->getZ();
+               break;
+       }
+       if(out){
+           l_->interp();
+       }
    }
    void init(std::shared_ptr<xInfo> i, std::shared_ptr<blkInfo> bi){
         bi_ = bi;
-        l_->init(i, bi);
+        l_->setInfo(i);
    }
    Instr* asHI(localVars *e){
        
@@ -2723,8 +2790,6 @@ private:
     bool mode_;
     static int num_;
 };
-
-
 class Let: public Expr{
 public:
     Let(std::string var, Expr* exp, Expr* body): Expr(exp, body), var_(var){
@@ -3175,8 +3240,6 @@ Expr* And(Expr* l, Expr* r);
 Expr* Or(Expr* l, Expr* r);
 Expr* Sub(Expr* l, Expr* r);
 Expr* Xor(Expr* l, Expr* r);
-
-
 //temp Info class
 class Info {
 public:
