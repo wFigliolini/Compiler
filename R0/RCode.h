@@ -37,17 +37,17 @@ const std::map<int,std::string> regNums = {
     {15,"%r15"}
 };
 const std::map<std::string,int> byteRegNames = {
-    {"%rl",0}, {"%bl",1}, {"\%cl",2},
-    {"\%dl",3}, {"\%sil",4}, {"\%dil",5},
-    {"%bpl",6}, {"\%spl",7}, {"%r8b",8},
+    {"%al",0}, {"%bl",1}, {"%cl",2},
+    {"%dl",3}, {"%sil",4}, {"%dil",5},
+    {"%bpl",6}, {"%spl",7}, {"%r8b",8},
     {"%r9b",9}, {"%r10b",10}, {"%r11b",11},
     {"%r12b",12}, {"%r13b",13}, {"%r14b",14},
     {"%r15b",15}
 };
 const std::map<int,std::string> byteRegNums = {
-    {0,"\%al"}, {1,"%bl"}, {2,"\%cl"},
-    {3,"\%dl"}, {4,"\%sil"}, {5,"\%dil"},
-    {6,"%bpl"}, {7,"\%spl"}, {8,"%r8b"},
+    {0,"%al"}, {1,"%bl"}, {2,"%cl"},
+    {3,"%dl"}, {4,"%sil"}, {5,"%dil"},
+    {6,"%bpl"}, {7,"%spl"}, {8,"%r8b"},
     {9,"%r9b"}, {10,"%r10b"}, {11,"%r11b"},
     {12,"%r12b"}, {13,"%r13b"}, {14,"%r14b"},
     {15,"%r15b"}
@@ -1327,7 +1327,6 @@ public:
    void init(std::shared_ptr<xInfo> i, std::shared_ptr<blkInfo> bi){
         bi_ = bi;
         al_->init(i, bi);
-        ar_->init(i, bi);
    }
    Instr* asHI(localVars *e){
        return NULL;

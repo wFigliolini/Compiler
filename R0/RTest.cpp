@@ -2190,5 +2190,19 @@ BOOST_AUTO_TEST_SUITE(R0TESTS)
             }
             BOOST_REQUIRE(initResult);
         }
-        
+        BOOST_AUTO_TEST_CASE(X1Test5){
+            std::vector<Instr*> instrSet;
+            instrSet.push_back(new Movq(new Const(1),  new Reg(0)));
+            instrSet.push_back(new Cmpq(new Const(1),  new Reg(0)));
+            instrSet.push_back(new Setq("==", new ByteReg("%al")));
+            instrSet.push_back(new Retq());
+            Block* main = new Block(instrSet);
+            xProgram* xTest = new xProgram(main);
+            int f = xTest->run();
+            bool initResult = f == 1;
+            if (initResult ==  false) {
+                std::cout << f << std::endl;
+            }
+            BOOST_REQUIRE(initResult);
+        }
 BOOST_AUTO_TEST_SUITE_END()
